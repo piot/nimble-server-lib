@@ -17,7 +17,7 @@ for a client hosting a server.
 
 ==== Server
 
-image::images/nimble.svg[server]
+image::images/nimble.svg[server, align="center"]
 
 When a client that wants to participate in the game, it sends a request for a participant connection. The requests holds the number of local human players that are sharing that connection. It can be multiple local players in the case of a splitscreen game.
 The server allocates a participant connection and allocates a Participant for each of the local players. A Participant Step Slot can be
