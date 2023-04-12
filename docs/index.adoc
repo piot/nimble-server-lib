@@ -1,5 +1,7 @@
 Nimble Server Library
 
+Copyright (C) 2022 Peter Bjorklund. All rights reserved.
+
 == Nimble Server Library
 
 Server functionality for the link:https://github.com/piot/nimble-serialize-c/blob/main/docs/index.md[ Nimble protocol]. This library can be used both for a standalone server as well as
