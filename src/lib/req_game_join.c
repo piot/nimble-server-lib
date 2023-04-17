@@ -13,7 +13,7 @@
 #include <nimble-server/req_participants.h>
 #include <nimble-server/server.h>
 
-int nbdGameJoinParticipantConnection(NbdParticipantConnections *connections, NbdParticipants *gameParticipants,
+static int nbdGameJoinParticipantConnection(NbdParticipantConnections *connections, NbdParticipants *gameParticipants,
                                      size_t transportConnectionId, StepId currentStepId,
                                      const NbdParticipantJoinInfo *joinInfo, size_t localParticipantCount,
                                      struct NbdParticipantConnection **outConnection) {
