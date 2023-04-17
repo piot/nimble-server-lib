@@ -224,17 +224,15 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame *game, NbdParticipantConnect
 }
 
 static int
-handleIncomingSteps(NbdGame *foundGame, NbdParticipantConnections *connections, const uint8_t *data, size_t len,
+handleIncomingSteps(NbdGame *foundGame, NbdParticipantConnections *connections, FldInStream* inStream,
                     NbdParticipantConnection *foundParticipantConnection,
                     StepId *outClientWaitingForStepId, uint64_t *outReceiveMask) {
-    FldInStream inStream;
-    fldInStreamInit(&inStream, data, len);
 
 
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-    int errorCode = nbsPendingStepsInSerializeHeader(&inStream, &clientWaitingForStepId, &receiveMask);
+    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("client step: couldn't in-serialize pending steps")
         return errorCode;
@@ -245,7 +243,7 @@ handleIncomingSteps(NbdGame *foundGame, NbdParticipantConnections *connections, 
 
     size_t stepsThatFollow;
     StepId firstStepId;
-    errorCode = nbsStepsInSerializeHeader(&inStream, &firstStepId, &stepsThatFollow);
+    errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("client step: couldn't in-serialize steps")
         return errorCode;
@@ -264,7 +262,7 @@ handleIncomingSteps(NbdGame *foundGame, NbdParticipantConnections *connections, 
         nbdInsertDefaultSteps(foundParticipantConnection, dropped);
     }
 
-    int addedStepsCount = nbsStepsInSerialize(&inStream, &foundParticipantConnection->steps, firstStepId,
+    int addedStepsCount = nbsStepsInSerialize(inStream, &foundParticipantConnection->steps, firstStepId,
                                               stepsThatFollow);
     if (addedStepsCount < 0) {
         return addedStepsCount;
@@ -364,11 +362,11 @@ static int sendStepRanges(FldOutStream *outStream, NbdParticipantConnection *fou
 }
 
 int nbdReqGameStep(NbdGame *foundGame, NbdParticipantConnection *foundParticipantConnection,
-                   NbdParticipantConnections *connections, const uint8_t *data, size_t len, FldOutStream *outStream) {
+                   NbdParticipantConnections *connections, FldInStream* inStream, FldOutStream *outStream) {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-    int errorCode = handleIncomingSteps(foundGame, connections, data, len, foundParticipantConnection,
+    int errorCode = handleIncomingSteps(foundGame, connections, inStream, foundParticipantConnection,
                                         &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("problem handling incoming step:%d", errorCode);

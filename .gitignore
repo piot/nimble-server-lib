@@ -1,0 +1,14 @@
+deps/
+CMakeFiles/
+build/
+CMakeCache.txt
+Makefile
+*.cmake
+*.a
+.DS_Store
+.vscode/
+deps.*/
+.idea/
+cmake-build*/
+html/
+latex/

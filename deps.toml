@@ -27,6 +27,11 @@ version = "*"
 name = 'piot/udp-transport'
 version = "*"
 
+[[dependencies]]
+name = 'piot/ordered-datagram-c'
+version = "*"
+
+
 [[development]]
 name = 'piot/udp-server-c'
 version = "*"

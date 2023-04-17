@@ -9,11 +9,8 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state.h>
 
-int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, ImprintAllocator* pageAllocator, NbdGameState* latestState, const uint8_t* data, size_t len, FldOutStream * outStream)
+int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, ImprintAllocator* pageAllocator, NbdGameState* latestState, FldInStream* inStream, FldOutStream * outStream)
 {
-    FldInStream inStream;
-    fldInStreamInit(&inStream, data, len);
-
     if (latestState->octetCount == 0)
     {
       CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u", foundParticipantConnection->id);

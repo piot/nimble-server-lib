@@ -9,9 +9,11 @@
 #include <stdint.h>
 
 struct NbdParticipantConnection;
-struct NbdResponse;
+struct NbdTransportConnection;
+struct UdpTransportOut;
+struct FldInStream;
 
-int nbdReqDownloadGameStateAck(struct NbdParticipantConnection* self, const uint8_t* packetPayload, size_t packetOctetCount,
-                    const struct NbdResponse* response);
+int nbdReqDownloadGameStateAck(struct NbdParticipantConnection* self, struct NbdTransportConnection* transportConnection, struct FldInStream* inStream,
+                    struct UdpTransportOut *transportOut);
 
 #endif

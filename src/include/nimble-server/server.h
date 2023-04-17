@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <nimble-serialize/version.h>
 #include <clog/clog.h>
+#include <ordered-datagram/in_logic.h>
+#include <ordered-datagram/out_logic.h>
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
@@ -19,6 +21,8 @@ struct NbdParticipant;
 typedef struct NbdTransportConnection {
     uint8_t transportConnectionId;
     struct NbdParticipantConnection* assignedParticipantConnection;
+    OrderedDatagramInLogic orderedDatagramInLogic;
+    OrderedDatagramOutLogic orderedDatagramOutLogic;
 } NbdTransportConnection;
 
 typedef struct NbdServer {
@@ -44,7 +48,7 @@ void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);
 
-int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex, const struct NbdParticipant** participants, size_t participantCount);
+int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex);
 int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex);
 
 #endif

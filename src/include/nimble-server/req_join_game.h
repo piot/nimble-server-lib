@@ -10,9 +10,9 @@
 
 struct NbdServer;
 struct FldOutStream;
+struct FldInStream;
 struct NbdTransportConnection;
 
-int nbdReqGameJoin(struct NbdServer *self, struct NbdTransportConnection *transportConnection, const uint8_t *data,
-                   size_t len, struct FldOutStream *outStream);
+int nbdReqGameJoin(struct NbdServer *self, struct NbdTransportConnection *transportConnection, struct FldInStream* inStream, struct FldOutStream *outStream);
 
 #endif

@@ -9,8 +9,9 @@ struct NbdParticipantConnection;
 struct ImprintAllocator;
 struct NbdGameState;
 struct FldOutStream;
+struct FldInStream;
 
-int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, struct ImprintAllocator* pageAllocator, struct NbdGameState* latestState, const uint8_t* data, size_t len, struct FldOutStream* outStream);
+int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, struct ImprintAllocator* pageAllocator, struct NbdGameState* latestState, struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif
 

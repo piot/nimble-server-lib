@@ -78,6 +78,7 @@ target_include_directories(nimble_server_lib PRIVATE
   ${deps}piot/nimble-steps-c/src/include
   ${deps}piot/nimble-steps-serialize-c/src/include
   ${deps}piot/nimble-serialize-c/src/include
+  ${deps}piot/ordered-datagram-c/src/include
   ${deps}piot/discoid-c/src/include
   ${deps}piot/clog/src/include
   ${deps}piot/imprint/src/include

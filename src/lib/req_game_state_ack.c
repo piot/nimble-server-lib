@@ -14,14 +14,9 @@
 #include <udp-transport/udp_transport.h>
 #include <nimble-server/participant_connection.h>
 
-int nbdReqDownloadGameStateAck(NbdParticipantConnection *foundParticipantConnection, const uint8_t *packetPayload,
-                               size_t packetOctetCount, const NbdResponse *response) {
-    FldInStream inStream;
-    fldInStreamInit(&inStream, packetPayload, packetOctetCount);
-
-
+int nbdReqDownloadGameStateAck(NbdParticipantConnection *foundParticipantConnection, NbdTransportConnection* transportConnection, FldInStream* inStream, UdpTransportOut *transportOut) {
     NimbleSerializeBlobStreamChannelId channelId;
-    int errorCode = nimbleSerializeInBlobStreamChannelId(&inStream, &channelId);
+    int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("nbdReqJoinGameStateAck: could not get channelId")
         return errorCode;
@@ -34,13 +29,11 @@ int nbdReqDownloadGameStateAck(NbdParticipantConnection *foundParticipantConnect
     //  return errorCode;
     //}
 
-    int receiveResult = blobStreamLogicOutReceive(&foundParticipantConnection->blobStreamLogicOut, &inStream);
+    int receiveResult = blobStreamLogicOutReceive(&foundParticipantConnection->blobStreamLogicOut, inStream);
     if (receiveResult < 0) {
         CLOG_SOFT_ERROR("nbdReqJoinGameStateAck: could not receive blobStreamLogicOut")
         return receiveResult;
     }
-
-    UdpTransportOut *transportOut = response->transportOut;
 
     MonotonicTimeMs now = monotonicTimeMsNow();
     const BlobStreamOutEntry *entries[4];
@@ -56,9 +49,12 @@ int nbdReqDownloadGameStateAck(NbdParticipantConnection *foundParticipantConnect
         // CLOG_DEBUG("sending state %08X (octet count :%zu)", options.stepId, options.gameStateOctetCount);
 
         fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
+        orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &stream);
+
         nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, "");
         nimbleSerializeOutBlobStreamChannelId(&stream, channelId);
         blobStreamLogicOutSendEntry(&stream, entry);
+        orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
         transportOut->send(transportOut->self, stream.octets, stream.pos);
     }
 

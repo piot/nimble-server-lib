@@ -12,7 +12,8 @@ struct NbdGame;
 struct NbdParticipantConnection;
 struct NbdParticipantConnections;
 struct FldOutStream;
+struct FldInStream;
 
-int nbdReqGameStep(struct NbdGame* game, struct NbdParticipantConnection* foundConnection,  struct NbdParticipantConnections * connections,  const uint8_t* data, size_t len, struct FldOutStream* response);
+int nbdReqGameStep(struct NbdGame* game, struct NbdParticipantConnection* foundConnection,  struct NbdParticipantConnections * connections, struct FldInStream* inStream, struct FldOutStream* response);
 
 #endif

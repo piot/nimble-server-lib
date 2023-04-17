@@ -57,13 +57,11 @@ int nbdReadAndJoinParticipants(NbdParticipantConnections *connections, NbdPartic
 }
 
 
-int nbdReqGameJoin(NbdServer *self, NbdTransportConnection *transportConnection, const uint8_t *data, size_t len,
+int nbdReqGameJoin(NbdServer *self, NbdTransportConnection *transportConnection, FldInStream* inStream,
                    FldOutStream *outStream) {
-    FldInStream inStream;
-    fldInStreamInit(&inStream, data, len);
 
     NimbleSerializeVersion nimbleProtocolVersion;
-    int errorCode = nimbleSerializeInVersion(&inStream, &nimbleProtocolVersion);
+    int errorCode = nimbleSerializeInVersion(inStream, &nimbleProtocolVersion);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("could not read nimble serialize version %d", errorCode)
         return errorCode;
@@ -83,7 +81,7 @@ int nbdReqGameJoin(NbdServer *self, NbdTransportConnection *transportConnection,
 
 
     NimbleSerializeVersion clientApplicationVersion;
-    errorCode = nimbleSerializeInVersion(&inStream, &clientApplicationVersion);
+    errorCode = nimbleSerializeInVersion(inStream, &clientApplicationVersion);
     if (errorCode < 0) {
         CLOG_SOFT_ERROR("wrong version %d", errorCode)
         return errorCode;
@@ -100,7 +98,7 @@ int nbdReqGameJoin(NbdServer *self, NbdTransportConnection *transportConnection,
 
     NbdParticipantConnection *createdConnection;
     errorCode = nbdReadAndJoinParticipants(&self->connections, &self->game.participants,
-                                           transportConnection->transportConnectionId, &inStream,
+                                           transportConnection->transportConnectionId, inStream,
                                            self->game.latestState.stepId,
                                            &createdConnection);
     if (errorCode < 0) {
