@@ -11,9 +11,8 @@ struct FldInStream;
 struct NbdParticipantConnection;
 struct NbdParticipantConnections;
 
-int nbdReadAndJoinParticipants(struct NbdParticipantConnections *connections, NbdParticipants *gameParticipants,
-                               size_t transportConnectionId, struct FldInStream *inStream, StepId stepId,
-                               struct NbdParticipantConnection **createdConnection);
+int nbdReadAndJoinParticipants(struct NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
+                               size_t transportConnectionId, struct FldInStream* inStream,
+                               struct NbdParticipantConnection** createdConnection);
 
 #endif
-

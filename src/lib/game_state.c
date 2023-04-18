@@ -2,8 +2,8 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-#include <nimble-server/game_state.h>
 #include <imprint/allocator.h>
+#include <nimble-server/game_state.h>
 
 void nbdGameStateInit(NbdGameState* self, ImprintAllocator* allocator, size_t octetCount)
 {
@@ -15,5 +15,4 @@ void nbdGameStateInit(NbdGameState* self, ImprintAllocator* allocator, size_t oc
 
 void nbdGameStateDestroy(NbdGameState* self)
 {
-
 }

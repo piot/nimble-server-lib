@@ -5,8 +5,8 @@
 #ifndef NIMBLE_SERVER_PARTICIPANT_H
 #define NIMBLE_SERVER_PARTICIPANT_H
 
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 typedef struct NbdParticipant {
     size_t localIndex;

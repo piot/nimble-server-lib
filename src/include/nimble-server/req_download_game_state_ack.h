@@ -13,7 +13,8 @@ struct NbdTransportConnection;
 struct UdpTransportOut;
 struct FldInStream;
 
-int nbdReqDownloadGameStateAck(struct NbdParticipantConnection* self, struct NbdTransportConnection* transportConnection, struct FldInStream* inStream,
-                    struct UdpTransportOut *transportOut);
+int nbdReqDownloadGameStateAck(struct NbdParticipantConnection* self,
+                               struct NbdTransportConnection* transportConnection, struct FldInStream* inStream,
+                               struct UdpTransportOut* transportOut);
 
 #endif

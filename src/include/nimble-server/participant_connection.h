@@ -12,13 +12,13 @@
 #include <nimble-serialize/serialize.h>
 #include <imprint/tagged_allocator.h>
 #include <stdbool.h>
-#include "participants.h"
+#include <nimble-server/participants.h>
 
 struct NbdParticipant;
 
 typedef struct NbdParticipantReferences {
     size_t participantReferenceCount;
-    struct NbdParticipant* participantReferences[MAX_LOCAL_PLAYERS];
+    struct NbdParticipant *participantReferences[MAX_LOCAL_PLAYERS];
 } NbdParticipantReferences;
 
 /// Represents a UDP "connection" from a client which can hold several game participants. */
@@ -36,16 +36,19 @@ typedef struct NbdParticipantConnection {
     NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
     NimbleSerializeBlobStreamChannelId nextBlobStreamOutChannel;
     size_t transportConnectionId;
-    ImprintAllocatorWithFree* blobStreamOutAllocator;
-    ImprintAllocator* allocatorWithNoFree;
+    ImprintAllocatorWithFree *blobStreamOutAllocator;
+    ImprintAllocator *allocatorWithNoFree;
 } NbdParticipantConnection;
 
-void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionId, ImprintAllocator* allocator, ImprintAllocatorWithFree* blobAllocator, size_t maxOctets);
-void nbdParticipantConnectionReInit(NbdParticipantConnection* self, StepId stepId,
-                                    const struct NbdParticipant** participants, size_t participantCount);
+void
+nbdParticipantConnectionInit(NbdParticipantConnection *self, size_t transportConnectionId, ImprintAllocator *allocator,
+                             ImprintAllocatorWithFree *blobAllocator, size_t maxOctets);
 
-void nbdParticipantConnectionReset(NbdParticipantConnection* self);
+void nbdParticipantConnectionReInit(NbdParticipantConnection *self, StepId stepId,
+                                    const struct NbdParticipant **participants, size_t participantCount);
 
-int nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId);
+void nbdParticipantConnectionReset(NbdParticipantConnection *self);
+
+int nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection *self, uint8_t participantId);
 
 #endif

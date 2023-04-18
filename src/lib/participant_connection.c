@@ -16,12 +16,14 @@
 ///
 /// Need to create Participants to the game before associating them to the connection.
 ///
-void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionIndex, ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator, size_t maxOctets)
+void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionIndex,
+                                  ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator,
+                                  size_t maxOctets)
 {
     nbsStepsInit(&self->steps, connectionAllocator, maxOctets);
 
     self->participantReferences.participantReferenceCount = 0;
-    //self->participants = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipant*, 4);
+    // self->participants = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipant*, 4);
 
     self->debugCounter = 0;
     self->blobStreamOutAllocator = blobAllocator;
@@ -51,7 +53,6 @@ void nbdParticipantConnectionReset(NbdParticipantConnection* self)
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
 }
-
 
 int nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId)
 {

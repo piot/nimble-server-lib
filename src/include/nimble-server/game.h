@@ -22,5 +22,4 @@ void nbdGameInit(NbdGame* self, struct ImprintAllocator* allocator, size_t maxCo
 void nbdGameDestroy(NbdGame* self);
 int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount);
 
-
 #endif

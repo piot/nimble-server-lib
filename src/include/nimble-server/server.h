@@ -5,14 +5,14 @@
 #ifndef NIMBLE_SERVER_SERVER_H
 #define NIMBLE_SERVER_SERVER_H
 
-#include <nimble-server/participant_connections.h>
-#include <nimble-server/game.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <nimble-serialize/version.h>
 #include <clog/clog.h>
+#include <nimble-serialize/version.h>
+#include <nimble-server/game.h>
+#include <nimble-server/participant_connections.h>
 #include <ordered-datagram/in_logic.h>
 #include <ordered-datagram/out_logic.h>
+#include <stdarg.h>
+#include <stdint.h>
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
@@ -26,14 +26,14 @@ typedef struct NbdTransportConnection {
 } NbdTransportConnection;
 
 typedef struct NbdServer {
-  NbdTransportConnection transportConnections[64];
-  NbdParticipantConnections connections;
-  NbdGame game;
+    NbdTransportConnection transportConnections[64];
+    NbdParticipantConnections connections;
+    NbdGame game;
 
-  struct ImprintAllocator* pageAllocator;
-  struct ImprintAllocatorWithFree* blobAllocator;
+    struct ImprintAllocator* pageAllocator;
+    struct ImprintAllocatorWithFree* blobAllocator;
 
-  NimbleSerializeVersion applicationVersion;
+    NimbleSerializeVersion applicationVersion;
     Clog clog;
 } NbdServer;
 
@@ -41,8 +41,8 @@ typedef struct NbdResponse {
     struct UdpTransportOut* transportOut;
 } NbdResponse;
 
-
-int nbdServerInit(NbdServer* self, NimbleSerializeVersion applicationVersion, struct ImprintAllocator* memory, struct ImprintAllocatorWithFree* blobAllocator);
+int nbdServerInit(NbdServer* self, NimbleSerializeVersion applicationVersion, struct ImprintAllocator* memory,
+                  struct ImprintAllocatorWithFree* blobAllocator);
 int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount);
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);

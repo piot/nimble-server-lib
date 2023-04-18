@@ -8,7 +8,16 @@
 #include <nimble-steps-serialize/out_serialize.h>
 #include <clog/clog.h>
 
-int nbdCreateDefaultStep(NbdParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount)
+/// Creates a forced step for a participant connection participants.
+/// Forced steps are used for a participant connection that is too much behind
+/// of other participant connections.
+/// @note currently all applications must support a one octet length step with value zero for "empty" forced step.
+/// @todo option to copy the last received step and also support application-specific rules for forced steps.
+/// @param connection
+/// @param forcedStepsBuffer
+/// @param maxCount
+/// @return
+int nbdCreateForcedStep(NbdParticipantConnection* connection, uint8_t* forcedStepsBuffer, size_t maxCount)
 {
     static uint8_t buf[1];
     buf[0] = 0;
@@ -19,17 +28,22 @@ int nbdCreateDefaultStep(NbdParticipantConnection* connection, uint8_t* defaultS
         participants.participants[i].payload = buf;
         participants.participants[i].payloadCount = 1;
     }
-    return nbsStepsOutSerializeStep(&participants, defaultStepBuffer, maxCount);
+    return nbsStepsOutSerializeStep(&participants, forcedStepsBuffer, maxCount);
 }
 
-int nbdInsertDefaultSteps(NbdParticipantConnection* foundParticipantConnection, size_t dropped)
+/// Insert forced steps for a participant connection
+///
+/// @param foundParticipantConnection
+/// @param stepCount number of forced steps to insert
+/// @return negative value on error.
+int nbdInsertForcedSteps(NbdParticipantConnection* foundParticipantConnection, size_t stepCount)
 {
-    uint8_t defaultStepBuffer[64];
-    int defaultStepOctetCount = nbdCreateDefaultStep(foundParticipantConnection, defaultStepBuffer, 64);
+    uint8_t forcedStepsBuffer[64];
+    int defaultStepOctetCount = nbdCreateForcedStep(foundParticipantConnection, forcedStepsBuffer, 64);
     StepId stepIdToWrite = foundParticipantConnection->steps.expectedWriteId;
-    CLOG_VERBOSE("nbdServer: insert default steps (0)")
-    for (size_t i = 0; i < dropped; ++i) {
-        int errorCode = nbsStepsWrite(&foundParticipantConnection->steps, stepIdToWrite, defaultStepBuffer,
+    CLOG_VERBOSE("nbdServer: insert forced steps (0)")
+    for (size_t i = 0; i < stepCount; ++i) {
+        int errorCode = nbsStepsWrite(&foundParticipantConnection->steps, stepIdToWrite, forcedStepsBuffer,
                                       defaultStepOctetCount);
         if (errorCode < 0) {
             return errorCode;

@@ -10,7 +10,7 @@
 
 struct NbdParticipantConnection;
 
-int nbdInsertDefaultSteps(struct NbdParticipantConnection* foundParticipantConnection, size_t dropped);
-int nbdCreateDefaultStep(struct NbdParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
+int nbdInsertForcedSteps(struct NbdParticipantConnection* foundParticipantConnection, size_t dropped);
+int nbdCreateForcedStep(struct NbdParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
 
 #endif

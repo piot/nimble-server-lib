@@ -11,7 +11,8 @@ struct NbdGameState;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, struct ImprintAllocator* pageAllocator, struct NbdGameState* latestState, struct FldInStream* inStream, struct FldOutStream* outStream);
+int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection,
+                            struct ImprintAllocator* pageAllocator, struct NbdGameState* latestState,
+                            struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif
-

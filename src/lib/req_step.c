@@ -259,7 +259,7 @@ handleIncomingSteps(NbdGame *foundGame, NbdParticipantConnections *connections, 
         }
         CLOG_WARN("client step: dropped %zu steps. expected %04X, but got from %04X to %zX", dropped,
                   foundParticipantConnection->steps.expectedWriteId, firstStepId, firstStepId + stepsThatFollow - 1)
-        nbdInsertDefaultSteps(foundParticipantConnection, dropped);
+        nbdInsertForcedSteps(foundParticipantConnection, dropped);
     }
 
     int addedStepsCount = nbsStepsInSerialize(inStream, &foundParticipantConnection->steps, firstStepId,
