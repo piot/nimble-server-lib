@@ -24,7 +24,7 @@ int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection
 
     blobStreamOutInit(&foundParticipantConnection->blobStreamOut, pageAllocator,
                       foundParticipantConnection->blobStreamOutAllocator, outGameState.gameState,
-                      outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE);
+                      outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE, foundParticipantConnection->log);
     blobStreamLogicOutInit(&foundParticipantConnection->blobStreamLogicOut, &foundParticipantConnection->blobStreamOut);
 
     foundParticipantConnection->blobStreamOutChannel = foundParticipantConnection->nextBlobStreamOutChannel++;

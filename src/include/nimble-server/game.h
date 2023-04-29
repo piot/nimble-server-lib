@@ -16,6 +16,7 @@ typedef struct NbdGame {
     NbsSteps authoritativeSteps;
     NbdGameState latestState;
     NbdParticipants participants;
+    Clog log;
 } NbdGame;
 
 void nbdGameInit(NbdGame* self, struct ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,

@@ -62,7 +62,8 @@ int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t ga
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);
-
+bool nbdServerMustProvideGameState(const NbdServer* self);
+void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
 int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex);
 int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex);
 

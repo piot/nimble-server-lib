@@ -37,6 +37,7 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
     self->nextBlobStreamOutChannel = 127;
     self->transportConnectionId = transportConnectionIndex;
     self->isUsed = false;
+    self->noRangesToSendCounter = 0;
 
     statsIntInit(&self->stepsBehindStats, 60);
     statsIntInit(&self->incomingStepCountInBufferStats, 60);

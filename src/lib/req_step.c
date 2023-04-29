@@ -27,7 +27,7 @@ static int checkEveryoneHasAStepAndDisconnectIfNeeded(NbdParticipantConnections*
         NbsSteps* steps = &connection->steps;
 
         if (steps->stepsCount == 0) {
-            CLOG_VERBOSE("nimble_server_lib: waiting for connection %d: had no steps", connection->id);
+            CLOG_C_VERBOSE(&connections->log, "waiting for connection %d: had no steps", connection->id);
             steps->waitCounter++;
             if (steps->waitCounter > 30) {
                 // connection->owner = 0;
@@ -36,13 +36,14 @@ static int checkEveryoneHasAStepAndDisconnectIfNeeded(NbdParticipantConnections*
         }
 
         if (stepIdThatWeNeed > steps->expectedReadId) {
-            CLOG_WARN("nimble_server_lib: we had to skip ahead. Step %08X is next, but server needs %08X",
-                      steps->expectedReadId, stepIdThatWeNeed)
+            CLOG_C_WARN(&connections->log, "we had to skip ahead. Step %08X is next, but server needs %08X",
+                        steps->expectedReadId, stepIdThatWeNeed)
             nbsStepsDiscardUpTo(steps, stepIdThatWeNeed);
         }
 
         if (steps->stepsCount == 0) {
-            CLOG_VERBOSE("nimble_server_lib: waiting for connection %d: had no steps after discard", connection->id);
+            CLOG_C_VERBOSE(&connections->log,
+                           "waiting for connection %d: had no steps after discard", connection->id);
             steps->waitCounter++;
             if (steps->waitCounter > 30) {
                 // connection->owner = 0;
@@ -52,7 +53,7 @@ static int checkEveryoneHasAStepAndDisconnectIfNeeded(NbdParticipantConnections*
         }
 
         if (steps->expectedReadId != stepIdThatWeNeed) {
-            CLOG_WARN("nimble_server_lib: we want %08X from the client, but it has stored %08X", stepIdThatWeNeed,
+            CLOG_C_WARN(&connections->log, "we want %08X from the client, but it has stored %08X", stepIdThatWeNeed,
                       steps->expectedReadId)
             return 0;
         }
@@ -82,7 +83,7 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         int stepOctetCount;
         if (steps->stepsCount < 1) {
             //  nbdInsertDefaultSteps(connection, 1);
-            CLOG_WARN("no steps stored in connection %zu (%u). server is looking for %08X", i, connection->id,
+            CLOG_C_WARN(&connection->log, "no steps stored in connection %zu (%u). server is looking for %08X", i, connection->id,
                       lookingFor)
         }
         stepOctetCount = nbsStepsRead(steps, &encounteredStepId, stepReadBuffer, 1024);
@@ -93,17 +94,17 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         StepId connectionCanProvideId = encounteredStepId;
 
         if (stepOctetCount < 0) {
-            CLOG_SOFT_ERROR("couldn't read from connection %d, server was hoping for step %08X", stepOctetCount,
+            CLOG_C_SOFT_ERROR(&connection->log, "couldn't read from connection %d, server was hoping for step %08X", stepOctetCount,
                             lookingFor)
             return stepOctetCount;
         }
         if (stepOctetCount < 1) {
-            CLOG_SOFT_ERROR("it should have something to contribute")
+            CLOG_C_SOFT_ERROR(&connection->log, "it should have something to contribute")
             return -4;
         }
 
         if (connectionCanProvideId != lookingFor) {
-            CLOG_SOFT_ERROR("strange, wasn't the ID I was looking for. Wanted %08X, but got %08X", lookingFor,
+            CLOG_C_SOFT_ERROR(&connection->log, "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X", lookingFor,
                             connectionCanProvideId)
             return -6;
         }
@@ -115,11 +116,11 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         uint8_t localParticipantCount;
         fldInStreamReadUInt8(&stepInStream, &localParticipantCount);
         if (localParticipantCount == 0) {
-            CLOG_ERROR("not allowed to have zero participant count in message");
+            CLOG_C_ERROR(&connection->log, "not allowed to have zero participant count in message");
         }
 
         if (localParticipantCount != connection->participantReferences.participantReferenceCount) {
-            CLOG_NOTICE("connection %d should provide the appropriate number of participants %d vs %zu", connection->id,
+            CLOG_C_NOTICE(&connection->log, "connection %d should provide the appropriate number of participants %d vs %zu", connection->id,
                         localParticipantCount, connection->participantReferences.participantReferenceCount)
         }
 
@@ -128,19 +129,19 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
             uint8_t participantId;
             fldInStreamReadUInt8(&stepInStream, &participantId);
             if (participantId == 0) {
-                CLOG_SOFT_ERROR("participantId zero is reserved")
+                CLOG_C_SOFT_ERROR(&connection->log, "participantId zero is reserved")
             }
             uint8_t localStepOctetCount;
             fldInStreamReadUInt8(&stepInStream, &localStepOctetCount);
             fldInStreamReadOctets(&stepInStream, splitStepBuffer, localStepOctetCount);
 #if NBD_LOGGING
-            CLOG_VERBOSE("connection %d. Read participant ID %d (octetCount %hhu)", connection->id, participantId,
+            CLOG_C_VERBOSE(&connection->log, "connection %d. Read participant ID %d (octetCount %hhu)", connection->id, participantId,
                          localStepOctetCount)
 #endif
 
             int hasParticipant = nbdParticipantConnectionHasParticipantId(connection, participantId);
             if (!hasParticipant) {
-                CLOG_SOFT_ERROR("participant connection %d had no right to insert steps for participant %hhu",
+                CLOG_C_SOFT_ERROR(&connection->log, "participant connection %d had no right to insert steps for participant %hhu",
                                 connection->id, participantId)
                 continue;
             }
@@ -174,7 +175,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
 
     while (1) {
         if (authoritativeSteps->stepsCount >= maxAuthoritativeStepCountSinceState) {
-            CLOG_WARN("we have too many steps in authoritative buffer (%zu). Waiting for state from client.",
+            CLOG_C_WARN(&game->log, "we have too many steps in authoritative buffer (%zu). Waiting for state from client.",
                       authoritativeSteps->stepsCount)
             break;
         }
@@ -182,11 +183,11 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
         StepId lookingFor = authoritativeSteps->expectedWriteId;
         int existsContribution = checkEveryoneHasAStepAndDisconnectIfNeeded(connections, lookingFor);
         if (existsContribution == 0) {
-            CLOG_VERBOSE("authoritative: everyone didn't have step contributions for %08X", lookingFor);
+            CLOG_C_VERBOSE(&game->log, "authoritative: everyone didn't have step contributions for %08X", lookingFor);
             break;
         }
         if (existsContribution < 0) {
-            CLOG_SOFT_ERROR("couldn't check if everyone has a step")
+            CLOG_C_SOFT_ERROR(&game->log,"couldn't check if everyone has a step")
             return existsContribution;
         }
         // CLOG_VERBOSE("authoritative: we can advance step %08X. Create a combined step", lookingFor);
@@ -196,7 +197,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
         int foundParticipantCount = composeAuthoritativeStep(connections, lookingFor, composeStepBuffer, 1024,
                                                              &authoritativeStepOctetCount);
         if (foundParticipantCount < 0) {
-            CLOG_SOFT_ERROR("authoritative: couldn't compose a authoritative step")
+            CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't compose a authoritative step")
             return foundParticipantCount;
         }
 
@@ -206,24 +207,24 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
         }
 
         if (foundParticipantCount == 0) {
-            CLOG_SOFT_ERROR("authoritative: can't have zero participant count")
+            CLOG_C_SOFT_ERROR(&game->log,"authoritative: can't have zero participant count")
             return -48;
         }
 
         int octetsWritten = nbsStepsWrite(authoritativeSteps, lookingFor, composeStepBuffer,
                                           authoritativeStepOctetCount);
         if (octetsWritten < 0) {
-            CLOG_SOFT_ERROR("authoritative: couldn't write")
+            CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't write")
             return octetsWritten;
         }
-        CLOG_VERBOSE("server: authenticate: we have written %08X", lookingFor);
+        CLOG_C_VERBOSE(&game->log, "authenticate: we have written %08X", lookingFor);
 
         writtenAuthoritativeSteps++;
     }
 
 #if NBD_LOGGING && CLOG_LOG_ENABLED
     if (writtenAuthoritativeSteps > 0) {
-        CLOG_VERBOSE("authoritative: written steps from %08X to %zX (%zX)", firstLookingFor,
+        CLOG_C_VERBOSE(&game->log, "authoritative: written steps from %08X to %zX (%zX)", firstLookingFor,
                      firstLookingFor + writtenAuthoritativeSteps - 1, writtenAuthoritativeSteps)
     }
 #endif
@@ -240,7 +241,7 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
 
     int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
-        CLOG_SOFT_ERROR("client step: couldn't in-serialize pending steps")
+        CLOG_C_SOFT_ERROR(&foundParticipantConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;
     }
 
@@ -251,7 +252,7 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
     StepId firstStepId;
     errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
     if (errorCode < 0) {
-        CLOG_SOFT_ERROR("client step: couldn't in-serialize steps")
+        CLOG_C_SOFT_ERROR(&foundParticipantConnection->log, "client step: couldn't in-serialize steps")
         return errorCode;
     }
 
@@ -323,7 +324,16 @@ static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* fou
     }
 
     if (rangeCount == 0) {
-        CLOG_C_NOTICE(&foundParticipantConnection->log, "no ranges to send, suspicious");
+        foundParticipantConnection->noRangesToSendCounter++;
+        if (foundParticipantConnection->noRangesToSendCounter > 8) {
+            int noticeTime = foundParticipantConnection->noRangesToSendCounter % 8;
+            if (noticeTime == 0) {
+                CLOG_C_NOTICE(&foundParticipantConnection->log, "no ranges to send for %d ticks, suspicious",
+                              foundParticipantConnection->noRangesToSendCounter);
+            }
+        }
+    } else {
+        foundParticipantConnection->noRangesToSendCounter = 0;
     }
     bool moreDebug = true; // (foundParticipantConnection->id == 0);
 

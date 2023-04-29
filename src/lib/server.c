@@ -194,6 +194,20 @@ int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex)
     return 0;
 }
 
+const size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
+
+bool nbdServerMustProvideGameState(const NbdServer* self)
+{
+    return (self->game.authoritativeSteps.stepsCount > NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS);
+}
+
+void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
+{
+    CLOG_C_VERBOSE(&self->log, "game state was set locally for stepId %04X (%zu octetCount)", stepId, gameStateOctetCount)
+    nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
+}
+
+
 void nbdServerReset(NbdServer* self)
 {
     // nbdParticipantConnectionsReset(&self->connections);

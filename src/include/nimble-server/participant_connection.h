@@ -38,6 +38,7 @@ typedef struct NbdParticipantConnection {
     size_t transportConnectionId;
     ImprintAllocatorWithFree* blobStreamOutAllocator;
     ImprintAllocator* allocatorWithNoFree;
+    uint8_t noRangesToSendCounter;
     Clog log;
 } NbdParticipantConnection;
 

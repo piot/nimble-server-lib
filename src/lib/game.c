@@ -9,6 +9,7 @@
 void nbdGameInit(NbdGame* self, ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
                  size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log)
 {
+    self->log = log;
     size_t combinedStepOctetCount = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCount,
                                                                               maxSingleParticipantStepOctetCount);
     nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
