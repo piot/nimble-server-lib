@@ -3,30 +3,36 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
-#include <nimble-server/participants.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
 
 void nbdParticipantConnectionsInit(NbdParticipantConnections* self, size_t maxCount,
                                    ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator,
-                                   size_t maxOctetCount)
+                                   size_t maxNumberOfParticipantsForConnection, size_t maxSingleParticipantOctetCount,
+                                   Clog log)
 {
     self->connectionCount = 0;
-    self->connections = tc_malloc_type_count(NbdParticipantConnection, maxCount);
+    self->connections = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipantConnection, maxCount);
     self->capacityCount = maxCount;
     self->allocator = connectionAllocator;
     self->allocatorWithFree = blobAllocator;
+    self->maxParticipantCountForConnection = maxNumberOfParticipantsForConnection;
+    self->maxSingleParticipantStepOctetCount = maxSingleParticipantOctetCount;
+    self->log = log;
 
     tc_mem_clear_type_n(self->connections, self->capacityCount);
 
     for (size_t i = 0; i < self->capacityCount; ++i) {
-        nbdParticipantConnectionInit(&self->connections[i], 0, connectionAllocator, blobAllocator, maxOctetCount);
+        Clog subLog;
+        subLog.constantPrefix = "NbdParticipantConnection";
+        subLog.config = log.config;
+        nbdParticipantConnectionInit(&self->connections[i], 0, connectionAllocator, blobAllocator,
+                                     maxNumberOfParticipantsForConnection, maxSingleParticipantOctetCount, subLog);
     }
 }
 
 void nbdParticipantConnectionsDestroy(NbdParticipantConnections* self)
 {
-    tc_free(self->connections);
 }
 
 void nbdParticipantConnectionsReset(NbdParticipantConnections* self)
@@ -40,7 +46,7 @@ struct NbdParticipantConnection* nbdParticipantConnectionsFindConnection(NbdPart
                                                                          uint8_t connectionIndex)
 {
     if (connectionIndex >= self->capacityCount) {
-        CLOG_ERROR("Illegal connection index: %d", connectionIndex)
+        CLOG_C_ERROR(&self->log, "Illegal connection index: %d", connectionIndex)
         return 0;
     }
 
@@ -85,7 +91,8 @@ int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticip
 
             participantConnection->id = i;
             nbdParticipantConnectionInit(participantConnection, transportConnectionId, self->allocator,
-                                         self->allocatorWithFree, 2 * 1024);
+                                         self->allocatorWithFree, self->maxParticipantCountForConnection,
+                                         self->maxSingleParticipantStepOctetCount, self->log);
             self->connectionCount++;
             participantConnection->isUsed = true;
             for (size_t participantIndex = 0; participantIndex < localParticipantCount; ++participantIndex) {

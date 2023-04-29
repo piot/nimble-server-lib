@@ -3,30 +3,28 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
+#include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/debug.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
 #include <udp-transport/udp_transport.h>
-#include <nimble-server/req_download_game_state.h>
-#include <flood/in_stream.h>
 
-
-int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
-                  const uint8_t *data, size_t len, NbdResponse *response) {
-    CLOG_C_VERBOSE(&self->clog, "nbdServerFeed: feed: %s octetCount: %zu",
-                 nimbleSerializeCmdToString(data[2]), len)
+int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response)
+{
+    CLOG_C_VERBOSE(&self->log, "nbdServerFeed: feed: %s octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
 
     if (connectionIndex >= self->connections.capacityCount) {
         CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
     }
-    NbdTransportConnection *transportConnection = 0;
+    NbdTransportConnection* transportConnection = 0;
     NbdParticipantConnection* connection = 0;
 
     FldInStream inStream;
@@ -53,11 +51,11 @@ int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
     }
 
 #define UDP_MAX_SIZE (1200)
-        static uint8_t buf[UDP_MAX_SIZE];
-        FldOutStream outStream;
-        fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
+    static uint8_t buf[UDP_MAX_SIZE];
+    FldOutStream outStream;
+    fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
 
-        orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &outStream);
+    orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &outStream);
 
     int result = -1;
     switch (cmd) {
@@ -68,9 +66,11 @@ int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
             result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nbdReqDownloadGameState(connection, self->pageAllocator, &self->game.latestState, &inStream, &outStream);
+            result = nbdReqDownloadGameState(connection, self->pageAllocator, &self->game.latestState, &inStream,
+                                             &outStream);
             break;
-        default: CLOG_SOFT_ERROR("nbdServerFeed: unknown command %02X", data[0]);
+        default:
+            CLOG_SOFT_ERROR("nbdServerFeed: unknown command %02X", data[0]);
             return 0;
     }
 
@@ -81,12 +81,8 @@ int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
 
     orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
 
-    return response->transportOut->send(response->transportOut->self, buf,
-                                        outStream.pos);
+    return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
 }
-
-#define MAX_CLIENT_COUNT (32)
-#define MAX_INPUT_OCTET_COUNT (1024)
 
 /// Initialize nimble server
 /// @param self
@@ -94,13 +90,37 @@ int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
 /// @param memory
 /// @param blobAllocator
 /// @return
-int nbdServerInit(NbdServer *self, NimbleSerializeVersion applicationVersion, struct ImprintAllocator *memory, struct ImprintAllocatorWithFree *blobAllocator) {
-    nbdParticipantConnectionsInit(&self->connections, MAX_CLIENT_COUNT, memory, blobAllocator, MAX_INPUT_OCTET_COUNT);
-    self->pageAllocator = memory;
-    self->blobAllocator = blobAllocator;
-    self->applicationVersion = applicationVersion;
-    clogInitFromGlobal(&self->clog, "NimbleServer");
-    for (size_t i=0; i<64; ++i) {
+int nbdServerInit(NbdServer* self, NbdServerSetup setup)
+{
+    self->log = setup.log;
+    if (setup.maxConnectionCount > NBD_SERVER_MAX_TRANSPORT_CONNECTIONS) {
+        CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
+                     NBD_SERVER_MAX_TRANSPORT_CONNECTIONS)
+        return -1;
+    }
+
+    const size_t maximumSingleStepCountAllowed = 24;
+    if (setup.maxSingleParticipantStepOctetCount > maximumSingleStepCountAllowed) {
+        CLOG_C_ERROR(&self->log, "nbdServerInit. Single step octet count is not allowed %zu of %zu",
+                     setup.maxSingleParticipantStepOctetCount, maximumSingleStepCountAllowed)
+        return -1;
+    }
+
+    const size_t maximumNumberOfParticipantsAllowed = NBD_SERVER_MAX_TRANSPORT_CONNECTIONS;
+    if (setup.maxParticipantCount > maximumNumberOfParticipantsAllowed) {
+        CLOG_C_ERROR(&self->log, "nbdServerInit. maximum number of participant count is too high: %zu of %zu",
+                     setup.maxParticipantCount, maximumNumberOfParticipantsAllowed)
+        return -1;
+    }
+
+    nbdParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory, setup.blobAllocator,
+                                  setup.maxParticipantCountForEachConnection, setup.maxSingleParticipantStepOctetCount,
+                                  setup.log);
+    self->pageAllocator = setup.memory;
+    self->blobAllocator = setup.blobAllocator;
+    self->applicationVersion = setup.applicationVersion;
+    self->setup = setup;
+    for (size_t i = 0; i < NBD_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
         self->transportConnections[i].transportConnectionId = i;
     }
@@ -108,17 +128,19 @@ int nbdServerInit(NbdServer *self, NimbleSerializeVersion applicationVersion, st
 }
 
 /// Reinitialize (reuse the memory) and set a new game state.
+/// The gameState must be present for the first client that connects to the game.
 /// @param self
 /// @param gameState
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
-int nbdServerReInitWithGame(NbdServer *self, const uint8_t *gameState, size_t gameStateOctetCount) {
-    nbdGameInit(&self->game, self->pageAllocator, 64 * 1024);
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount)
+{
+    nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
+                self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
     nbdGameSetGameState(&self->game, 0, gameState, gameStateOctetCount);
     nbdParticipantConnectionsReset(&self->connections);
     return 0;
 }
-
 
 /// Notify the server that a connection has been connected on the transport layer.
 /// @param self
@@ -126,8 +148,9 @@ int nbdServerReInitWithGame(NbdServer *self, const uint8_t *gameState, size_t ga
 /// @param participants
 /// @param participantCount
 /// @return
-int nbdServerConnectionConnected(NbdServer *self, uint8_t connectionIndex) {
-    NbdParticipantConnection *foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
+int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
+{
+    NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
                                                                                         connectionIndex);
     if (!foundConnection) {
         return -2;
@@ -137,7 +160,7 @@ int nbdServerConnectionConnected(NbdServer *self, uint8_t connectionIndex) {
         return -4;
     }
 
-    //nbdParticipantConnectionReInit(foundConnection, 0, participants, participantCount);
+    // nbdParticipantConnectionReInit(foundConnection, 0, participants, participantCount);
     foundConnection->isUsed = true;
 
     NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
@@ -150,8 +173,9 @@ int nbdServerConnectionConnected(NbdServer *self, uint8_t connectionIndex) {
 /// @param self
 /// @param connectionIndex
 /// @return
-int nbdServerConnectionDisconnected(NbdServer *self, uint8_t connectionIndex) {
-    NbdParticipantConnection *foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
+int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex)
+{
+    NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
                                                                                         connectionIndex);
     if (!foundConnection) {
         return -2;
@@ -160,7 +184,6 @@ int nbdServerConnectionDisconnected(NbdServer *self, uint8_t connectionIndex) {
     if (!foundConnection->isUsed) {
         return -4;
     }
-
 
     foundConnection->id = 0x100;
     foundConnection->isUsed = false;
@@ -171,12 +194,14 @@ int nbdServerConnectionDisconnected(NbdServer *self, uint8_t connectionIndex) {
     return 0;
 }
 
-void nbdServerReset(NbdServer *self) {
-    //nbdParticipantConnectionsReset(&self->connections);
+void nbdServerReset(NbdServer* self)
+{
+    // nbdParticipantConnectionsReset(&self->connections);
 }
 
 /// Free all resources made by the server
 /// @param self
-void nbdServerDestroy(NbdServer *self) {
+void nbdServerDestroy(NbdServer* self)
+{
     nbdParticipantConnectionsDestroy(&self->connections);
 }

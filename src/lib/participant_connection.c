@@ -2,13 +2,14 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+#include "nimble-steps-serialize/out_serialize.h"
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 
 /// Initializes a participant connection.
 /// @param self the participant connection
 /// @param transportConnectionIndex the transport connection id
-/// @param maxOctets max number of octets to be used for the steps buffer.
+/// @param maxSingleParticipantStepOctetCount max number of octets for one single step.
 /// @param stepId starting StepId for this connection. Game creator will have 0, but later
 /// joiners can have another number.
 /// @param participants The participants to associate with this connection.
@@ -18,9 +19,14 @@
 ///
 void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionIndex,
                                   ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator,
-                                  size_t maxOctets)
+                                  size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
+                                  Clog log)
 {
-    nbsStepsInit(&self->steps, connectionAllocator, maxOctets);
+    size_t combinedStepOctetSize = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCountForConnection,
+                                                                             maxSingleParticipantStepOctetCount);
+
+    self->log = log;
+    nbsStepsInit(&self->steps, connectionAllocator, combinedStepOctetSize, log);
 
     self->participantReferences.participantReferenceCount = 0;
     // self->participants = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipant*, 4);

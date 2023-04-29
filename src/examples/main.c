@@ -61,9 +61,25 @@ int main(int argc, char* argv[])
 
     NimbleSerializeVersion applicationVersion = {0x10, 0x20, 0x30};
 
-    nbdServerInit(&server, applicationVersion, &memory.tagAllocator.info, &memory.slabAllocator.info);
+    NbdServerSetup setup;
 
-    nbdGameInit(&server.game, &memory.tagAllocator.info, 1024);
+    Clog serverLog;
+    serverLog.constantPrefix = "Server";
+    serverLog.config = &g_clog;
+
+    setup.applicationVersion = applicationVersion;
+    setup.blobAllocator = &memory.slabAllocator.info;
+    setup.log = serverLog;
+    setup.maxConnectionCount = 8;
+    setup.maxGameStateOctetCount = 120;
+    setup.maxParticipantCount = 8;
+    setup.maxParticipantCountForEachConnection = 2;
+    setup.maxSingleParticipantStepOctetCount = 8;
+    setup.memory = &memory.tagAllocator.info;
+
+    nbdServerInit(&server, setup);
+
+    nbdGameInit(&server.game, &memory.tagAllocator.info, setup.maxSingleParticipantStepOctetCount,  setup.maxGameStateOctetCount, setup.maxParticipantCount, setup.log);
 
     static uint8_t exampleGameState = 42;
     nbdGameSetGameState(&server.game, 0, &exampleGameState, 1);

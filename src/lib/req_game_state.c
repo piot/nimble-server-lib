@@ -9,12 +9,12 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state.h>
 
-int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, ImprintAllocator* pageAllocator, NbdGameState* latestState, FldInStream* inStream, FldOutStream * outStream)
+int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection, ImprintAllocator* pageAllocator,
+                            NbdGameState* latestState, FldInStream* inStream, FldOutStream* outStream)
 {
-    if (latestState->octetCount == 0)
-    {
-      CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u", foundParticipantConnection->id);
-      return -2;
+    if (latestState->octetCount == 0) {
+        CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u", foundParticipantConnection->id);
+        return -2;
     }
 
     SerializeGameState outGameState;
@@ -22,12 +22,17 @@ int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection
     outGameState.gameStateOctetCount = latestState->octetCount;
     outGameState.gameState = latestState->state;
 
-    blobStreamOutInit(&foundParticipantConnection->blobStreamOut, pageAllocator, foundParticipantConnection->blobStreamOutAllocator, outGameState.gameState, outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE);
+    blobStreamOutInit(&foundParticipantConnection->blobStreamOut, pageAllocator,
+                      foundParticipantConnection->blobStreamOutAllocator, outGameState.gameState,
+                      outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE);
     blobStreamLogicOutInit(&foundParticipantConnection->blobStreamLogicOut, &foundParticipantConnection->blobStreamOut);
 
     foundParticipantConnection->blobStreamOutChannel = foundParticipantConnection->nextBlobStreamOutChannel++;
 
-    CLOG_DEBUG("server: rejoined connection %d with blobStreamChannel %02X octetCount:%zu", foundParticipantConnection->id, foundParticipantConnection->blobStreamOutChannel, outGameState.gameStateOctetCount);
+    CLOG_DEBUG("server: rejoined connection %d with blobStreamChannel %02X octetCount:%zu",
+               foundParticipantConnection->id, foundParticipantConnection->blobStreamOutChannel,
+               outGameState.gameStateOctetCount);
 
-    return nimbleSerializeServerOutGameStateResponse(outStream, outGameState, foundParticipantConnection->blobStreamOutChannel);
+    return nimbleSerializeServerOutGameStateResponse(outStream, outGameState,
+                                                     foundParticipantConnection->blobStreamOutChannel);
 }

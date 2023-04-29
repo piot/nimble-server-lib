@@ -66,7 +66,7 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
         return errorCode;
     }
 
-    CLOG_EXECUTE(char buf[32];)
+    char buf[32];
     CLOG_SOFT_ERROR("connecting protocol version %s", nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {

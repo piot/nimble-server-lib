@@ -25,8 +25,22 @@ typedef struct NbdTransportConnection {
     OrderedDatagramOutLogic orderedDatagramOutLogic;
 } NbdTransportConnection;
 
+#define NBD_SERVER_MAX_TRANSPORT_CONNECTIONS 64
+
+typedef struct NbdServerSetup {
+    NimbleSerializeVersion applicationVersion;
+    struct ImprintAllocator* memory;
+    struct ImprintAllocatorWithFree* blobAllocator;
+    size_t maxConnectionCount;
+    size_t maxParticipantCount;
+    size_t maxSingleParticipantStepOctetCount;
+    size_t maxParticipantCountForEachConnection;
+    size_t maxGameStateOctetCount;
+    Clog log;
+} NbdServerSetup;
+
 typedef struct NbdServer {
-    NbdTransportConnection transportConnections[64];
+    NbdTransportConnection transportConnections[NBD_SERVER_MAX_TRANSPORT_CONNECTIONS];
     NbdParticipantConnections connections;
     NbdGame game;
 
@@ -34,15 +48,16 @@ typedef struct NbdServer {
     struct ImprintAllocatorWithFree* blobAllocator;
 
     NimbleSerializeVersion applicationVersion;
-    Clog clog;
+    Clog log;
+
+    NbdServerSetup setup;
 } NbdServer;
 
 typedef struct NbdResponse {
     struct UdpTransportOut* transportOut;
 } NbdResponse;
 
-int nbdServerInit(NbdServer* self, NimbleSerializeVersion applicationVersion, struct ImprintAllocator* memory,
-                  struct ImprintAllocatorWithFree* blobAllocator);
+int nbdServerInit(NbdServer* self, NbdServerSetup setup);
 int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount);
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);

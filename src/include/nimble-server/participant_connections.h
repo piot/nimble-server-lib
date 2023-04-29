@@ -10,6 +10,7 @@
 
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
+#include <clog/clog.h>
 
 struct NbdParticipantConnection;
 
@@ -22,11 +23,16 @@ typedef struct NbdParticipantConnections {
     size_t capacityCount;
     struct ImprintAllocator* allocator;
     struct ImprintAllocatorWithFree* allocatorWithFree;
+    size_t maxParticipantCountForConnection;
+    size_t maxSingleParticipantStepOctetCount;
+    Clog log;
 } NbdParticipantConnections;
 
 void nbdParticipantConnectionsInit(NbdParticipantConnections* self, size_t maxCount,
                                    struct ImprintAllocator* connectionAllocator,
-                                   struct ImprintAllocatorWithFree* blobAllocator, size_t maxOctetCount);
+                                   struct ImprintAllocatorWithFree* blobAllocator,
+                                   size_t maxNumberOfParticipantsForConnection, size_t maxSingleParticipantOctetCount,
+                                   Clog log);
 void nbdParticipantConnectionsReset(NbdParticipantConnections* self);
 void nbdParticipantConnectionsDestroy(NbdParticipantConnections* self);
 struct NbdParticipantConnection* nbdParticipantConnectionsFindConnection(NbdParticipantConnections* self,

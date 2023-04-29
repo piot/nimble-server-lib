@@ -2,11 +2,11 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+#include <clog/clog.h>
 #include <nimble-server/default_step.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-steps-serialize/out_serialize.h>
-#include <clog/clog.h>
 
 /// Creates a forced step for a participant connection participants.
 /// Forced steps are used for a participant connection that is too much behind

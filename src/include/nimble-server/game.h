@@ -18,7 +18,8 @@ typedef struct NbdGame {
     NbdParticipants participants;
 } NbdGame;
 
-void nbdGameInit(NbdGame* self, struct ImprintAllocator* allocator, size_t maxCount);
+void nbdGameInit(NbdGame* self, struct ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
+                 size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log);
 void nbdGameDestroy(NbdGame* self);
 int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount);
 

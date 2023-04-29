@@ -11,5 +11,5 @@ int nbdDaemonInit(NbdDaemon* self)
         return err;
     }
 
-    return udpServerInit(&self->socket, 27000);
+    return udpServerInit(&self->socket, 27000, true);
 }

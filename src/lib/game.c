@@ -4,15 +4,17 @@
  *--------------------------------------------------------------------------------------------*/
 #include <imprint/allocator.h>
 #include <nimble-server/game.h>
+#include <nimble-steps-serialize/out_serialize.h>
 
-void nbdGameInit(NbdGame* self, ImprintAllocator* allocator, size_t maxCount)
+void nbdGameInit(NbdGame* self, ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
+                 size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log)
 {
-    nbsStepsInit(&self->authoritativeSteps, allocator, maxCount);
+    size_t combinedStepOctetCount = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCount,
+                                                                              maxSingleParticipantStepOctetCount);
+    nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
     nbsStepsReInit(&self->authoritativeSteps, 0);
-#define MAX_GAMESTATE_SIZE (64 * 1024)
-    nbdGameStateInit(&self->latestState, allocator, MAX_GAMESTATE_SIZE);
-#define MAX_PLAYERS_IN_SESSION (32)
-    nbdParticipantsInit(&self->participants, allocator, MAX_PLAYERS_IN_SESSION);
+    nbdGameStateInit(&self->latestState, allocator, maxGameStateOctetSize);
+    nbdParticipantsInit(&self->participants, allocator, maxParticipantCount);
 }
 
 void nbdGameDestroy(NbdGame* self)
