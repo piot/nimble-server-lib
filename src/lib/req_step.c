@@ -290,13 +290,13 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
 
 static void showStats(NbdParticipantConnection* foundParticipantConnection)
 {
-#define DEBUG_COUNT (96)
+#define DEBUG_COUNT (128)
     char debug[DEBUG_COUNT];
 
     tc_snprintf(debug, DEBUG_COUNT, "server: conn %d step count in incoming buffer", foundParticipantConnection->id);
     statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, debug, "steps");
 
-    tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind", foundParticipantConnection->id);
+    tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)", foundParticipantConnection->id);
     statsIntDebug(&foundParticipantConnection->stepsBehindStats, debug, "steps");
 }
 
@@ -325,8 +325,8 @@ static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* fou
 
     if (rangeCount == 0) {
         foundParticipantConnection->noRangesToSendCounter++;
-        if (foundParticipantConnection->noRangesToSendCounter > 8) {
-            int noticeTime = foundParticipantConnection->noRangesToSendCounter % 8;
+        if (foundParticipantConnection->noRangesToSendCounter > 2) {
+            int noticeTime = foundParticipantConnection->noRangesToSendCounter % 2;
             if (noticeTime == 0) {
                 CLOG_C_NOTICE(&foundParticipantConnection->log, "no ranges to send for %d ticks, suspicious",
                               foundParticipantConnection->noRangesToSendCounter);
@@ -361,7 +361,7 @@ static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* fou
         if (foundParticipantConnection->nextAuthoritativeStepIdToSend + redundancyStepCount < maxStepIdToSend) {
             foundParticipantConnection->nextAuthoritativeStepIdToSend += redundancyStepCount;
         }
-        CLOG_C_INFO(&foundParticipantConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
+        CLOG_C_VERBOSE(&foundParticipantConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
                     ranges[rangeCount].count);
         rangeCount++;
     } else {
@@ -389,6 +389,7 @@ int nbdReqGameStep(NbdGame* foundGame, NbdParticipantConnection* foundParticipan
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
+
 
     int errorCode = handleIncomingSteps(foundGame, connections, inStream, foundParticipantConnection,
                                         &clientWaitingForStepId, &receiveMask);
