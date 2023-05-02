@@ -36,7 +36,7 @@ typedef struct NbdParticipantConnection {
 } NbdParticipantConnection;
 
 void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionId,
-                                  ImprintAllocator* allocator, ImprintAllocatorWithFree* blobAllocator,
+                                  ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
 

@@ -8,9 +8,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <clog/clog.h>
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
-#include <clog/clog.h>
 
 struct NbdParticipantConnection;
 
@@ -41,5 +41,6 @@ struct NbdParticipantConnection* nbdParticipantConnectionsFindConnectionForTrans
                                                                                      uint32_t transportConnectionId);
 int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticipants* gameParticipants,
                                     size_t transportConnectionId, const NbdParticipantJoinInfo* joinInfo,
-                                    size_t localParticipantCount, struct NbdParticipantConnection** outConnection);
+                                    StepId latestAuthoritativeStepId, size_t localParticipantCount,
+                                    struct NbdParticipantConnection** outConnection);
 #endif

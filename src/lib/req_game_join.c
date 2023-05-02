@@ -15,7 +15,7 @@
 
 static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
                                             size_t transportConnectionId, const NbdParticipantJoinInfo* joinInfo,
-                                            size_t localParticipantCount,
+                                            StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                             struct NbdParticipantConnection** outConnection)
 {
     NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnectionForTransport(
@@ -26,7 +26,7 @@ static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connectio
     }
 
     int errorCode = nbdParticipantConnectionsCreate(connections, gameParticipants, transportConnectionId, joinInfo,
-                                                    localParticipantCount, outConnection);
+                                                    latestAuthoritativeStepId, localParticipantCount, outConnection);
     if (errorCode < 0) {
         *outConnection = 0;
         return errorCode;
@@ -37,7 +37,7 @@ static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connectio
 
 int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
                                size_t transportConnectionId, struct FldInStream* inStream,
-                               struct NbdParticipantConnection** createdConnection)
+                               StepId latestAuthoritativeStepId, struct NbdParticipantConnection** createdConnection)
 {
     uint8_t localParticipantCount;
     fldInStreamReadUInt8(inStream, &localParticipantCount);
@@ -47,7 +47,8 @@ int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdPartic
         fldInStreamReadUInt8(inStream, &joinInfos[i].localIndex);
     }
     int errorCode = nbdGameJoinParticipantConnection(connections, gameParticipants, transportConnectionId, joinInfos,
-                                                     localParticipantCount, createdConnection);
+                                                     latestAuthoritativeStepId, localParticipantCount,
+                                                     createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't join game session")
         return errorCode;
@@ -67,7 +68,8 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
     }
 
     char buf[32];
-    CLOG_C_VERBOSE(&transportConnection->log, "request join participants. nimble protocol version %s", nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
+    CLOG_C_VERBOSE(&transportConnection->log, "request join participants. nimble protocol version %s",
+                   nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {
 
@@ -85,7 +87,7 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
     }
 
     CLOG_C_VERBOSE(&transportConnection->log, "request join participants. application version %s",
-                    nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
+                   nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&self->applicationVersion, &clientApplicationVersion)) {
         CLOG_SOFT_ERROR("Wrong application version");
@@ -94,7 +96,7 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
 
     NbdParticipantConnection* createdConnection;
     errorCode = nbdReadAndJoinParticipants(&self->connections, &self->game.participants,
-                                           transportConnection->transportConnectionId, inStream, &createdConnection);
+                                           transportConnection->transportConnectionId, inStream, self->game.authoritativeSteps.expectedWriteId, &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session");
         return errorCode;

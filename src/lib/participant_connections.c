@@ -26,7 +26,7 @@ void nbdParticipantConnectionsInit(NbdParticipantConnections* self, size_t maxCo
         Clog subLog;
         subLog.constantPrefix = "NbdParticipantConnection";
         subLog.config = log.config;
-        nbdParticipantConnectionInit(&self->connections[i], 0, connectionAllocator, blobAllocator,
+        nbdParticipantConnectionInit(&self->connections[i], 0, connectionAllocator, 0xffffffff,
                                      maxNumberOfParticipantsForConnection, maxSingleParticipantOctetCount, subLog);
     }
 }
@@ -76,7 +76,8 @@ struct NbdParticipantConnection* nbdParticipantConnectionsFindConnectionForTrans
 /// @return error code
 int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticipants* gameParticipants,
                                     size_t transportConnectionId, const NbdParticipantJoinInfo* joinInfo,
-                                    size_t localParticipantCount, NbdParticipantConnection** outConnection)
+                                    StepId latestAuthoritativeStepId, size_t localParticipantCount,
+                                    NbdParticipantConnection** outConnection)
 {
     for (size_t i = 0; i < self->capacityCount; ++i) {
         NbdParticipantConnection* participantConnection = &self->connections[i];
@@ -91,7 +92,7 @@ int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticip
 
             participantConnection->id = i;
             nbdParticipantConnectionInit(participantConnection, transportConnectionId, self->allocator,
-                                         self->allocatorWithFree, self->maxParticipantCountForConnection,
+                                         latestAuthoritativeStepId, self->maxParticipantCountForConnection,
                                          self->maxSingleParticipantStepOctetCount, self->log);
             self->connectionCount++;
             participantConnection->isUsed = true;

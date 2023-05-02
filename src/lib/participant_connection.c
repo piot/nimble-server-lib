@@ -18,7 +18,7 @@
 /// Need to create Participants to the game before associating them to the connection.
 ///
 void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionIndex,
-                                  ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator,
+                                  ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log)
 {
@@ -27,9 +27,9 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
 
     self->log = log;
     nbsStepsInit(&self->steps, connectionAllocator, combinedStepOctetSize, log);
-
+    // Expect that the client will add steps for the next authoritative step
+    nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
     self->participantReferences.participantReferenceCount = 0;
-    // self->participants = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipant*, 4);
 
     self->allocatorWithNoFree = connectionAllocator;
     self->transportConnectionId = transportConnectionIndex;

@@ -61,7 +61,7 @@ typedef struct NbdResponse {
 } NbdResponse;
 
 int nbdServerInit(NbdServer* self, NbdServerSetup setup);
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount);
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);

@@ -139,11 +139,13 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 /// @param gameState
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount)
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
     nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
                 self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
-    nbdGameSetGameState(&self->game, 0, gameState, gameStateOctetCount);
+    nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
+
+    nbsStepsReInit(&self->game.authoritativeSteps, stepId);
     nbdParticipantConnectionsReset(&self->connections);
     return 0;
 }

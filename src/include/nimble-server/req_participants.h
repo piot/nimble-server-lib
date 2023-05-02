@@ -13,6 +13,6 @@ struct NbdParticipantConnections;
 
 int nbdReadAndJoinParticipants(struct NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
                                size_t transportConnectionId, struct FldInStream* inStream,
-                               struct NbdParticipantConnection** createdConnection);
+                               StepId latestAuthoritativeStepId, struct NbdParticipantConnection** createdConnection);
 
 #endif
