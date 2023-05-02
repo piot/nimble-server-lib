@@ -110,7 +110,8 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
         CLOG_VERBOSE("joined localIndex %zu with ID: %zu", sourceParticipant->localIndex, sourceParticipant->id)
     }
 
-    CLOG_DEBUG("client joined game with new connection %u participant count: %zu", createdConnection->id,
+    CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
+               self->game.authoritativeSteps.expectedWriteId - 1,
                createdConnection->participantReferences.participantReferenceCount);
     nimbleSerializeServerOutGameJoinResponse(outStream, createdConnection->id, participants,
                                              createdConnection->participantReferences.participantReferenceCount);

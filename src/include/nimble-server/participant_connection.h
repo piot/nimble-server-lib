@@ -26,19 +26,12 @@ typedef struct NbdParticipantConnection {
     uint32_t id;
     bool isUsed;
     NbsSteps steps;
-    size_t debugCounter;
+
     NbdParticipantReferences participantReferences;
-    StatsInt stepsBehindStats;
+
     StatsInt incomingStepCountInBufferStats;
-    StepId nextAuthoritativeStepIdToSend;
-    BlobStreamOut blobStreamOut;
-    BlobStreamLogicOut blobStreamLogicOut;
-    NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
-    NimbleSerializeBlobStreamChannelId nextBlobStreamOutChannel;
     size_t transportConnectionId;
-    ImprintAllocatorWithFree* blobStreamOutAllocator;
     ImprintAllocator* allocatorWithNoFree;
-    uint8_t noRangesToSendCounter;
     Clog log;
 } NbdParticipantConnection;
 
@@ -47,8 +40,8 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
 
-void nbdParticipantConnectionReInit(NbdParticipantConnection* self, StepId stepId,
-                                    const struct NbdParticipant** participants, size_t participantCount);
+void nbdParticipantConnectionReInit(NbdParticipantConnection* self, const struct NbdParticipant** participants,
+                                    size_t participantCount);
 
 void nbdParticipantConnectionReset(NbdParticipantConnection* self);
 

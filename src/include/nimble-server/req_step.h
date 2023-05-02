@@ -11,10 +11,11 @@
 struct NbdGame;
 struct NbdParticipantConnection;
 struct NbdParticipantConnections;
+struct NbdTransportConnection;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqGameStep(struct NbdGame* game, struct NbdParticipantConnection* foundConnection,
+int nbdReqGameStep(struct NbdGame* game, struct NbdTransportConnection* transportConnection,
                    struct NbdParticipantConnections* connections, struct FldInStream* inStream,
                    struct FldOutStream* response);
 

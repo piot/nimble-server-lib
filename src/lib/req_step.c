@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 #include <nimble-server/req_step.h>
 
+#include "nimble-server/server.h"
 #include <clog/clog.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
@@ -42,8 +43,7 @@ static int checkEveryoneHasAStepAndDisconnectIfNeeded(NbdParticipantConnections*
         }
 
         if (steps->stepsCount == 0) {
-            CLOG_C_VERBOSE(&connections->log,
-                           "waiting for connection %d: had no steps after discard", connection->id);
+            CLOG_C_VERBOSE(&connections->log, "waiting for connection %d: had no steps after discard", connection->id);
             steps->waitCounter++;
             if (steps->waitCounter > 30) {
                 // connection->owner = 0;
@@ -54,7 +54,7 @@ static int checkEveryoneHasAStepAndDisconnectIfNeeded(NbdParticipantConnections*
 
         if (steps->expectedReadId != stepIdThatWeNeed) {
             CLOG_C_WARN(&connections->log, "we want %08X from the client, but it has stored %08X", stepIdThatWeNeed,
-                      steps->expectedReadId)
+                        steps->expectedReadId)
             return 0;
         }
     }
@@ -83,8 +83,8 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         int stepOctetCount;
         if (steps->stepsCount < 1) {
             //  nbdInsertDefaultSteps(connection, 1);
-            CLOG_C_WARN(&connection->log, "no steps stored in connection %zu (%u). server is looking for %08X", i, connection->id,
-                      lookingFor)
+            CLOG_C_WARN(&connection->log, "no steps stored in connection %zu (%u). server is looking for %08X", i,
+                        connection->id, lookingFor)
         }
         stepOctetCount = nbsStepsRead(steps, &encounteredStepId, stepReadBuffer, 1024);
 
@@ -94,8 +94,8 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         StepId connectionCanProvideId = encounteredStepId;
 
         if (stepOctetCount < 0) {
-            CLOG_C_SOFT_ERROR(&connection->log, "couldn't read from connection %d, server was hoping for step %08X", stepOctetCount,
-                            lookingFor)
+            CLOG_C_SOFT_ERROR(&connection->log, "couldn't read from connection %d, server was hoping for step %08X",
+                              stepOctetCount, lookingFor)
             return stepOctetCount;
         }
         if (stepOctetCount < 1) {
@@ -104,8 +104,8 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         }
 
         if (connectionCanProvideId != lookingFor) {
-            CLOG_C_SOFT_ERROR(&connection->log, "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X", lookingFor,
-                            connectionCanProvideId)
+            CLOG_C_SOFT_ERROR(&connection->log, "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X",
+                              lookingFor, connectionCanProvideId)
             return -6;
         }
         // CLOG_VERBOSE("connection %d: steps in buffer from %08X, count: %d (%08X)", i, steps->expectedReadId,
@@ -120,8 +120,9 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
         }
 
         if (localParticipantCount != connection->participantReferences.participantReferenceCount) {
-            CLOG_C_NOTICE(&connection->log, "connection %d should provide the appropriate number of participants %d vs %zu", connection->id,
-                        localParticipantCount, connection->participantReferences.participantReferenceCount)
+            CLOG_C_NOTICE(
+                &connection->log, "connection %d should provide the appropriate number of participants %d vs %zu",
+                connection->id, localParticipantCount, connection->participantReferences.participantReferenceCount)
         }
 
         uint8_t splitStepBuffer[64];
@@ -135,14 +136,15 @@ static int composeAuthoritativeStep(NbdParticipantConnections* connections, Step
             fldInStreamReadUInt8(&stepInStream, &localStepOctetCount);
             fldInStreamReadOctets(&stepInStream, splitStepBuffer, localStepOctetCount);
 #if NBD_LOGGING
-            CLOG_C_VERBOSE(&connection->log, "connection %d. Read participant ID %d (octetCount %hhu)", connection->id, participantId,
-                         localStepOctetCount)
+            CLOG_C_VERBOSE(&connection->log, "connection %d. Read participant ID %d (octetCount %hhu)", connection->id,
+                           participantId, localStepOctetCount)
 #endif
 
             int hasParticipant = nbdParticipantConnectionHasParticipantId(connection, participantId);
             if (!hasParticipant) {
-                CLOG_C_SOFT_ERROR(&connection->log, "participant connection %d had no right to insert steps for participant %hhu",
-                                connection->id, participantId)
+                CLOG_C_SOFT_ERROR(&connection->log,
+                                  "participant connection %d had no right to insert steps for participant %hhu",
+                                  connection->id, participantId)
                 continue;
             }
 
@@ -175,8 +177,9 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
 
     while (1) {
         if (authoritativeSteps->stepsCount >= maxAuthoritativeStepCountSinceState) {
-            CLOG_C_WARN(&game->log, "we have too many steps in authoritative buffer (%zu). Waiting for state from client.",
-                      authoritativeSteps->stepsCount)
+            CLOG_C_WARN(&game->log,
+                        "we have too many steps in authoritative buffer (%zu). Waiting for state from client.",
+                        authoritativeSteps->stepsCount)
             break;
         }
 
@@ -187,7 +190,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
             break;
         }
         if (existsContribution < 0) {
-            CLOG_C_SOFT_ERROR(&game->log,"couldn't check if everyone has a step")
+            CLOG_C_SOFT_ERROR(&game->log, "couldn't check if everyone has a step")
             return existsContribution;
         }
         // CLOG_VERBOSE("authoritative: we can advance step %08X. Create a combined step", lookingFor);
@@ -207,7 +210,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
         }
 
         if (foundParticipantCount == 0) {
-            CLOG_C_SOFT_ERROR(&game->log,"authoritative: can't have zero participant count")
+            CLOG_C_SOFT_ERROR(&game->log, "authoritative: can't have zero participant count")
             return -48;
         }
 
@@ -225,14 +228,14 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
 #if NBD_LOGGING && CLOG_LOG_ENABLED
     if (writtenAuthoritativeSteps > 0) {
         CLOG_C_VERBOSE(&game->log, "authoritative: written steps from %08X to %zX (%zX)", firstLookingFor,
-                     firstLookingFor + writtenAuthoritativeSteps - 1, writtenAuthoritativeSteps)
+                       firstLookingFor + writtenAuthoritativeSteps - 1, writtenAuthoritativeSteps)
     }
 #endif
     return (int) writtenAuthoritativeSteps;
 }
 
 static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* connections, FldInStream* inStream,
-                               NbdParticipantConnection* foundParticipantConnection, StepId* outClientWaitingForStepId,
+                               NbdTransportConnection* transportConnection, StepId* outClientWaitingForStepId,
                                uint64_t* outReceiveMask)
 {
 
@@ -241,19 +244,27 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
 
     int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&foundParticipantConnection->log, "client step: couldn't in-serialize pending steps")
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;
     }
 
-    CLOG_C_VERBOSE(&foundParticipantConnection->log, "handleIncomingSteps: client %d is awaiting step %08X",
-                   foundParticipantConnection->id, clientWaitingForStepId)
+    *outClientWaitingForStepId = clientWaitingForStepId;
+    *outReceiveMask = receiveMask;
+
+    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %08X",
+                   transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
 
     size_t stepsThatFollow;
     StepId firstStepId;
     errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
     if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&foundParticipantConnection->log, "client step: couldn't in-serialize steps")
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize steps")
         return errorCode;
+    }
+
+    NbdParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+    if (foundParticipantConnection == 0) {
+        return 0;
     }
 
     CLOG_C_VERBOSE(&foundParticipantConnection->log,
@@ -263,6 +274,7 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
     size_t dropped = nbsStepsDropped(&foundParticipantConnection->steps, firstStepId);
     if (dropped > 0) {
         if (dropped > 60) {
+            CLOG_C_WARN(&foundParticipantConnection->log, "dropped %d", dropped)
             return -3;
         }
         CLOG_C_WARN(&foundParticipantConnection->log,
@@ -282,36 +294,41 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
         return advanceCount;
     }
 
-    *outClientWaitingForStepId = clientWaitingForStepId;
-    *outReceiveMask = receiveMask;
-
     return advanceCount;
 }
 
-static void showStats(NbdParticipantConnection* foundParticipantConnection)
+static void showStats(NbdTransportConnection* transportConnection)
 {
 #define DEBUG_COUNT (128)
     char debug[DEBUG_COUNT];
 
-    tc_snprintf(debug, DEBUG_COUNT, "server: conn %d step count in incoming buffer", foundParticipantConnection->id);
-    statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, debug, "steps");
+    NbdParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
 
-    tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)", foundParticipantConnection->id);
-    statsIntDebug(&foundParticipantConnection->stepsBehindStats, debug, "steps");
+    if (foundParticipantConnection) {
+        tc_snprintf(debug, DEBUG_COUNT, "server: conn %d step count in incoming buffer",
+                    foundParticipantConnection->id);
+        statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, debug, "steps");
+    }
+
+    tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)",
+                transportConnection->transportConnectionId);
+    statsIntDebug(&transportConnection->stepsBehindStats, debug, "steps");
 }
 
-static void updateStats(NbdParticipantConnection* foundParticipantConnection, NbdGame* foundGame,
-                        StepId clientWaitingForStepId)
+static void updateStats(NbdTransportConnection* transportConnection, NbdGame* foundGame, StepId clientWaitingForStepId)
 {
-    statsIntAdd(&foundParticipantConnection->incomingStepCountInBufferStats,
-                foundParticipantConnection->steps.stepsCount);
+    NbdParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+    if (foundParticipantConnection != 0) {
+        statsIntAdd(&foundParticipantConnection->incomingStepCountInBufferStats,
+                    foundParticipantConnection->steps.stepsCount);
+    }
 
     size_t stepsBehindForClient = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;
-    statsIntAdd(&foundParticipantConnection->stepsBehindStats, stepsBehindForClient);
+    statsIntAdd(&transportConnection->stepsBehindStats, stepsBehindForClient);
 }
 
-static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* foundParticipantConnection,
-                          NbdGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
+static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* transportConnection, NbdGame* foundGame,
+                          StepId clientWaitingForStepId, uint64_t receiveMask)
 {
 #define MAX_RANGES_COUNT (3)
     const int maxStepsCount = 8;
@@ -319,38 +336,23 @@ static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* fou
     int rangeCount = nbsPendingStepsRanges(clientWaitingForStepId, foundGame->authoritativeSteps.expectedWriteId,
                                            receiveMask, ranges, MAX_RANGES_COUNT, maxStepsCount);
     if (rangeCount < 0) {
-        CLOG_C_VERBOSE(&foundParticipantConnection->log, "ranges error")
+        CLOG_C_VERBOSE(&transportConnection->log, "ranges error")
         return rangeCount;
     }
 
-    if (rangeCount == 0) {
-        foundParticipantConnection->noRangesToSendCounter++;
-        if (foundParticipantConnection->noRangesToSendCounter > 2) {
-            int noticeTime = foundParticipantConnection->noRangesToSendCounter % 2;
-            if (noticeTime == 0) {
-                CLOG_C_NOTICE(&foundParticipantConnection->log, "no ranges to send for %d ticks, suspicious",
-                              foundParticipantConnection->noRangesToSendCounter);
-            }
-        }
-    } else {
-        foundParticipantConnection->noRangesToSendCounter = 0;
-    }
-    bool moreDebug = true; // (foundParticipantConnection->id == 0);
+    bool moreDebug = true; // (transportConnection->id == 0);
 
-    nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount,
-                                     foundParticipantConnection->log);
-
-    if (foundGame->authoritativeSteps.expectedWriteId > foundParticipantConnection->nextAuthoritativeStepIdToSend) {
+    if (foundGame->authoritativeSteps.expectedWriteId > transportConnection->nextAuthoritativeStepIdToSend) {
         // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,
         //        foundGame->authoritativeSteps.expectedWriteId);
 
         size_t availableCount = foundGame->authoritativeSteps.expectedWriteId -
-                                foundParticipantConnection->nextAuthoritativeStepIdToSend;
+                                transportConnection->nextAuthoritativeStepIdToSend;
         const size_t redundancyStepCount = 5;
         if (availableCount > redundancyStepCount) {
             availableCount = redundancyStepCount;
         }
-        ranges[rangeCount].startId = foundParticipantConnection->nextAuthoritativeStepIdToSend;
+        ranges[rangeCount].startId = transportConnection->nextAuthoritativeStepIdToSend;
         ranges[rangeCount].count = availableCount;
 
         StepId maxStepIdToSend = clientWaitingForStepId + NBS_WINDOW_SIZE - 1;
@@ -358,50 +360,75 @@ static int sendStepRanges(FldOutStream* outStream, NbdParticipantConnection* fou
             maxStepIdToSend = foundGame->authoritativeSteps.expectedWriteId;
         }
 
-        if (foundParticipantConnection->nextAuthoritativeStepIdToSend + redundancyStepCount < maxStepIdToSend) {
-            foundParticipantConnection->nextAuthoritativeStepIdToSend += redundancyStepCount;
+        if (transportConnection->nextAuthoritativeStepIdToSend + redundancyStepCount < maxStepIdToSend) {
+            transportConnection->nextAuthoritativeStepIdToSend += redundancyStepCount;
         }
-        CLOG_C_VERBOSE(&foundParticipantConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
-                    ranges[rangeCount].count);
+        CLOG_C_VERBOSE(&transportConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
+                       ranges[rangeCount].count);
         rangeCount++;
     } else {
-        // CLOG_INFO("no need to force any range. we have %016X and client wants %016X",
-        // foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId);
+        CLOG_C_NOTICE(&transportConnection->log,
+                      "no need to force any range. we have %08X and client wants %08X iteratorIsAt: %08X",
+                      foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId,
+                      transportConnection->nextAuthoritativeStepIdToSend);
+    }
+    /*
+        nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount, transportConnection->log);
+    */
+
+    if (rangeCount == 0) {
+        transportConnection->noRangesToSendCounter++;
+        if (transportConnection->noRangesToSendCounter > 2) {
+            int noticeTime = 0; // transportConnection->noRangesToSendCounter % 2;
+            if (noticeTime == 0) {
+                CLOG_C_NOTICE(&transportConnection->log, "no ranges to send for %d ticks, suspicious",
+                              transportConnection->noRangesToSendCounter);
+            }
+        }
+    } else {
+        transportConnection->noRangesToSendCounter = 0;
     }
 
-    StepId lastReceivedStepFromClient = foundParticipantConnection->steps.expectedWriteId - 1;
+    StepId lastReceivedStepFromClient = 0;
+    ;
 
-    size_t bufferDelta = foundParticipantConnection->steps.stepsCount;
-    int authoritativeBufferDelta = (int) foundParticipantConnection->steps.expectedWriteId -
+    size_t bufferDelta = 0;
+    int authoritativeBufferDelta = 0;
+
+    NbdParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+    if (foundParticipantConnection != 0) {
+        lastReceivedStepFromClient = foundParticipantConnection->steps.expectedWriteId - 1;
+        bufferDelta = foundParticipantConnection->steps.stepsCount;
+        authoritativeBufferDelta = (int) foundParticipantConnection->steps.expectedWriteId -
                                    (int) foundGame->authoritativeSteps.expectedWriteId;
+    }
 
     nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta);
 
     if (moreDebug) {
-        nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, foundParticipantConnection->log);
+        nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);
     }
 
     return nbsPendingStepsSerializeOutRanges(outStream, &foundGame->authoritativeSteps, ranges, rangeCount);
 }
 
-int nbdReqGameStep(NbdGame* foundGame, NbdParticipantConnection* foundParticipantConnection,
+int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnection,
                    NbdParticipantConnections* connections, FldInStream* inStream, FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-
-    int errorCode = handleIncomingSteps(foundGame, connections, inStream, foundParticipantConnection,
-                                        &clientWaitingForStepId, &receiveMask);
+    int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection, &clientWaitingForStepId,
+                                        &receiveMask);
     if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&foundParticipantConnection->log, "problem handling incoming step:%d", errorCode);
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode);
         return errorCode;
     }
 
-    updateStats(foundParticipantConnection, foundGame, clientWaitingForStepId);
-    if ((foundParticipantConnection->debugCounter++ % 100) == 0) {
-        showStats(foundParticipantConnection);
+    updateStats(transportConnection, foundGame, clientWaitingForStepId);
+    if ((transportConnection->debugCounter++ % 100) == 0) {
+        showStats(transportConnection);
     }
 
-    return sendStepRanges(outStream, foundParticipantConnection, foundGame, clientWaitingForStepId, receiveMask);
+    return sendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask);
 }

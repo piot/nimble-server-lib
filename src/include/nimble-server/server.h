@@ -14,16 +14,19 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include <blob-stream/blob_stream_logic_in.h>
+#include <blob-stream/blob_stream_logic_out.h>
+#include <imprint/tagged_allocator.h>
+#include <nimble-serialize/serialize.h>
+#include <nimble-server/participants.h>
+#include <nimble-server/transport_connection.h>
+#include <nimble-steps/steps.h>
+#include <stats/stats.h>
+#include <stdbool.h>
+
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
 struct NbdParticipant;
-
-typedef struct NbdTransportConnection {
-    uint8_t transportConnectionId;
-    struct NbdParticipantConnection* assignedParticipantConnection;
-    OrderedDatagramInLogic orderedDatagramInLogic;
-    OrderedDatagramOutLogic orderedDatagramOutLogic;
-} NbdTransportConnection;
 
 #define NBD_SERVER_MAX_TRANSPORT_CONNECTIONS 64
 

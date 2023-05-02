@@ -14,8 +14,7 @@
 #include <nimble-server/server.h>
 #include <udp-transport/udp_transport.h>
 
-int nbdReqDownloadGameStateAck(NbdParticipantConnection* foundParticipantConnection,
-                               NbdTransportConnection* transportConnection, FldInStream* inStream,
+int nbdReqDownloadGameStateAck(NbdTransportConnection* transportConnection, FldInStream* inStream,
                                UdpTransportOut* transportOut)
 {
     NimbleSerializeBlobStreamChannelId channelId;
@@ -33,7 +32,7 @@ int nbdReqDownloadGameStateAck(NbdParticipantConnection* foundParticipantConnect
     //   return errorCode;
     // }
 
-    int receiveResult = blobStreamLogicOutReceive(&foundParticipantConnection->blobStreamLogicOut, inStream);
+    int receiveResult = blobStreamLogicOutReceive(&transportConnection->blobStreamLogicOut, inStream);
     if (receiveResult < 0) {
         CLOG_SOFT_ERROR("nbdReqJoinGameStateAck: could not receive blobStreamLogicOut")
         return receiveResult;
@@ -42,7 +41,7 @@ int nbdReqDownloadGameStateAck(NbdParticipantConnection* foundParticipantConnect
     MonotonicTimeMs now = monotonicTimeMsNow();
     const BlobStreamOutEntry* entries[4];
 
-    int entriesFound = blobStreamLogicOutPrepareSend(&foundParticipantConnection->blobStreamLogicOut, now, entries, 4);
+    int entriesFound = blobStreamLogicOutPrepareSend(&transportConnection->blobStreamLogicOut, now, entries, 4);
 #define UDP_MAX_SIZE (1200)
     static uint8_t buf[UDP_MAX_SIZE];
     FldOutStream stream;

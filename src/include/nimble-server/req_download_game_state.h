@@ -5,14 +5,16 @@
 #ifndef NIMBLE_SERVER_REQ_DOWNLOAD_GAME_STATE_H
 #define NIMBLE_SERVER_REQ_DOWNLOAD_GAME_STATE_H
 
-struct NbdParticipantConnection;
+#include <nimble-serialize/version.h>
+
+struct NbdTransportConnection;
 struct ImprintAllocator;
 struct NbdGameState;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqDownloadGameState(NbdParticipantConnection* foundParticipantConnection,
-                            struct ImprintAllocator* pageAllocator, struct NbdGameState* latestState,
+int nbdReqDownloadGameState(struct NbdTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
+                            struct NbdGameState* latestState, NimbleSerializeVersion applicationVersion,
                             struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

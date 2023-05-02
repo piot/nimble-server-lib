@@ -19,13 +19,11 @@
 
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response)
 {
-    CLOG_C_VERBOSE(&self->log, "nbdServerFeed: feed: %s octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
+    CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
 
     if (connectionIndex >= self->connections.capacityCount) {
         CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
     }
-    NbdTransportConnection* transportConnection = 0;
-    NbdParticipantConnection* connection = 0;
 
     FldInStream inStream;
     fldInStreamInit(&inStream, data, len);
@@ -35,11 +33,9 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
         return -13;
     }
 
-    transportConnection = &self->transportConnections[connectionIndex];
+    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
 
     orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
-
-    connection = transportConnection->assignedParticipantConnection;
 
     uint8_t cmd;
 
@@ -47,7 +43,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
 
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
-        return nbdReqDownloadGameStateAck(connection, transportConnection, &inStream, response->transportOut);
+        return nbdReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut);
     }
 
 #define UDP_MAX_SIZE (1200)
@@ -60,14 +56,14 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
     int result = -1;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
-            result = nbdReqGameStep(&self->game, connection, &self->connections, &inStream, &outStream);
+            result = nbdReqGameStep(&self->game, transportConnection, &self->connections, &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
             result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nbdReqDownloadGameState(connection, self->pageAllocator, &self->game.latestState, &inStream,
-                                             &outStream);
+            result = nbdReqDownloadGameState(transportConnection, self->pageAllocator, &self->game.latestState,
+                                             self->applicationVersion, &inStream, &outStream);
             break;
         default:
             CLOG_SOFT_ERROR("nbdServerFeed: unknown command %02X", data[0]);
@@ -77,6 +73,15 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
     if (result < 0) {
         CLOG_SOFT_ERROR("error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
         return result;
+    }
+
+    if (inStream.pos != inStream.size) {
+        CLOG_ERROR("not read everything from buffer %d of %d", inStream.pos, inStream.size)
+    }
+
+    if (outStream.pos <= 2) {
+        CLOG_C_ERROR(&self->log, "no reply to send")
+        return 0;
     }
 
     orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
@@ -123,6 +128,7 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
     for (size_t i = 0; i < NBD_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
         self->transportConnections[i].transportConnectionId = i;
+        self->transportConnections[i].isUsed = false;
     }
     return 0;
 }
@@ -150,22 +156,19 @@ int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t ga
 /// @return
 int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
 {
+    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    if (transportConnection->isUsed) {
+        CLOG_C_ERROR(&self->log, "connection already connected")
+        return -44;
+    }
+
+    /*
     NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
                                                                                         connectionIndex);
-    if (!foundConnection) {
-        return -2;
-    }
+                                                                                        */
+    transportConnection->isUsed = true;
+    transportConnectionInit(transportConnection, self->blobAllocator, self->log);
 
-    if (foundConnection->isUsed) {
-        return -4;
-    }
-
-    // nbdParticipantConnectionReInit(foundConnection, 0, participants, participantCount);
-    foundConnection->isUsed = true;
-
-    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
-    orderedDatagramOutLogicInit(&transportConnection->orderedDatagramOutLogic);
-    orderedDatagramInLogicInit(&transportConnection->orderedDatagramInLogic);
     return 0;
 }
 
@@ -203,10 +206,10 @@ bool nbdServerMustProvideGameState(const NbdServer* self)
 
 void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
-    CLOG_C_VERBOSE(&self->log, "game state was set locally for stepId %04X (%zu octetCount)", stepId, gameStateOctetCount)
+    CLOG_C_VERBOSE(&self->log, "game state was set locally for stepId %04X (%zu octetCount)", stepId,
+                   gameStateOctetCount)
     nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
 }
-
 
 void nbdServerReset(NbdServer* self)
 {

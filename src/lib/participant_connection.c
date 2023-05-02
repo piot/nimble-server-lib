@@ -31,15 +31,10 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
     self->participantReferences.participantReferenceCount = 0;
     // self->participants = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NbdParticipant*, 4);
 
-    self->debugCounter = 0;
-    self->blobStreamOutAllocator = blobAllocator;
     self->allocatorWithNoFree = connectionAllocator;
-    self->nextBlobStreamOutChannel = 127;
     self->transportConnectionId = transportConnectionIndex;
     self->isUsed = false;
-    self->noRangesToSendCounter = 0;
 
-    statsIntInit(&self->stepsBehindStats, 60);
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
 }
 
@@ -48,11 +43,10 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
 /// @param stepId
 /// @param participants
 /// @param participantCount
-void nbdParticipantConnectionReInit(NbdParticipantConnection* self, StepId stepId,
-                                    const struct NbdParticipant** participants, size_t participantCount)
+void nbdParticipantConnectionReInit(NbdParticipantConnection* self, const struct NbdParticipant** participants,
+                                    size_t participantCount)
 {
     self->participantReferences.participantReferenceCount = 0;
-    self->nextAuthoritativeStepIdToSend = stepId;
 }
 
 void nbdParticipantConnectionReset(NbdParticipantConnection* self)
