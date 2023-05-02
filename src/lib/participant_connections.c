@@ -84,7 +84,7 @@ int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticip
         if (!participantConnection->isUsed) {
             struct NbdParticipant* createdParticipants[16];
             int errorCode = nbdParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
-                                                &createdParticipants[i]);
+                                                createdParticipants);
             if (errorCode < 0) {
                 *outConnection = 0;
                 return errorCode;
@@ -98,7 +98,7 @@ int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticip
             participantConnection->isUsed = true;
             for (size_t participantIndex = 0; participantIndex < localParticipantCount; ++participantIndex) {
                 participantConnection->participantReferences
-                    .participantReferences[participantIndex] = createdParticipants[i];
+                    .participantReferences[participantIndex] = createdParticipants[participantIndex];
             }
             participantConnection->participantReferences.participantReferenceCount = localParticipantCount;
 

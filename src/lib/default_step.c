@@ -24,7 +24,7 @@ int nbdCreateForcedStep(NbdParticipantConnection* connection, uint8_t* forcedSte
     NimbleStepsOutSerializeLocalParticipants participants;
     participants.participantCount = connection->participantReferences.participantReferenceCount;
     for (size_t i = 0; i < participants.participantCount; ++i) {
-        participants.participants[i].participantIndex = connection->participantReferences.participantReferences[i]->id;
+        participants.participants[i].participantId = connection->participantReferences.participantReferences[i]->id;
         participants.participants[i].payload = buf;
         participants.participants[i].payloadCount = 1;
     }
