@@ -47,8 +47,12 @@ int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, 
 
     // CLOG_VERBOSE("trying to set game state %08X (octet count:%zu)", stepId, gameStateOctetCount);
     if (state->octetCount != 0 && stepId <= state->stepId) {
-        CLOG_C_NOTICE(&game->log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId);
+        CLOG_C_SOFT_ERROR(&game->log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId);
         return 0;
+    }
+    int diff = stepId - state->stepId;
+    if (diff < 5) {
+        CLOG_C_NOTICE(&game->log, "was set to a new state, but not that much newer %d", diff);
     }
 
     if (state->capacity < gameStateOctetCount) {

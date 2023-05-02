@@ -26,7 +26,7 @@ int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, Imprint
     }
 
     char buf[32];
-    CLOG_SOFT_ERROR("connecting protocol version %s", nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
+    CLOG_C_VERBOSE(&transportConnection->log, "request game state. nimble protocol version %s", nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {
 
@@ -43,7 +43,7 @@ int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, Imprint
         return errorCode;
     }
 
-    CLOG_SOFT_ERROR("connecting application version version %s",
+    CLOG_C_VERBOSE(&transportConnection->log, "request game state. application version version %s",
                     nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {

@@ -170,7 +170,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
 
-    const size_t maxAuthoritativeStepCountSinceState = 240;
+    const size_t maxAuthoritativeStepCountSinceState = NBS_WINDOW_SIZE/2;
 #if NBD_LOGGING && CLOG_LOG_ENABLED
     StepId firstLookingFor = authoritativeSteps->expectedWriteId;
 #endif
@@ -178,7 +178,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
     while (1) {
         if (authoritativeSteps->stepsCount >= maxAuthoritativeStepCountSinceState) {
             CLOG_C_WARN(&game->log,
-                        "we have too many steps in authoritative buffer (%zu). Waiting for state from client.",
+                        "we have too many steps in authoritative buffer (%zu). Waiting for state from client or locally on server",
                         authoritativeSteps->stepsCount)
             break;
         }
@@ -367,7 +367,7 @@ static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* trans
                        ranges[rangeCount].count);
         rangeCount++;
     } else {
-        CLOG_C_NOTICE(&transportConnection->log,
+        CLOG_C_VERBOSE(&transportConnection->log,
                       "no need to force any range. we have %08X and client wants %08X iteratorIsAt: %08X",
                       foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId,
                       transportConnection->nextAuthoritativeStepIdToSend);
