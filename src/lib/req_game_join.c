@@ -96,7 +96,8 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
 
     NbdParticipantConnection* createdConnection;
     errorCode = nbdReadAndJoinParticipants(&self->connections, &self->game.participants,
-                                           transportConnection->transportConnectionId, inStream, self->game.authoritativeSteps.expectedWriteId, &createdConnection);
+                                           transportConnection->transportConnectionId, inStream,
+                                           self->game.authoritativeSteps.expectedWriteId, &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session");
         return errorCode;

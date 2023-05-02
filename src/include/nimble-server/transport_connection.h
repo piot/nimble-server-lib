@@ -33,7 +33,6 @@ typedef struct NbdTransportConnection {
     struct NbdParticipantConnection* assignedParticipantConnection;
     OrderedDatagramInLogic orderedDatagramInLogic;
     OrderedDatagramOutLogic orderedDatagramOutLogic;
-
     BlobStreamOut blobStreamOut;
     BlobStreamLogicOut blobStreamLogicOut;
     NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
@@ -49,8 +48,7 @@ typedef struct NbdTransportConnection {
     NbdTransportConnectionPhase phase;
 } NbdTransportConnection;
 
-void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
-                             Clog log);
+void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
 
 void transportConnectionSetGameStateTickId(NbdTransportConnection* self, StepId lastAuthoritativeStateTickId);
 #endif

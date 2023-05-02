@@ -28,7 +28,8 @@ static int discardOldStepsBehindLatestState(NbdGame* game, StepId latestStateSte
     }
 
     if (countDiscarded > 0) {
-        CLOG_C_DEBUG(&game->log, "authoritative: discarded steps earlier than %04X (discarded %d)", oldestStepIdToKeep, countDiscarded);
+        CLOG_C_DEBUG(&game->log, "authoritative: discarded steps earlier than %04X (discarded %d)", oldestStepIdToKeep,
+                     countDiscarded);
     }
 
     return countDiscarded;
@@ -47,7 +48,8 @@ int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, 
 
     // CLOG_VERBOSE("trying to set game state %08X (octet count:%zu)", stepId, gameStateOctetCount);
     if (state->octetCount != 0 && stepId <= state->stepId) {
-        CLOG_C_SOFT_ERROR(&game->log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId);
+        CLOG_C_SOFT_ERROR(&game->log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId,
+                          stepId);
         return 0;
     }
     int diff = stepId - state->stepId;
@@ -56,7 +58,8 @@ int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, 
     }
 
     if (state->capacity < gameStateOctetCount) {
-        CLOG_C_SOFT_ERROR(&game->log, "can not set gamestate. Not enough capacity %zu vs %zu", gameStateOctetCount, state->capacity);
+        CLOG_C_SOFT_ERROR(&game->log, "can not set gamestate. Not enough capacity %zu vs %zu", gameStateOctetCount,
+                          state->capacity);
         return -4;
     }
 
@@ -64,7 +67,8 @@ int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, 
     state->octetCount = gameStateOctetCount;
     state->stepId = stepId;
 
-    CLOG_C_DEBUG(&game->log, "Server now has a new state for stepId:%08X and octetCount:%zu", stepId, gameStateOctetCount);
+    CLOG_C_DEBUG(&game->log, "Server now has a new state for stepId:%08X and octetCount:%zu", stepId,
+                 gameStateOctetCount);
 
     discardOldStepsBehindLatestState(game, stepId);
 

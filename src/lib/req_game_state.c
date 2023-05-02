@@ -26,7 +26,8 @@ int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, Imprint
     }
 
     char buf[32];
-    CLOG_C_VERBOSE(&transportConnection->log, "request game state. nimble protocol version %s", nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
+    CLOG_C_VERBOSE(&transportConnection->log, "request game state. nimble protocol version %s",
+                   nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {
 
@@ -44,7 +45,7 @@ int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, Imprint
     }
 
     CLOG_C_VERBOSE(&transportConnection->log, "request game state. application version version %s",
-                    nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
+                   nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {
         CLOG_SOFT_ERROR("Wrong application version");
