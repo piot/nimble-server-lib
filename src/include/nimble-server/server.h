@@ -39,11 +39,14 @@ typedef struct NbdServerSetup {
     size_t maxSingleParticipantStepOctetCount;
     size_t maxParticipantCountForEachConnection;
     size_t maxGameStateOctetCount;
+    const uint8_t* zeroInputOctets;
+    size_t zeroInputOctetCount;
     Clog log;
 } NbdServerSetup;
 
 typedef struct NbdServer {
     NbdTransportConnection transportConnections[NBD_SERVER_MAX_TRANSPORT_CONNECTIONS];
+
     NbdParticipantConnections connections;
     NbdGame game;
 

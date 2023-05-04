@@ -9,12 +9,12 @@
 
 struct NbdTransportConnection;
 struct ImprintAllocator;
-struct NbdGameState;
+struct NbdGame;
 struct FldOutStream;
 struct FldInStream;
 
 int nbdReqDownloadGameState(struct NbdTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
-                            struct NbdGameState* latestState, NimbleSerializeVersion applicationVersion,
+                            const struct NbdGame* game, NimbleSerializeVersion applicationVersion,
                             struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

@@ -62,7 +62,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
             result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nbdReqDownloadGameState(transportConnection, self->pageAllocator, &self->game.latestState,
+            result = nbdReqDownloadGameState(transportConnection, self->pageAllocator, &self->game,
                                              self->applicationVersion, &inStream, &outStream);
             break;
         default:
@@ -203,12 +203,8 @@ const size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 
 bool nbdServerMustProvideGameState(const NbdServer* self)
 {
-    bool lotsOfAuthoritativeStepsInBuffer = (self->game.authoritativeSteps.stepsCount >
-                                             NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS);
-
-    CLOG_C_VERBOSE(&self->log, "checking if gamestate is needed now. %zu (%d)",
-                   self->game.authoritativeSteps.stepsCount, lotsOfAuthoritativeStepsInBuffer)
-    return lotsOfAuthoritativeStepsInBuffer;
+    int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId - self->game.latestState.stepId;
+    return deltaTickCountSinceLastGameState > NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
 }
 
 void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)

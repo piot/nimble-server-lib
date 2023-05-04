@@ -32,6 +32,7 @@ typedef struct NbdParticipantConnection {
     StatsInt incomingStepCountInBufferStats;
     size_t transportConnectionId;
     ImprintAllocator* allocatorWithNoFree;
+    size_t forcedStepInRowCounter;
     Clog log;
 } NbdParticipantConnection;
 

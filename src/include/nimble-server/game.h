@@ -11,6 +11,7 @@
 
 struct ImprintAllocator;
 
+
 /// Tracks the latestState, as well as the all authoritative Steps after the game state.
 typedef struct NbdGame {
     NbsSteps authoritativeSteps;

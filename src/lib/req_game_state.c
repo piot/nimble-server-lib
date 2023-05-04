@@ -9,9 +9,10 @@
 #include <nimble-server/req_download_game_state.h>
 
 int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
-                            NbdGameState* latestState, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
+                            const NbdGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
                             FldOutStream* outStream)
 {
+    const NbdGameState* latestState = &game->latestState;
     if (latestState->octetCount == 0) {
         CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u",
                     transportConnection->transportConnectionId);
