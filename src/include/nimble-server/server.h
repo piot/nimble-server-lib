@@ -41,6 +41,7 @@ typedef struct NbdServerSetup {
     size_t maxGameStateOctetCount;
     const uint8_t* zeroInputOctets;
     size_t zeroInputOctetCount;
+    MonotonicTimeMs now;
     Clog log;
 } NbdServerSetup;
 
@@ -57,6 +58,8 @@ typedef struct NbdServer {
     Clog log;
 
     NbdServerSetup setup;
+    uint16_t statsCounter;
+    StatsIntPerSecond authoritativeStepsPerSecondStat;
 } NbdServer;
 
 typedef struct NbdResponse {
@@ -64,10 +67,11 @@ typedef struct NbdResponse {
 } NbdResponse;
 
 int nbdServerInit(NbdServer* self, NbdServerSetup setup);
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId, MonotonicTimeMs now);
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);
+int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now);
 bool nbdServerMustProvideGameState(const NbdServer* self);
 void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
 int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex);

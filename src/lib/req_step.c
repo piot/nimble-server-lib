@@ -163,7 +163,7 @@ static bool shouldComposeNewAuthoritativeStep(NbdParticipantConnections* connect
     int availableSteps = maxPredictedStepContributionForConnections(connections, lookingFor,
                                                                     &connectionCountThatCouldNotContribute);
 
-    bool shouldCompose = (availableSteps > 0 && connectionCountThatCouldNotContribute == 0) || availableSteps > 3;
+    bool shouldCompose = (availableSteps > 2 && connectionCountThatCouldNotContribute == 0) || availableSteps > 5;
     //CLOG_INFO("available steps for composing: %d couldNotContribute:%d result:%d", availableSteps,
       //        connectionCountThatCouldNotContribute, shouldCompose)
 
@@ -209,7 +209,7 @@ static void nbdGameShowReport(NbdGame* game, NbdParticipantConnections* connecti
     CLOG_C_INFO(&game->log, "Authoritative: -----")
 }
 
-static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnections* connections)
+static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnections* connections, StatsIntPerSecond* authoritativeStepsPerSecondStat)
 {
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
@@ -240,6 +240,8 @@ static int advanceAuthoritativeAsFarAsWeCan(NbdGame* game, NbdParticipantConnect
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: can't have zero participant count")
             return -48;
         }
+
+        statsIntPerSecondAdd(authoritativeStepsPerSecondStat, 1);
 
         int octetsWritten = nbsStepsWrite(authoritativeSteps, lookingFor, composeStepBuffer,
                                           authoritativeStepOctetCount);
@@ -280,7 +282,8 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NbdGame* foundGame)
 }
 
 static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* connections, FldInStream* inStream,
-                               NbdTransportConnection* transportConnection, StepId* outClientWaitingForStepId,
+                               NbdTransportConnection* transportConnection,     StatsIntPerSecond* authoritativeStepsPerSecondStat,
+                               StepId* outClientWaitingForStepId,
                                uint64_t* outReceiveMask, uint16_t* receivedTimeFromClient)
 {
 
@@ -339,7 +342,7 @@ static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* co
         return discardErr;
     }
 
-    int advanceCount = advanceAuthoritativeAsFarAsWeCan(foundGame, connections);
+    int advanceCount = advanceAuthoritativeAsFarAsWeCan(foundGame, connections, authoritativeStepsPerSecondStat);
     if (advanceCount < 0) {
         return advanceCount;
     }
@@ -470,14 +473,14 @@ static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* trans
     return nbsPendingStepsSerializeOutRanges(outStream, &foundGame->authoritativeSteps, ranges, rangeCount);
 }
 
-int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnection,
+int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnection,  StatsIntPerSecond* authoritativeStepsPerSecondStat,
                    NbdParticipantConnections* connections, FldInStream* inStream, FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
     uint16_t receivedTimeFromClient;
 
-    int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection, &clientWaitingForStepId,
+    int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection, authoritativeStepsPerSecondStat, &clientWaitingForStepId,
                                         &receiveMask, &receivedTimeFromClient);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode);

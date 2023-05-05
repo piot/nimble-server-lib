@@ -17,6 +17,18 @@
 #include <nimble-server/server.h>
 #include <udp-transport/udp_transport.h>
 
+int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
+{
+    statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
+
+    self->statsCounter++;
+    if ((self->statsCounter % 60) == 0) {
+        statsIntPerSecondDebugOutput(&self->authoritativeStepsPerSecondStat, "composedSteps", "steps/s");
+    }
+
+    return 0;
+}
+
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response)
 {
     CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
@@ -56,7 +68,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
     int result = -1;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
-            result = nbdReqGameStep(&self->game, transportConnection, &self->connections, &inStream, &outStream);
+            result = nbdReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat, &self->connections, &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
             result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
@@ -139,14 +151,16 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 /// @param gameState
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId, MonotonicTimeMs now)
 {
     nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
                 self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
     nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
 
     nbsStepsReInit(&self->game.authoritativeSteps, stepId);
+    statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, now, 1000);
     nbdParticipantConnectionsReset(&self->connections);
+    self->statsCounter = 0;
     return 0;
 }
 

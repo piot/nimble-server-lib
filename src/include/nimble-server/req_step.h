@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stats/stats_per_second.h>
 
 struct NbdGame;
 struct NbdParticipantConnection;
@@ -15,7 +16,7 @@ struct NbdTransportConnection;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqGameStep(struct NbdGame* game, struct NbdTransportConnection* transportConnection,
+int nbdReqGameStep(struct NbdGame* game, struct NbdTransportConnection* transportConnection, StatsIntPerSecond* authoritativeStepsPerSecondStat,
                    struct NbdParticipantConnections* connections, struct FldInStream* inStream,
                    struct FldOutStream* response);
 
