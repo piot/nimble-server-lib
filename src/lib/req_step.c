@@ -281,13 +281,13 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NbdGame* foundGame)
 
 static int handleIncomingSteps(NbdGame* foundGame, NbdParticipantConnections* connections, FldInStream* inStream,
                                NbdTransportConnection* transportConnection, StepId* outClientWaitingForStepId,
-                               uint64_t* outReceiveMask)
+                               uint64_t* outReceiveMask, uint16_t* receivedTimeFromClient)
 {
 
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
+    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask, receivedTimeFromClient);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;
@@ -378,7 +378,7 @@ static void updateStats(NbdTransportConnection* transportConnection, NbdGame* fo
 }
 
 static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* transportConnection, NbdGame* foundGame,
-                          StepId clientWaitingForStepId, uint64_t receiveMask)
+                          StepId clientWaitingForStepId, uint64_t receiveMask, uint16_t receivedTimeFromClient)
 {
 #define MAX_RANGES_COUNT (3)
     const int maxStepsCount = 8;
@@ -461,7 +461,7 @@ static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* trans
         }
     }
 
-    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta);
+    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta, receivedTimeFromClient);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);
@@ -475,9 +475,10 @@ int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnecti
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
+    uint16_t receivedTimeFromClient;
 
     int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection, &clientWaitingForStepId,
-                                        &receiveMask);
+                                        &receiveMask, &receivedTimeFromClient);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode);
         return errorCode;
@@ -488,5 +489,5 @@ int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnecti
         showStats(transportConnection);
     }
 
-    return sendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask);
+    return sendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask, receivedTimeFromClient);
 }
