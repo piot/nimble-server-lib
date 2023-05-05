@@ -21,7 +21,7 @@
 #include <nimble-server/participants.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps/steps.h>
-#include <stats/stats.h>
+#include <stats/stats_per_second.h>
 #include <stdbool.h>
 
 struct ImprintAllocatorWithFree;
