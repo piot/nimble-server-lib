@@ -22,7 +22,7 @@ int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
     statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
 
     self->statsCounter++;
-    if ((self->statsCounter % 60) == 0) {
+    if ((self->statsCounter % 3000) == 0) {
         statsIntPerSecondDebugOutput(&self->authoritativeStepsPerSecondStat, "composedSteps", "steps/s");
     }
 
@@ -142,6 +142,9 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
         self->transportConnections[i].transportConnectionId = i;
         self->transportConnections[i].isUsed = false;
     }
+
+    statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, setup.now, 1000);
+
     return 0;
 }
 

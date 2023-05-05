@@ -163,7 +163,7 @@ static bool shouldComposeNewAuthoritativeStep(NbdParticipantConnections* connect
     int availableSteps = maxPredictedStepContributionForConnections(connections, lookingFor,
                                                                     &connectionCountThatCouldNotContribute);
 
-    bool shouldCompose = (availableSteps > 2 && connectionCountThatCouldNotContribute == 0) || availableSteps > 5;
+    bool shouldCompose = (availableSteps > 3 && connectionCountThatCouldNotContribute == 0) || availableSteps > 5;
     //CLOG_INFO("available steps for composing: %d couldNotContribute:%d result:%d", availableSteps,
       //        connectionCountThatCouldNotContribute, shouldCompose)
 
@@ -488,7 +488,7 @@ int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnecti
     }
 
     updateStats(transportConnection, foundGame, clientWaitingForStepId);
-    if ((transportConnection->debugCounter++ % 100) == 0) {
+    if ((transportConnection->debugCounter++ % 3000) == 0) {
         showStats(transportConnection);
     }
 
