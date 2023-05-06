@@ -17,6 +17,11 @@
 #include <nimble-server/server.h>
 #include <udp-transport/udp_transport.h>
 
+/// Updates the server
+/// Mostly for keeping track of stats and book-keeping.
+/// @param self
+/// @param now
+/// @return
 int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
 {
     statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
@@ -29,6 +34,14 @@ int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
     return 0;
 }
 
+/// Handle an incoming request from a client identified by the connectionIndex
+/// It uses the NbdResponse to send datagrams back to the client
+/// @param self
+/// @param connectionIndex
+/// @param data
+/// @param len
+/// @param response
+/// @return
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response)
 {
     CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
@@ -68,7 +81,8 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
     int result = -1;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
-            result = nbdReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat, &self->connections, &inStream, &outStream);
+            result = nbdReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
+                                    &self->connections, &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
             result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
@@ -154,7 +168,8 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 /// @param gameState
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId, MonotonicTimeMs now)
+int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
+                            MonotonicTimeMs now)
 {
     nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
                 self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
@@ -181,10 +196,6 @@ int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
         return -44;
     }
 
-    /*
-    NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
-                                                                                        connectionIndex);
-                                                                                        */
     transportConnection->isUsed = true;
     transportConnectionInit(transportConnection, self->blobAllocator, self->log);
 
@@ -218,18 +229,31 @@ int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex)
 
 const size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 
+/// Indicates if a serialized game state must be provided this tick
+///
+/// @param self
+/// @return
 bool nbdServerMustProvideGameState(const NbdServer* self)
 {
-    int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId - self->game.latestState.stepId;
+    int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId -
+                                           self->game.latestState.stepId;
     return deltaTickCountSinceLastGameState > NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
 }
 
+/// Sets the game state
+/// Should only be called if nbdServerMustProvideGameState() returns true.
+/// @param self
+/// @param gameState
+/// @param gameStateOctetCount
+/// @param stepId
 void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
     CLOG_C_DEBUG(&self->log, "game state was set locally for stepId %08X (%zu octetCount)", stepId, gameStateOctetCount)
     nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
 }
 
+/// Resets the server
+/// @param self
 void nbdServerReset(NbdServer* self)
 {
     // nbdParticipantConnectionsReset(&self->connections);

@@ -41,11 +41,8 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
 
-void nbdParticipantConnectionReInit(NbdParticipantConnection* self, const struct NbdParticipant** participants,
-                                    size_t participantCount);
-
 void nbdParticipantConnectionReset(NbdParticipantConnection* self);
 
-int nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId);
+bool nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId);
 
 #endif

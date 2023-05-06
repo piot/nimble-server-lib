@@ -10,7 +10,6 @@
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_join_game.h>
-#include <nimble-server/req_participants.h>
 #include <nimble-server/server.h>
 
 static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
@@ -35,7 +34,7 @@ static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connectio
     return 0;
 }
 
-int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
+static int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
                                size_t transportConnectionId, struct FldInStream* inStream,
                                StepId latestAuthoritativeStepId, struct NbdParticipantConnection** createdConnection)
 {
@@ -56,6 +55,12 @@ int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdPartic
     return 0;
 }
 
+/// Handles a join request from the client
+/// @param self
+/// @param transportConnection
+/// @param inStream
+/// @param outStream
+/// @return
 int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection, FldInStream* inStream,
                    FldOutStream* outStream)
 {

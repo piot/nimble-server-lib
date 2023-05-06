@@ -42,6 +42,10 @@ void nbdParticipantConnectionsReset(NbdParticipantConnections* self)
     }
 }
 
+/// Finds the participant connection using the internal index
+/// @param self
+/// @param connectionIndex
+/// @return
 struct NbdParticipantConnection* nbdParticipantConnectionsFindConnection(NbdParticipantConnections* self,
                                                                          uint8_t connectionIndex)
 {
@@ -53,6 +57,10 @@ struct NbdParticipantConnection* nbdParticipantConnectionsFindConnection(NbdPart
     return &self->connections[connectionIndex];
 }
 
+/// Finds the participant connection for the specified connection id
+/// @param self
+/// @param transportConnectionId
+/// @return pointer to a participant connection, or 0 otherwise
 struct NbdParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NbdParticipantConnections* self,
                                                                                      uint32_t transportConnectionId)
 {

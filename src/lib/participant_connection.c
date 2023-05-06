@@ -38,31 +38,27 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
 }
 
-/// Reinitialize the participant connection
-/// @param self
-/// @param stepId
-/// @param participants
-/// @param participantCount
-void nbdParticipantConnectionReInit(NbdParticipantConnection* self, const struct NbdParticipant** participants,
-                                    size_t participantCount)
-{
-    self->participantReferences.participantReferenceCount = 0;
-}
 
+/// Resets the participant connection
+/// @param self
 void nbdParticipantConnectionReset(NbdParticipantConnection* self)
 {
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
 }
 
-int nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId)
+/// Checks if a participantId is in the participant connection
+/// @param self
+/// @param participantId
+/// @return true if found, false otherwise
+bool nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId)
 {
     for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
         const NbdParticipant* participant = self->participantReferences.participantReferences[i];
         if (participant->id == participantId) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }

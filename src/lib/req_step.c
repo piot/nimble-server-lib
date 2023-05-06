@@ -473,6 +473,15 @@ static int sendStepRanges(FldOutStream* outStream, NbdTransportConnection* trans
     return nbsPendingStepsSerializeOutRanges(outStream, &foundGame->authoritativeSteps, ranges, rangeCount);
 }
 
+/// Handles a request from the client to insert predicted inputs into the authoritative step buffer
+/// It will respond with sending authoritative steps that the client requires.
+/// @param foundGame
+/// @param transportConnection
+/// @param authoritativeStepsPerSecondStat
+/// @param connections
+/// @param inStream
+/// @param outStream
+/// @return
 int nbdReqGameStep(NbdGame* foundGame, NbdTransportConnection* transportConnection,  StatsIntPerSecond* authoritativeStepsPerSecondStat,
                    NbdParticipantConnections* connections, FldInStream* inStream, FldOutStream* outStream)
 {

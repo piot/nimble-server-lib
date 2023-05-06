@@ -5,23 +5,22 @@
 #ifndef NIMBLE_SERVER_TRANSPORT_CONNECTION_H
 #define NIMBLE_SERVER_TRANSPORT_CONNECTION_H
 
+#include <blob-stream/blob_stream_logic_in.h>
+#include <blob-stream/blob_stream_logic_out.h>
 #include <clog/clog.h>
+#include <imprint/tagged_allocator.h>
+#include <nimble-serialize/serialize.h>
 #include <nimble-serialize/version.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant_connections.h>
-#include <ordered-datagram/in_logic.h>
-#include <ordered-datagram/out_logic.h>
-#include <stdarg.h>
-#include <stdint.h>
-
-#include <blob-stream/blob_stream_logic_in.h>
-#include <blob-stream/blob_stream_logic_out.h>
-#include <imprint/tagged_allocator.h>
-#include <nimble-serialize/serialize.h>
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
+#include <ordered-datagram/in_logic.h>
+#include <ordered-datagram/out_logic.h>
 #include <stats/stats.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef enum NbdTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
@@ -49,6 +48,6 @@ typedef struct NbdTransportConnection {
 } NbdTransportConnection;
 
 void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
-
 void transportConnectionSetGameStateTickId(NbdTransportConnection* self, StepId lastAuthoritativeStateTickId);
+
 #endif

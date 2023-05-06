@@ -4,6 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 #include <nimble-server/transport_connection.h>
 
+/// Initializes a transport connection
+/// Holds information for a specified connection in the transport
+/// @param self
+/// @param blobStreamAllocator
+/// @param log
 void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log)
 {
     orderedDatagramOutLogicInit(&self->orderedDatagramOutLogic);
@@ -23,6 +28,9 @@ void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithF
     statsIntInit(&self->stepsBehindStats, 60);
 }
 
+/// sets the latest authoritative state tick id
+/// @param self
+/// @param lastAuthoritativeStateTickId
 void transportConnectionSetGameStateTickId(NbdTransportConnection* self, StepId lastAuthoritativeStateTickId)
 {
     self->phase = NbTransportConnectionPhaseInitialStateDetermined;

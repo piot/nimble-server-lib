@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <blob-stream/blob_stream_logic_out.h>
-#include <clog/clog.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
@@ -14,6 +13,11 @@
 #include <nimble-server/server.h>
 #include <udp-transport/udp_transport.h>
 
+/// Handles a download state progress ack from the client
+/// @param transportConnection 
+/// @param inStream
+/// @param transportOut
+/// @return
 int nbdReqDownloadGameStateAck(NbdTransportConnection* transportConnection, FldInStream* inStream,
                                UdpTransportOut* transportOut)
 {

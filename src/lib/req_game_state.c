@@ -8,6 +8,14 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state.h>
 
+/// Handles a request from the client to download the latest game state.
+/// @param transportConnection
+/// @param pageAllocator
+/// @param game
+/// @param applicationVersion
+/// @param inStream
+/// @param outStream
+/// @return
 int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
                             const NbdGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
                             FldOutStream* outStream)

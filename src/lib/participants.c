@@ -7,6 +7,12 @@
 #include <nimble-server/participant.h>
 #include <nimble-server/participants.h>
 
+/// Creates a new participant using the join information.
+/// @param self
+/// @param joinInfo
+/// @param localParticipantCount
+/// @param results
+/// @return
 int nbdParticipantsJoin(NbdParticipants* self, const NbdParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         NbdParticipant** results)
 {
@@ -38,14 +44,14 @@ int nbdParticipantsJoin(NbdParticipants* self, const NbdParticipantJoinInfo* joi
     return 0;
 }
 
+/// Initializes and allocates memory the participant collection
+/// @param self
+/// @param allocator
+/// @param maxCount
 void nbdParticipantsInit(NbdParticipants* self, ImprintAllocator* allocator, size_t maxCount)
 {
     self->participantCapacity = maxCount;
     self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NbdParticipant, maxCount);
     self->participantCount = 0;
     self->lastUniqueId = 0;
-}
-
-void nbdParticipantsDestroy(NbdParticipants* self)
-{
 }

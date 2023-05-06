@@ -24,7 +24,6 @@ typedef struct NbdParticipantJoinInfo {
 } NbdParticipantJoinInfo;
 
 void nbdParticipantsInit(NbdParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
-void nbdParticipantsDestroy(NbdParticipants* self);
 int nbdParticipantsJoin(NbdParticipants* self, const NbdParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         struct NbdParticipant** results);
 
