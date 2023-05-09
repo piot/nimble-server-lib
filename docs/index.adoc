@@ -13,7 +13,7 @@ for a client hosting a server.
 
 * Frame - A fixed period of time, usually 16 ms (62.5 Hz). A frame is also known as a tickId.
 * Step - The human player input for a Frame (tickId). A step is a set of controls (buttons, analog sticks, etc) that are sent from the client to the server.
-* Forced Step - The servers best guess for an acceptable Step for a participant that couldn't send a Step in an acceptable time.
+* Forced Step - A Zero Step inserted by the server, for Participant Connection Steps that did not arrive on time.
 * Participant - A reserved space for a participating player in the game. A client can have multiple Participants in the case of a splitscreen game. A participant is sometimes called a player slot.
 * Participant Connection. An array of assigned player slots for a given connection.
 
