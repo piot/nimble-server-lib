@@ -28,9 +28,14 @@ When a client joins, it receives a complete snapshot of the simulation state. No
 
 ==== Authoritative Steps
 
-When the server has received Steps for all the Participants for a Frame, it creates an authoritative step which is the array of all the Steps for all the Participants. The Authoritative Steps are then sent to a client each time a request for a new Step to be added is received from a client.
+When the server has a few received Steps in the buffers for all the Participants or if one or more clients are ahead of others, it creates an authoritative step.
+The Authoritative Steps are then sent as a response to a client requesting to insert new predicted Steps.
 
-If the server notices that one or more clients are ahead of others (more than the acceptable latency-difference between clients, usually maximum 10 ticks - 160 ms), it can no longer wait for those "lagging" Steps to be received. The server then inserts a Forced Step. The Forced Step is either a copy of the last received input from that Participant or a "zero" Step (no buttons are pressed and with zero values for the other controls). In some cases a more advanced knowledge is needed by the server to insert approriate Forced Steps. The Forced Step will likely result in a mis-prediction for the avatar assigned to that Participant that missed to insert its own predicted Step.
+If the server notices that one or more clients are ahead of others (more than the acceptable latency-difference between clients, usually around 2-3 ticks), it can no longer wait for those "lagging" Steps to be received. The server then inserts a Forced Step for all steps that are behind. The Forced Step is a "Zero Step", with zero octet count.
+It is up to the application to interpret what happens on zero steps, usually it is to not apply any input to the avatar for that tick.
+
+The Forced Zero Step will likely result in a mis-prediction for the avatar assigned to that Participant that missed to insert its own predicted Step.
+
 Keep in mind that the client is aware of how much they are behind in their Step buffer on the server, as well as the latency between the client and server. The client will adjust and will try to predict more Steps further into the future to compensate, and, if needed (to avoid high CPU utilization), enforce a limit on how far it predicts the actual simulation. This will create a local delay for those Steps, but it is a good trade-off.
 
 === Usage
