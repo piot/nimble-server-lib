@@ -23,6 +23,7 @@
 #include <nimble-steps/steps.h>
 #include <stats/stats_per_second.h>
 #include <stdbool.h>
+#include <udp-transport/multi.h>
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
@@ -41,6 +42,7 @@ typedef struct NbdServerSetup {
     size_t maxGameStateOctetCount;
     const uint8_t* zeroInputOctets;
     size_t zeroInputOctetCount;
+    DatagramTransportMultiInOut multiTransport;
     MonotonicTimeMs now;
     Clog log;
 } NbdServerSetup;
@@ -57,6 +59,7 @@ typedef struct NbdServer {
     NimbleSerializeVersion applicationVersion;
     Clog log;
 
+    DatagramTransportMultiInOut multiTransport;
     NbdServerSetup setup;
     uint16_t statsCounter;
     StatsIntPerSecond authoritativeStepsPerSecondStat;
@@ -71,6 +74,7 @@ int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t ga
 void nbdServerDestroy(NbdServer* self);
 void nbdServerReset(NbdServer* self);
 int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);
+int nbdServerReadFromMultiTransport(NbdServer* self);
 int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now);
 bool nbdServerMustProvideGameState(const NbdServer* self);
 void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);

@@ -24,6 +24,8 @@
 /// @return
 int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
 {
+    nbdServerReadFromMultiTransport(self);
+
     statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
 
     self->statsCounter++;
@@ -124,6 +126,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
 int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 {
     self->log = setup.log;
+    self->multiTransport = setup.multiTransport;
     if (setup.maxConnectionCount > NBD_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
                      NBD_SERVER_MAX_TRANSPORT_CONNECTIONS)
@@ -192,9 +195,11 @@ int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
 {
     NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
     if (transportConnection->isUsed) {
-        CLOG_C_ERROR(&self->log, "connection already connected")
+        CLOG_C_SOFT_ERROR(&self->log, "connection %d already connected", connectionIndex)
         return -44;
     }
+
+    CLOG_C_DEBUG(&self->log, "connection %d connected", connectionIndex)
 
     transportConnection->isUsed = true;
     transportConnectionInit(transportConnection, self->blobAllocator, self->log);
@@ -264,4 +269,58 @@ void nbdServerReset(NbdServer* self)
 void nbdServerDestroy(NbdServer* self)
 {
     nbdParticipantConnectionsDestroy(&self->connections);
+}
+
+typedef struct ReplyOnlyToConnection {
+    int connectionIndex;
+    DatagramTransportMultiInOut multiTransport;
+} ReplyOnlyToConnection;
+
+static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t octetCount)
+{
+    ReplyOnlyToConnection* self = (ReplyOnlyToConnection*) _self;
+
+    return self->multiTransport.send(self->multiTransport.self, self->connectionIndex, data, octetCount);
+}
+
+/// Read all datagrams from the multitransport
+/// @param nimbleServer
+int nbdServerReadFromMultiTransport(NbdServer* self)
+{
+    int connectionId;
+    uint8_t datagram[1200];
+
+    ReplyOnlyToConnection replyOnlyToConnection;
+    replyOnlyToConnection.multiTransport = self->multiTransport;
+
+    UdpTransportOut responseTransport;
+
+    for (size_t i = 0; i < 32; ++i) {
+        int octetCountReceived = self->multiTransport.receive(self->multiTransport.self, &connectionId, datagram, 1200);
+        //&didConnectNow, &responseTransport
+
+        if (octetCountReceived == 0) {
+            return 0;
+        }
+        bool didConnectNow = !self->connections.connections[connectionId].isUsed;
+
+        if (didConnectNow) {
+            nbdServerConnectionConnected(self, connectionId);
+        }
+
+        replyOnlyToConnection.connectionIndex = connectionId;
+        responseTransport.self = &replyOnlyToConnection;
+        responseTransport.send = sendOnlyToSpecifiedTransport;
+
+        NbdResponse response;
+        response.transportOut = &responseTransport;
+
+        int errorCode = nbdServerFeed(self, connectionId, datagram, octetCountReceived, &response);
+        if (errorCode < 0) {
+            CLOG_ERROR("can not feed server")
+            return errorCode;
+        }
+    }
+
+    return 0;
 }
