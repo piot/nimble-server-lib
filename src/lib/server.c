@@ -297,12 +297,11 @@ int nbdServerReadFromMultiTransport(NbdServer* self)
 
     for (size_t i = 0; i < 32; ++i) {
         int octetCountReceived = self->multiTransport.receive(self->multiTransport.self, &connectionId, datagram, 1200);
-        //&didConnectNow, &responseTransport
 
         if (octetCountReceived == 0) {
             return 0;
         }
-        bool didConnectNow = !self->connections.connections[connectionId].isUsed;
+        bool didConnectNow = !self->transportConnections[connectionId].isUsed;
 
         if (didConnectNow) {
             nbdServerConnectionConnected(self, connectionId);
