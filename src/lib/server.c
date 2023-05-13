@@ -56,7 +56,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
     fldInStreamInit(&inStream, data, len);
 
     if (connectionIndex > 64) {
-        CLOG_ERROR("can only support up to 64 connections")
+        CLOG_SOFT_ERROR("can only support up to 64 connections")
         return -13;
     }
 
@@ -300,6 +300,10 @@ int nbdServerReadFromMultiTransport(NbdServer* self)
 
         if (octetCountReceived == 0) {
             return 0;
+        }
+
+        if (octetCountReceived < 0) {
+            return octetCountReceived;
         }
         bool didConnectNow = !self->transportConnections[connectionId].isUsed;
 
