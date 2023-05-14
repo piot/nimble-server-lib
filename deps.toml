@@ -24,7 +24,7 @@ name = 'piot/blob-stream'
 version = "*"
 
 [[dependencies]]
-name = 'piot/udp-transport'
+name = 'piot/datagram-transport-c'
 version = "*"
 
 [[dependencies]]

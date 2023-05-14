@@ -15,7 +15,7 @@
 #include <imprint/default_setup.h>
 
 #include <nimble-daemon/version.h>
-#include <udp-transport/udp_transport.h>
+#include <datagram-transport/transport.h>
 
 clog_config g_clog;
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     UdpServerSocketSendToAddress socketSendToAddress;
     socketSendToAddress.serverSocket = &daemon.socket;
 
-    UdpTransportOut transportOut;
+    DatagramTransportOut transportOut;
     transportOut.self = &socketSendToAddress;
     transportOut.send = sendToAddress;
 

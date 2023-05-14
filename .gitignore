@@ -12,3 +12,4 @@ deps.*/
 cmake-build*/
 html/
 latex/
+src/examples/nimble_server

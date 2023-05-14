@@ -23,7 +23,7 @@
 #include <nimble-steps/steps.h>
 #include <stats/stats_per_second.h>
 #include <stdbool.h>
-#include <udp-transport/multi.h>
+#include <datagram-transport/multi.h>
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
@@ -42,7 +42,7 @@ typedef struct NbdServerSetup {
     size_t maxGameStateOctetCount;
     const uint8_t* zeroInputOctets;
     size_t zeroInputOctetCount;
-    DatagramTransportMultiInOut multiTransport;
+    DatagramTransportMulti multiTransport;
     MonotonicTimeMs now;
     Clog log;
 } NbdServerSetup;
@@ -59,14 +59,14 @@ typedef struct NbdServer {
     NimbleSerializeVersion applicationVersion;
     Clog log;
 
-    DatagramTransportMultiInOut multiTransport;
+    DatagramTransportMulti multiTransport;
     NbdServerSetup setup;
     uint16_t statsCounter;
     StatsIntPerSecond authoritativeStepsPerSecondStat;
 } NbdServer;
 
 typedef struct NbdResponse {
-    struct UdpTransportOut* transportOut;
+    struct DatagramTransportOut* transportOut;
 } NbdResponse;
 
 int nbdServerInit(NbdServer* self, NbdServerSetup setup);

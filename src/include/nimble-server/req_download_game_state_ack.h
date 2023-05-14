@@ -10,10 +10,10 @@
 
 struct NbdParticipantConnection;
 struct NbdTransportConnection;
-struct UdpTransportOut;
+struct DatagramTransportOut;
 struct FldInStream;
 
 int nbdReqDownloadGameStateAck(struct NbdTransportConnection* transportConnection, struct FldInStream* inStream,
-                               struct UdpTransportOut* transportOut);
+                               struct DatagramTransportOut* transportOut);
 
 #endif

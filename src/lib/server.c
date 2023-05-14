@@ -15,7 +15,7 @@
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
-#include <udp-transport/udp_transport.h>
+#include <datagram-transport/transport.h>
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
@@ -273,14 +273,14 @@ void nbdServerDestroy(NbdServer* self)
 
 typedef struct ReplyOnlyToConnection {
     int connectionIndex;
-    DatagramTransportMultiInOut multiTransport;
+    DatagramTransportMulti multiTransport;
 } ReplyOnlyToConnection;
 
 static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t octetCount)
 {
     ReplyOnlyToConnection* self = (ReplyOnlyToConnection*) _self;
 
-    return self->multiTransport.send(self->multiTransport.self, self->connectionIndex, data, octetCount);
+    return self->multiTransport.sendTo(self->multiTransport.self, self->connectionIndex, data, octetCount);
 }
 
 /// Read all datagrams from the multitransport
@@ -293,10 +293,10 @@ int nbdServerReadFromMultiTransport(NbdServer* self)
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
 
-    UdpTransportOut responseTransport;
+    DatagramTransportOut responseTransport;
 
     for (size_t i = 0; i < 32; ++i) {
-        int octetCountReceived = self->multiTransport.receive(self->multiTransport.self, &connectionId, datagram, 1200);
+        int octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId, datagram, 1200);
 
         if (octetCountReceived == 0) {
             return 0;

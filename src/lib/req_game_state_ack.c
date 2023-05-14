@@ -11,15 +11,15 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/server.h>
-#include <udp-transport/udp_transport.h>
+#include <datagram-transport/transport.h>
 
 /// Handles a download state progress ack from the client
-/// @param transportConnection 
+/// @param transportConnection
 /// @param inStream
 /// @param transportOut
 /// @return
 int nbdReqDownloadGameStateAck(NbdTransportConnection* transportConnection, FldInStream* inStream,
-                               UdpTransportOut* transportOut)
+                               DatagramTransportOut* transportOut)
 {
     NimbleSerializeBlobStreamChannelId channelId;
     int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);

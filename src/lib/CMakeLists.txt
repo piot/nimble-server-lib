@@ -84,7 +84,7 @@ target_include_directories(nimble_server_lib PRIVATE
   ${deps}piot/imprint/src/include
   ${deps}piot/blob-stream/src/include
   ${deps}piot/bit-array/src/include
-  ${deps}piot/udp-transport/src/include
+  ${deps}piot/datagram-transport-c/src/include
         ../include
 )
 
