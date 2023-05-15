@@ -232,7 +232,7 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
     return 0;
 }
 
-const size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
+const static size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 
 /// Indicates if a serialized game state must be provided this tick
 ///
