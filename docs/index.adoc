@@ -42,29 +42,29 @@ Keep in mind that the client is aware of how much they are behind in their Step 
 
 ==== Initialize
 
-Initialize the `NbdServer` struct. The `memory` and `blobAllocator` are used for allocating memory,
+Initialize the `NimbleServer` struct. The `memory` and `blobAllocator` are used for allocating memory,
 see link:https://github.com/piot/imprint[Imprint] for more information about memory allocators.
 
 [source,c]
 ----
-int nbdServerInit(NbdServer *self, struct ImprintAllocator* memory,
+int nimbleServerInit(NimbleServer *self, struct ImprintAllocator* memory,
                 struct ImprintAllocatorWithFree* blobAllocator);
 ----
 
 ==== Feed client data
 
-Main function is `nbdServerFeed` where you feed the received data from the client with its connectionIndex.
-Responses are sent using the transport inside `NbdResponse`.
+Main function is `nimbleServerFeed` where you feed the received data from the client with its connectionIndex.
+Responses are sent using the transport inside `NimbleServerResponse`.
 
 [source,c]
 ----
-int nbdServerFeed(NbdServer *self, uint8_t connectionIndex,
-                  const uint8_t *data, size_t len, NbdResponse *response);
+int nimbleServerFeed(NimbleServer *self, uint8_t connectionIndex,
+                  const uint8_t *data, size_t len, NimbleServerResponse *response);
 ----
 
 ==== Report client disconnects
 
 [source,c]
 ----
-int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex);
+int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex);
 ----

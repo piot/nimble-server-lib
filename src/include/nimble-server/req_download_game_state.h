@@ -7,14 +7,14 @@
 
 #include <nimble-serialize/version.h>
 
-struct NbdTransportConnection;
+struct NimbleServerTransportConnection;
 struct ImprintAllocator;
-struct NbdGame;
+struct NimbleServerGame;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqDownloadGameState(struct NbdTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
-                            const struct NbdGame* game, NimbleSerializeVersion applicationVersion,
+int nbdReqDownloadGameState(struct NimbleServerTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
+                            const struct NimbleServerGame* game, NimbleSerializeVersion applicationVersion,
                             struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

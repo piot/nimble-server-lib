@@ -27,11 +27,11 @@
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
-struct NbdParticipant;
+struct NimbleServerParticipant;
 
 #define NBD_SERVER_MAX_TRANSPORT_CONNECTIONS 64
 
-typedef struct NbdServerSetup {
+typedef struct NimbleServerSetup {
     NimbleSerializeVersion applicationVersion;
     struct ImprintAllocator* memory;
     struct ImprintAllocatorWithFree* blobAllocator;
@@ -45,13 +45,13 @@ typedef struct NbdServerSetup {
     DatagramTransportMulti multiTransport;
     MonotonicTimeMs now;
     Clog log;
-} NbdServerSetup;
+} NimbleServerSetup;
 
-typedef struct NbdServer {
-    NbdTransportConnection transportConnections[NBD_SERVER_MAX_TRANSPORT_CONNECTIONS];
+typedef struct NimbleServer {
+    NimbleServerTransportConnection transportConnections[NBD_SERVER_MAX_TRANSPORT_CONNECTIONS];
 
-    NbdParticipantConnections connections;
-    NbdGame game;
+    NimbleServerParticipantConnections connections;
+    NimbleServerGame game;
 
     struct ImprintAllocator* pageAllocator;
     struct ImprintAllocatorWithFree* blobAllocator;
@@ -60,25 +60,25 @@ typedef struct NbdServer {
     Clog log;
 
     DatagramTransportMulti multiTransport;
-    NbdServerSetup setup;
+    NimbleServerSetup setup;
     uint16_t statsCounter;
     StatsIntPerSecond authoritativeStepsPerSecondStat;
-} NbdServer;
+} NimbleServer;
 
-typedef struct NbdResponse {
+typedef struct NimbleServerResponse {
     struct DatagramTransportOut* transportOut;
-} NbdResponse;
+} NimbleServerResponse;
 
-int nbdServerInit(NbdServer* self, NbdServerSetup setup);
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId, MonotonicTimeMs now);
-void nbdServerDestroy(NbdServer* self);
-void nbdServerReset(NbdServer* self);
-int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response);
-int nbdServerReadFromMultiTransport(NbdServer* self);
-int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now);
-bool nbdServerMustProvideGameState(const NbdServer* self);
-void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
-int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex);
-int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex);
+int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup);
+int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId, MonotonicTimeMs now);
+void nimbleServerDestroy(NimbleServer* self);
+void nimbleServerReset(NimbleServer* self);
+int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NimbleServerResponse* response);
+int nimbleServerReadFromMultiTransport(NimbleServer* self);
+int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now);
+bool nimbleServerMustProvideGameState(const NimbleServer* self);
+void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
+int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex);
+int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex);
 
 #endif

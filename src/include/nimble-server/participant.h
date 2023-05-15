@@ -8,10 +8,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-typedef struct NbdParticipant {
+typedef struct NimbleServerParticipant {
     size_t localIndex;
     size_t id;
     bool isUsed;
-} NbdParticipant;
+} NimbleServerParticipant;
 
 #endif

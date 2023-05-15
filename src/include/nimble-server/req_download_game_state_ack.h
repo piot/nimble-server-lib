@@ -8,12 +8,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct NbdParticipantConnection;
-struct NbdTransportConnection;
+struct NimbleServerParticipantConnection;
+struct NimbleServerTransportConnection;
 struct DatagramTransportOut;
 struct FldInStream;
 
-int nbdReqDownloadGameStateAck(struct NbdTransportConnection* transportConnection, struct FldInStream* inStream,
+int nbdReqDownloadGameStateAck(struct NimbleServerTransportConnection* transportConnection, struct FldInStream* inStream,
                                struct DatagramTransportOut* transportOut);
 
 #endif

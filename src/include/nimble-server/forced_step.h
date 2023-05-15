@@ -8,9 +8,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct NbdParticipantConnection;
+struct NimbleServerParticipantConnection;
 
-int nbdInsertForcedSteps(struct NbdParticipantConnection* foundParticipantConnection, size_t dropped);
-int nbdCreateForcedStep(struct NbdParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
+int nbdInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection, size_t dropped);
+int nbdCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
 
 #endif

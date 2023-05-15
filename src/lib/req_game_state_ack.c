@@ -18,7 +18,7 @@
 /// @param inStream
 /// @param transportOut
 /// @return
-int nbdReqDownloadGameStateAck(NbdTransportConnection* transportConnection, FldInStream* inStream,
+int nbdReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                                DatagramTransportOut* transportOut)
 {
     NimbleSerializeBlobStreamChannelId channelId;

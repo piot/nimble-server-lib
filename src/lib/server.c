@@ -22,9 +22,9 @@
 /// @param self
 /// @param now
 /// @return
-int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
+int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 {
-    nbdServerReadFromMultiTransport(self);
+    nimbleServerReadFromMultiTransport(self);
 
     statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
 
@@ -37,14 +37,14 @@ int nbdServerUpdate(NbdServer* self, MonotonicTimeMs now)
 }
 
 /// Handle an incoming request from a client identified by the connectionIndex
-/// It uses the NbdResponse to send datagrams back to the client
+/// It uses the NimbleServerResponse to send datagrams back to the client
 /// @param self
 /// @param connectionIndex
 /// @param data
 /// @param len
 /// @param response
 /// @return
-int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NbdResponse* response)
+int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NimbleServerResponse* response)
 {
     CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
 
@@ -60,7 +60,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
         return -13;
     }
 
-    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
 
     orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
 
@@ -94,7 +94,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
                                              self->applicationVersion, &inStream, &outStream);
             break;
         default:
-            CLOG_SOFT_ERROR("nbdServerFeed: unknown command %02X", data[0]);
+            CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0]);
             return 0;
     }
 
@@ -123,7 +123,7 @@ int nbdServerFeed(NbdServer* self, uint8_t connectionIndex, const uint8_t* data,
 /// @param memory
 /// @param blobAllocator
 /// @return
-int nbdServerInit(NbdServer* self, NbdServerSetup setup)
+int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 {
     self->log = setup.log;
     self->multiTransport = setup.multiTransport;
@@ -135,14 +135,14 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 
     const size_t maximumSingleStepCountAllowed = 24;
     if (setup.maxSingleParticipantStepOctetCount > maximumSingleStepCountAllowed) {
-        CLOG_C_ERROR(&self->log, "nbdServerInit. Single step octet count is not allowed %zu of %zu",
+        CLOG_C_ERROR(&self->log, "nimbleServerInit. Single step octet count is not allowed %zu of %zu",
                      setup.maxSingleParticipantStepOctetCount, maximumSingleStepCountAllowed)
         return -1;
     }
 
     const size_t maximumNumberOfParticipantsAllowed = NBD_SERVER_MAX_TRANSPORT_CONNECTIONS;
     if (setup.maxParticipantCount > maximumNumberOfParticipantsAllowed) {
-        CLOG_C_ERROR(&self->log, "nbdServerInit. maximum number of participant count is too high: %zu of %zu",
+        CLOG_C_ERROR(&self->log, "nimbleServerInit. maximum number of participant count is too high: %zu of %zu",
                      setup.maxParticipantCount, maximumNumberOfParticipantsAllowed)
         return -1;
     }
@@ -171,7 +171,7 @@ int nbdServerInit(NbdServer* self, NbdServerSetup setup)
 /// @param gameState
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
-int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
+int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
                             MonotonicTimeMs now)
 {
     nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
@@ -191,9 +191,9 @@ int nbdServerReInitWithGame(NbdServer* self, const uint8_t* gameState, size_t ga
 /// @param participants
 /// @param participantCount
 /// @return
-int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
+int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 {
-    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
     if (transportConnection->isUsed) {
         CLOG_C_SOFT_ERROR(&self->log, "connection %d already connected", connectionIndex)
         return -44;
@@ -211,9 +211,9 @@ int nbdServerConnectionConnected(NbdServer* self, uint8_t connectionIndex)
 /// @param self
 /// @param connectionIndex
 /// @return
-int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex)
+int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex)
 {
-    NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
+    NimbleServerParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
                                                                                         connectionIndex);
     if (!foundConnection) {
         return -2;
@@ -226,7 +226,7 @@ int nbdServerConnectionDisconnected(NbdServer* self, uint8_t connectionIndex)
     foundConnection->id = 0x100;
     foundConnection->isUsed = false;
 
-    NbdTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
     transportConnection->orderedDatagramInLogic.hasReceivedInitialDatagram = false;
 
     return 0;
@@ -238,7 +238,7 @@ const size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 ///
 /// @param self
 /// @return
-bool nbdServerMustProvideGameState(const NbdServer* self)
+bool nimbleServerMustProvideGameState(const NimbleServer* self)
 {
     int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId -
                                            self->game.latestState.stepId;
@@ -246,12 +246,12 @@ bool nbdServerMustProvideGameState(const NbdServer* self)
 }
 
 /// Sets the game state
-/// Should only be called if nbdServerMustProvideGameState() returns true.
+/// Should only be called if nimbleServerMustProvideGameState() returns true.
 /// @param self
 /// @param gameState
 /// @param gameStateOctetCount
 /// @param stepId
-void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
+void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
     CLOG_C_DEBUG(&self->log, "game state was set locally for stepId %08X (%zu octetCount)", stepId, gameStateOctetCount)
     nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
@@ -259,14 +259,14 @@ void nbdServerSetGameState(NbdServer* self, const uint8_t* gameState, size_t gam
 
 /// Resets the server
 /// @param self
-void nbdServerReset(NbdServer* self)
+void nimbleServerReset(NimbleServer* self)
 {
     // nbdParticipantConnectionsReset(&self->connections);
 }
 
 /// Free all resources made by the server
 /// @param self
-void nbdServerDestroy(NbdServer* self)
+void nimbleServerDestroy(NimbleServer* self)
 {
     nbdParticipantConnectionsDestroy(&self->connections);
 }
@@ -285,7 +285,7 @@ static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t
 
 /// Read all datagrams from the multitransport
 /// @param nimbleServer
-int nbdServerReadFromMultiTransport(NbdServer* self)
+int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
     uint8_t datagram[1200];
@@ -308,17 +308,17 @@ int nbdServerReadFromMultiTransport(NbdServer* self)
         bool didConnectNow = !self->transportConnections[connectionId].isUsed;
 
         if (didConnectNow) {
-            nbdServerConnectionConnected(self, connectionId);
+            nimbleServerConnectionConnected(self, connectionId);
         }
 
         replyOnlyToConnection.connectionIndex = connectionId;
         responseTransport.self = &replyOnlyToConnection;
         responseTransport.send = sendOnlyToSpecifiedTransport;
 
-        NbdResponse response;
+        NimbleServerResponse response;
         response.transportOut = &responseTransport;
 
-        int errorCode = nbdServerFeed(self, connectionId, datagram, octetCountReceived, &response);
+        int errorCode = nimbleServerFeed(self, connectionId, datagram, octetCountReceived, &response);
         if (errorCode < 0) {
             CLOG_ERROR("can not feed server")
             return errorCode;

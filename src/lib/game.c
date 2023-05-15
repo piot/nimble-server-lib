@@ -15,7 +15,7 @@
 /// @param maxGameStateOctetSize
 /// @param maxParticipantCount
 /// @param log
-void nbdGameInit(NbdGame* self, ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
+void nbdGameInit(NimbleServerGame* self, ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
                  size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log)
 {
     self->log = log;
@@ -33,9 +33,9 @@ void nbdGameInit(NbdGame* self, ImprintAllocator* allocator, size_t maxSinglePar
 /// @param gameState
 /// @param gameStateOctetCount
 /// @return
-int nbdGameSetGameState(NbdGame* self, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount)
+int nbdGameSetGameState(NimbleServerGame* self, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount)
 {
-    NbdGameState* state = &self->latestState;
+    NimbleServerGameState* state = &self->latestState;
 
     // CLOG_VERBOSE("trying to set game state %08X (octet count:%zu)", stepId, gameStateOctetCount);
     if (state->octetCount != 0 && stepId <= state->stepId) {
@@ -67,7 +67,7 @@ int nbdGameSetGameState(NbdGame* self, StepId stepId, const uint8_t* gameState, 
 
 /// Destroy the game
 /// @param self
-void nbdGameDestroy(NbdGame* self)
+void nbdGameDestroy(NimbleServerGame* self)
 {
     nbdGameStateDestroy(&self->latestState);
 }

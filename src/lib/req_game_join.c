@@ -12,12 +12,12 @@
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/server.h>
 
-static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
-                                            size_t transportConnectionId, const NbdParticipantJoinInfo* joinInfo,
+static int nbdGameJoinParticipantConnection(NimbleServerParticipantConnections* connections, NimbleServerParticipants* gameParticipants,
+                                            size_t transportConnectionId, const NimbleServerParticipantJoinInfo* joinInfo,
                                             StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                            struct NbdParticipantConnection** outConnection)
+                                            struct NimbleServerParticipantConnection** outConnection)
 {
-    NbdParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnectionForTransport(
+    NimbleServerParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnectionForTransport(
         connections, transportConnectionId);
     if (foundConnection != 0) {
         *outConnection = foundConnection;
@@ -34,14 +34,14 @@ static int nbdGameJoinParticipantConnection(NbdParticipantConnections* connectio
     return 0;
 }
 
-static int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, NbdParticipants* gameParticipants,
+static int nbdReadAndJoinParticipants(NimbleServerParticipantConnections* connections, NimbleServerParticipants* gameParticipants,
                                size_t transportConnectionId, struct FldInStream* inStream,
-                               StepId latestAuthoritativeStepId, struct NbdParticipantConnection** createdConnection)
+                               StepId latestAuthoritativeStepId, struct NimbleServerParticipantConnection** createdConnection)
 {
     uint8_t localParticipantCount;
     fldInStreamReadUInt8(inStream, &localParticipantCount);
     CLOG_ASSERT(localParticipantCount > 0, "must have local participants")
-    NbdParticipantJoinInfo joinInfos[8];
+    NimbleServerParticipantJoinInfo joinInfos[8];
     for (size_t i = 0; i < localParticipantCount; ++i) {
         fldInStreamReadUInt8(inStream, &joinInfos[i].localIndex);
     }
@@ -61,7 +61,7 @@ static int nbdReadAndJoinParticipants(NbdParticipantConnections* connections, Nb
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection, FldInStream* inStream,
+int nbdReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                    FldOutStream* outStream)
 {
 
@@ -99,7 +99,7 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
         return -44;
     }
 
-    NbdParticipantConnection* createdConnection;
+    NimbleServerParticipantConnection* createdConnection;
     errorCode = nbdReadAndJoinParticipants(&self->connections, &self->game.participants,
                                            transportConnection->transportConnectionId, inStream,
                                            self->game.authoritativeSteps.expectedWriteId, &createdConnection);
@@ -112,7 +112,7 @@ int nbdReqGameJoin(NbdServer* self, NbdTransportConnection* transportConnection,
 
     NimbleSerializeParticipant participants[8];
     for (size_t i = 0; i < createdConnection->participantReferences.participantReferenceCount; ++i) {
-        const NbdParticipant* sourceParticipant = createdConnection->participantReferences.participantReferences[i];
+        const NimbleServerParticipant* sourceParticipant = createdConnection->participantReferences.participantReferences[i];
         participants[i].id = sourceParticipant->id;
         participants[i].localIndex = sourceParticipant->localIndex;
         CLOG_VERBOSE("joined localIndex %zu with ID: %zu", sourceParticipant->localIndex, sourceParticipant->id)

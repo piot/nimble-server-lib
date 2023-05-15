@@ -8,11 +8,11 @@
 #include <nimble-server/server.h>
 #include <udp-server/udp_server.h>
 
-typedef struct NbdDaemon {
-    NbdServer server;
+typedef struct NimbleServerDaemon {
+    NimbleServer server;
     UdpServerSocket socket;
-} NbdDaemon;
+} NimbleServerDaemon;
 
-int nbdDaemonInit(NbdDaemon* self);
+int nbdDaemonInit(NimbleServerDaemon* self);
 
 #endif

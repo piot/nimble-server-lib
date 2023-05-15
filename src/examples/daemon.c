@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 #include <nimble-daemon/daemon.h>
 
-int nbdDaemonInit(NbdDaemon* self)
+int nbdDaemonInit(NimbleServerDaemon* self)
 {
     int err = udpServerStartup();
     if (err < 0) {

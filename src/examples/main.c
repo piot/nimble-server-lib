@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 
     CLOG_OUTPUT("nimbled v%s starting up", NIMBLE_DAEMON_VERSION)
 
-    NbdDaemon daemon;
+    NimbleServerDaemon daemon;
 
     int err = nbdDaemonInit(&daemon);
     if (err < 0) {
@@ -54,14 +54,14 @@ int main(int argc, char* argv[])
     transportOut.self = &socketSendToAddress;
     transportOut.send = sendToAddress;
 
-    NbdServer server;
+    NimbleServer server;
 
     ImprintDefaultSetup memory;
     imprintDefaultSetupInit(&memory, 16 * 1024 * 1024);
 
     NimbleSerializeVersion applicationVersion = {0x10, 0x20, 0x30};
 
-    NbdServerSetup setup;
+    NimbleServerSetup setup;
 
     Clog serverLog;
     serverLog.constantPrefix = "Server";
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     setup.maxSingleParticipantStepOctetCount = 8;
     setup.memory = &memory.tagAllocator.info;
 
-    nbdServerInit(&server, setup);
+    nimbleServerInit(&server, setup);
 
     nbdGameInit(&server.game, &memory.tagAllocator.info, setup.maxSingleParticipantStepOctetCount,  setup.maxGameStateOctetCount, setup.maxParticipantCount, setup.log);
 
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
         if (errorCode < 0) {
             CLOG_WARN("problem with receive %d", errorCode);
         } else {
-            NbdResponse response;
+            NimbleServerResponse response;
             response.transportOut = &transportOut;
             socketSendToAddress.sockAddrIn = &address;
 
@@ -114,9 +114,9 @@ int main(int argc, char* argv[])
 #if 0
             nimbleSerializeDebugHex("received", buf, size);
 #endif
-            errorCode = nbdServerFeed(&server, 1, buf, size, &response);
+            errorCode = nimbleServerFeed(&server, 1, buf, size, &response);
             if (errorCode < 0) {
-                CLOG_WARN("nbdServerFeed: error %d", errorCode);
+                CLOG_WARN("nimbleServerFeed: error %d", errorCode);
             }
 
             NbsSteps* authoritativeSteps = &server.game.authoritativeSteps;

@@ -8,12 +8,12 @@
 #ifndef NIMBLE_SERVER_REQ_JOIN_GAME_H
 #define NIMBLE_SERVER_REQ_JOIN_GAME_H
 
-struct NbdServer;
+struct NimbleServer;
 struct FldOutStream;
 struct FldInStream;
-struct NbdTransportConnection;
+struct NimbleServerTransportConnection;
 
-int nbdReqGameJoin(struct NbdServer* self, struct NbdTransportConnection* transportConnection,
+int nbdReqGameJoin(struct NimbleServer* self, struct NimbleServerTransportConnection* transportConnection,
                    struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

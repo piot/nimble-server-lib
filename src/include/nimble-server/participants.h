@@ -8,23 +8,23 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-struct NbdParticipant;
+struct NimbleServerParticipant;
 struct ImprintAllocator;
 
 /// All the participants that are within a game
-typedef struct NbdParticipants {
-    struct NbdParticipant* participants;
+typedef struct NimbleServerParticipants {
+    struct NimbleServerParticipant* participants;
     size_t participantCapacity;
     size_t participantCount;
     uint8_t lastUniqueId;
-} NbdParticipants;
+} NimbleServerParticipants;
 
-typedef struct NbdParticipantJoinInfo {
+typedef struct NimbleServerParticipantJoinInfo {
     uint8_t localIndex;
-} NbdParticipantJoinInfo;
+} NimbleServerParticipantJoinInfo;
 
-void nbdParticipantsInit(NbdParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
-int nbdParticipantsJoin(NbdParticipants* self, const NbdParticipantJoinInfo* joinInfo, size_t localParticipantCount,
-                        struct NbdParticipant** results);
+void nbdParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
+int nbdParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
+                        struct NimbleServerParticipant** results);
 
 #endif

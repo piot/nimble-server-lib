@@ -14,35 +14,35 @@
 #include <stats/stats.h>
 #include <stdbool.h>
 
-struct NbdParticipant;
+struct NimbleServerParticipant;
 
-typedef struct NbdParticipantReferences {
+typedef struct NimbleServerParticipantReferences {
     size_t participantReferenceCount;
-    struct NbdParticipant* participantReferences[MAX_LOCAL_PLAYERS];
-} NbdParticipantReferences;
+    struct NimbleServerParticipant* participantReferences[MAX_LOCAL_PLAYERS];
+} NimbleServerParticipantReferences;
 
 /// Represents a UDP "connection" from a client which can hold several game participants. */
-typedef struct NbdParticipantConnection {
+typedef struct NimbleServerParticipantConnection {
     uint32_t id;
     bool isUsed;
     NbsSteps steps;
 
-    NbdParticipantReferences participantReferences;
+    NimbleServerParticipantReferences participantReferences;
 
     StatsInt incomingStepCountInBufferStats;
     size_t transportConnectionId;
     ImprintAllocator* allocatorWithNoFree;
     size_t forcedStepInRowCounter;
     Clog log;
-} NbdParticipantConnection;
+} NimbleServerParticipantConnection;
 
-void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionId,
+void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, size_t transportConnectionId,
                                   ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
 
-void nbdParticipantConnectionReset(NbdParticipantConnection* self);
+void nbdParticipantConnectionReset(NimbleServerParticipantConnection* self);
 
-bool nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId);
+bool nbdParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
 
 #endif

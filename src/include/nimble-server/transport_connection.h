@@ -22,14 +22,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef enum NbdTransportConnectionPhase {
+typedef enum NimbleServerTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
     NbTransportConnectionPhaseInitialStateDetermined
-} NbdTransportConnectionPhase;
+} NimbleServerTransportConnectionPhase;
 
-typedef struct NbdTransportConnection {
+typedef struct NimbleServerTransportConnection {
     uint8_t transportConnectionId;
-    struct NbdParticipantConnection* assignedParticipantConnection;
+    struct NimbleServerParticipantConnection* assignedParticipantConnection;
     OrderedDatagramInLogic orderedDatagramInLogic;
     OrderedDatagramOutLogic orderedDatagramOutLogic;
     BlobStreamOut blobStreamOut;
@@ -44,10 +44,10 @@ typedef struct NbdTransportConnection {
     bool isUsed;
     StepId nextAuthoritativeStepIdToSend;
     uint8_t noRangesToSendCounter;
-    NbdTransportConnectionPhase phase;
-} NbdTransportConnection;
+    NimbleServerTransportConnectionPhase phase;
+} NimbleServerTransportConnection;
 
-void transportConnectionInit(NbdTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
-void transportConnectionSetGameStateTickId(NbdTransportConnection* self, StepId lastAuthoritativeStateTickId);
+void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
+void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self, StepId lastAuthoritativeStateTickId);
 
 #endif

@@ -13,16 +13,16 @@ struct ImprintAllocator;
 
 
 /// Tracks the latestState, as well as the all authoritative Steps after the game state.
-typedef struct NbdGame {
+typedef struct NimbleServerGame {
     NbsSteps authoritativeSteps;
-    NbdGameState latestState;
-    NbdParticipants participants;
+    NimbleServerGameState latestState;
+    NimbleServerParticipants participants;
     Clog log;
-} NbdGame;
+} NimbleServerGame;
 
-void nbdGameInit(NbdGame* self, struct ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
+void nbdGameInit(NimbleServerGame* self, struct ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
                  size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log);
-void nbdGameDestroy(NbdGame* self);
-int nbdGameSetGameState(NbdGame* game, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount);
+void nbdGameDestroy(NimbleServerGame* self);
+int nbdGameSetGameState(NimbleServerGame* game, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount);
 
 #endif

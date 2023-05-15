@@ -17,7 +17,7 @@
 ///
 /// Need to create Participants to the game before associating them to the connection.
 ///
-void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transportConnectionIndex,
+void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, size_t transportConnectionIndex,
                                   ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log)
@@ -41,7 +41,7 @@ void nbdParticipantConnectionInit(NbdParticipantConnection* self, size_t transpo
 
 /// Resets the participant connection
 /// @param self
-void nbdParticipantConnectionReset(NbdParticipantConnection* self)
+void nbdParticipantConnectionReset(NimbleServerParticipantConnection* self)
 {
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
@@ -51,10 +51,10 @@ void nbdParticipantConnectionReset(NbdParticipantConnection* self)
 /// @param self
 /// @param participantId
 /// @return true if found, false otherwise
-bool nbdParticipantConnectionHasParticipantId(const NbdParticipantConnection* self, uint8_t participantId)
+bool nbdParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId)
 {
     for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
-        const NbdParticipant* participant = self->participantReferences.participantReferences[i];
+        const NimbleServerParticipant* participant = self->participantReferences.participantReferences[i];
         if (participant->id == participantId) {
             return true;
         }

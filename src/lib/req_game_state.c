@@ -16,11 +16,11 @@
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqDownloadGameState(NbdTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
-                            const NbdGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
+int nbdReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
+                            const NimbleServerGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
                             FldOutStream* outStream)
 {
-    const NbdGameState* latestState = &game->latestState;
+    const NimbleServerGameState* latestState = &game->latestState;
     if (latestState->octetCount == 0) {
         CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u",
                     transportConnection->transportConnectionId);

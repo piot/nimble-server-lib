@@ -12,13 +12,13 @@
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
 
-struct NbdParticipantConnection;
+struct NimbleServerParticipantConnection;
 
 struct ImprintAllocator;
 struct ImprintAllocatorWithFree;
 
-typedef struct NbdParticipantConnections {
-    struct NbdParticipantConnection* connections;
+typedef struct NimbleServerParticipantConnections {
+    struct NimbleServerParticipantConnection* connections;
     size_t connectionCount;
     size_t capacityCount;
     struct ImprintAllocator* allocator;
@@ -26,21 +26,21 @@ typedef struct NbdParticipantConnections {
     size_t maxParticipantCountForConnection;
     size_t maxSingleParticipantStepOctetCount;
     Clog log;
-} NbdParticipantConnections;
+} NimbleServerParticipantConnections;
 
-void nbdParticipantConnectionsInit(NbdParticipantConnections* self, size_t maxCount,
+void nbdParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
                                    struct ImprintAllocator* connectionAllocator,
                                    struct ImprintAllocatorWithFree* blobAllocator,
                                    size_t maxNumberOfParticipantsForConnection, size_t maxSingleParticipantOctetCount,
                                    Clog log);
-void nbdParticipantConnectionsReset(NbdParticipantConnections* self);
-void nbdParticipantConnectionsDestroy(NbdParticipantConnections* self);
-struct NbdParticipantConnection* nbdParticipantConnectionsFindConnection(NbdParticipantConnections* self,
+void nbdParticipantConnectionsReset(NimbleServerParticipantConnections* self);
+void nbdParticipantConnectionsDestroy(NimbleServerParticipantConnections* self);
+struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self,
                                                                          uint8_t connectionIndex);
-struct NbdParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NbdParticipantConnections* self,
+struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
                                                                                      uint32_t transportConnectionId);
-int nbdParticipantConnectionsCreate(NbdParticipantConnections* self, NbdParticipants* gameParticipants,
-                                    size_t transportConnectionId, const NbdParticipantJoinInfo* joinInfo,
+int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self, NimbleServerParticipants* gameParticipants,
+                                    size_t transportConnectionId, const NimbleServerParticipantJoinInfo* joinInfo,
                                     StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                    struct NbdParticipantConnection** outConnection);
+                                    struct NimbleServerParticipantConnection** outConnection);
 #endif

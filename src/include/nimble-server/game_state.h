@@ -11,15 +11,15 @@
 
 struct ImprintAllocator;
 
-/// Holds the title-specific game state captured at @p NbdGameState::stepId.
-typedef struct NbdGameState {
+/// Holds the title-specific game state captured at @p NimbleServerGameState::stepId.
+typedef struct NimbleServerGameState {
     uint8_t* state;
     size_t octetCount;
     size_t capacity;
     StepId stepId;
-} NbdGameState;
+} NimbleServerGameState;
 
-void nbdGameStateInit(NbdGameState* self, struct ImprintAllocator* allocatorWithFree, size_t octetCount);
-void nbdGameStateDestroy(NbdGameState* self);
+void nbdGameStateInit(NimbleServerGameState* self, struct ImprintAllocator* allocatorWithFree, size_t octetCount);
+void nbdGameStateDestroy(NimbleServerGameState* self);
 
 #endif
