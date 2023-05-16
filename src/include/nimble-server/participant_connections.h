@@ -16,6 +16,7 @@ struct NimbleServerParticipantConnection;
 
 struct ImprintAllocator;
 struct ImprintAllocatorWithFree;
+struct NimbleServerTransportConnection;
 
 typedef struct NimbleServerParticipantConnections {
     struct NimbleServerParticipantConnection* connections;
@@ -35,12 +36,13 @@ void nbdParticipantConnectionsInit(NimbleServerParticipantConnections* self, siz
                                    Clog log);
 void nbdParticipantConnectionsReset(NimbleServerParticipantConnections* self);
 void nbdParticipantConnectionsDestroy(NimbleServerParticipantConnections* self);
+void nbdParticipantConnectionsRemove(NimbleServerParticipantConnections* self, struct NimbleServerParticipantConnection* connection);
 struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self,
                                                                          uint8_t connectionIndex);
 struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
                                                                                      uint32_t transportConnectionId);
 int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self, NimbleServerParticipants* gameParticipants,
-                                    size_t transportConnectionId, const NimbleServerParticipantJoinInfo* joinInfo,
+                                    struct NimbleServerTransportConnection* transportConnection, const NimbleServerParticipantJoinInfo* joinInfo,
                                     StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                     struct NimbleServerParticipantConnection** outConnection);
 #endif

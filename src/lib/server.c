@@ -62,6 +62,10 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     }
 
     NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    if (transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
+        CLOG_SOFT_ERROR("was disconnected")
+        return -54;
+    }
 
     orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
 
@@ -313,6 +317,11 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
             nimbleServerConnectionConnected(self, connectionId);
         }
 
+        bool disconnectNow = self->transportConnections[connectionId].phase == NbTransportConnectionPhaseDisconnected;
+        if (disconnectNow) {
+            nimbleServerConnectionDisconnected(self, connectionId);
+        }
+
         replyOnlyToConnection.connectionIndex = connectionId;
         responseTransport.self = &replyOnlyToConnection;
         responseTransport.send = sendOnlyToSpecifiedTransport;
@@ -322,7 +331,7 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 
         int errorCode = nimbleServerFeed(self, connectionId, datagram, octetCountReceived, &response);
         if (errorCode < 0) {
-            CLOG_ERROR("can not feed server")
+            CLOG_C_SOFT_ERROR(&self->log, "error on feed %d", errorCode)
             return errorCode;
         }
     }

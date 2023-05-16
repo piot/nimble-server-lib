@@ -5,6 +5,7 @@
 #include <clog/clog.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
+#include <nimble-server/transport_connection.h>
 
 void nbdParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
                                    ImprintAllocator* connectionAllocator, ImprintAllocatorWithFree* blobAllocator,
@@ -46,8 +47,8 @@ void nbdParticipantConnectionsReset(NimbleServerParticipantConnections* self)
 /// @param self
 /// @param connectionIndex
 /// @return
-struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self,
-                                                                         uint8_t connectionIndex)
+struct NimbleServerParticipantConnection*
+nbdParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self, uint8_t connectionIndex)
 {
     if (connectionIndex >= self->capacityCount) {
         CLOG_C_ERROR(&self->log, "Illegal connection index: %d", connectionIndex)
@@ -61,11 +62,13 @@ struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectio
 /// @param self
 /// @param transportConnectionId
 /// @return pointer to a participant connection, or 0 otherwise
-struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
-                                                                                     uint32_t transportConnectionId)
+struct NimbleServerParticipantConnection*
+nbdParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
+                                                    uint32_t transportConnectionId)
 {
     for (size_t i = 0; i < self->connectionCount; ++i) {
-        if (self->connections[i].isUsed && self->connections[i].transportConnectionId == transportConnectionId) {
+        if (self->connections[i].isUsed &&
+            self->connections[i].transportConnection->transportConnectionId == transportConnectionId) {
             return &self->connections[i];
         }
     }
@@ -82,24 +85,24 @@ struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectio
 /// @param localParticipantCount
 /// @param outConnection
 /// @return error code
-int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self, NimbleServerParticipants* gameParticipants,
-                                    size_t transportConnectionId, const NimbleServerParticipantJoinInfo* joinInfo,
-                                    StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                    NimbleServerParticipantConnection** outConnection)
+int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
+                                    NimbleServerParticipants* gameParticipants,
+                                    struct NimbleServerTransportConnection* transportConnection,
+                                    const NimbleServerParticipantJoinInfo* joinInfo, StepId latestAuthoritativeStepId,
+                                    size_t localParticipantCount, NimbleServerParticipantConnection** outConnection)
 {
     for (size_t i = 0; i < self->capacityCount; ++i) {
         NimbleServerParticipantConnection* participantConnection = &self->connections[i];
         if (!participantConnection->isUsed) {
             struct NimbleServerParticipant* createdParticipants[16];
-            int errorCode = nbdParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
-                                                createdParticipants);
+            int errorCode = nbdParticipantsJoin(gameParticipants, joinInfo, localParticipantCount, createdParticipants);
             if (errorCode < 0) {
                 *outConnection = 0;
                 return errorCode;
             }
 
             participantConnection->id = i;
-            nbdParticipantConnectionInit(participantConnection, transportConnectionId, self->allocator,
+            nbdParticipantConnectionInit(participantConnection, transportConnection, self->allocator,
                                          latestAuthoritativeStepId, self->maxParticipantCountForConnection,
                                          self->maxSingleParticipantStepOctetCount, self->log);
             self->connectionCount++;
@@ -118,4 +121,15 @@ int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self, Ni
     *outConnection = 0;
 
     return -1;
+}
+
+/// Remove participant connection from participant connections collection
+/// @param self
+/// @param connection
+void nbdParticipantConnectionsRemove(NimbleServerParticipantConnections* self,
+                                     struct NimbleServerParticipantConnection* connection)
+{
+    CLOG_C_DEBUG(&self->log, "disconnecting connection %zu forcedSteps:%zu impendingDisconnect:%zu", connection->id,
+                 connection->forcedStepInRowCounter, connection->impedingDisconnectCounter)
+    nbdParticipantConnectionReset(connection);
 }

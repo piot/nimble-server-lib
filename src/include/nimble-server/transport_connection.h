@@ -24,7 +24,8 @@
 
 typedef enum NimbleServerTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
-    NbTransportConnectionPhaseInitialStateDetermined
+    NbTransportConnectionPhaseInitialStateDetermined,
+    NbTransportConnectionPhaseDisconnected
 } NimbleServerTransportConnectionPhase;
 
 typedef struct NimbleServerTransportConnection {

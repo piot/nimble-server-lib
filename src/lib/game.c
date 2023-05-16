@@ -71,3 +71,26 @@ void nbdGameDestroy(NimbleServerGame* self)
 {
     nbdGameStateDestroy(&self->latestState);
 }
+
+#include <nimble-server/participant_connection.h>
+
+static void nbdGameShowReport(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
+{
+    NbsSteps* steps = &game->authoritativeSteps;
+    CLOG_C_INFO(&game->log, "Authoritative: steps %08X to %08X (count: %d) latestState: %08X", steps->expectedReadId,
+                steps->expectedWriteId - 1, steps->stepsCount, game->latestState.stepId)
+
+    for (size_t i = 0u; i < connections->connectionCount; ++i) {
+        const NimbleServerParticipantConnection* connection = &connections->connections[i];
+        if (connection->steps.stepsCount == 0) {
+            CLOG_C_INFO(&game->log, " .. con#%d: no steps, lastStepId: %08X", connection->id,
+                        connection->steps.expectedWriteId - 1)
+
+        } else {
+            CLOG_C_INFO(&game->log, " .. con#%d: steps: %08X to %08X count:%zu", connection->id,
+                        connection->steps.expectedReadId, connection->steps.expectedWriteId - 1,
+                        connection->steps.stepsCount)
+        }
+    }
+    CLOG_C_INFO(&game->log, "Authoritative: -----")
+}

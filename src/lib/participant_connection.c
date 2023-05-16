@@ -5,6 +5,7 @@
 #include "nimble-steps-serialize/out_serialize.h"
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/transport_connection.h>
 
 /// Initializes a participant connection.
 /// @param self the participant connection
@@ -17,7 +18,8 @@
 ///
 /// Need to create Participants to the game before associating them to the connection.
 ///
-void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, size_t transportConnectionIndex,
+void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self,
+                                  NimbleServerTransportConnection* transportConnection,
                                   ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log)
@@ -32,12 +34,15 @@ void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, size_
     self->participantReferences.participantReferenceCount = 0;
 
     self->allocatorWithNoFree = connectionAllocator;
-    self->transportConnectionId = transportConnectionIndex;
+    self->transportConnection = transportConnection;
     self->isUsed = false;
+    self->providedStepsInARow = 0;
+    self->forcedStepInRowCounter = 0;
+    self->impedingDisconnectCounter = 0;
+    self->state = NimbleServerParticipantConnectionStateNormal;
 
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
 }
-
 
 /// Resets the participant connection
 /// @param self

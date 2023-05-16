@@ -15,11 +15,18 @@
 #include <stdbool.h>
 
 struct NimbleServerParticipant;
+struct NimbleServerTransportConnection;
 
 typedef struct NimbleServerParticipantReferences {
     size_t participantReferenceCount;
     struct NimbleServerParticipant* participantReferences[MAX_LOCAL_PLAYERS];
 } NimbleServerParticipantReferences;
+
+typedef enum NimbleServerParticipantConnectionState {
+    NimbleServerParticipantConnectionStateNormal,
+    NimbleServerParticipantConnectionStateImpendingDisconnect,
+    NimbleServerParticipantConnectionStateImpendingDisconnected
+} NimbleServerParticipantConnectionState;
 
 /// Represents a UDP "connection" from a client which can hold several game participants. */
 typedef struct NimbleServerParticipantConnection {
@@ -27,16 +34,19 @@ typedef struct NimbleServerParticipantConnection {
     bool isUsed;
     NbsSteps steps;
 
+    NimbleServerParticipantConnectionState state;
     NimbleServerParticipantReferences participantReferences;
 
     StatsInt incomingStepCountInBufferStats;
-    size_t transportConnectionId;
+    struct NimbleServerTransportConnection* transportConnection;
     ImprintAllocator* allocatorWithNoFree;
     size_t forcedStepInRowCounter;
+    size_t providedStepsInARow;
+    size_t impedingDisconnectCounter;
     Clog log;
 } NimbleServerParticipantConnection;
 
-void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, size_t transportConnectionId,
+void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection,
                                   ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
