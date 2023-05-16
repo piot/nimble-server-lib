@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
+#include <datagram-transport/transport.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
@@ -15,7 +16,6 @@
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
-#include <datagram-transport/transport.h>
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
@@ -30,7 +30,7 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 
     self->statsCounter++;
     if ((self->statsCounter % 3000) == 0) {
-        statsIntPerSecondDebugOutput(&self->authoritativeStepsPerSecondStat, "composedSteps", "steps/s");
+        statsIntPerSecondDebugOutput(&self->authoritativeStepsPerSecondStat, &self->log, "composedSteps", "steps/s");
     }
 
     return 0;
@@ -44,7 +44,8 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 /// @param len
 /// @param response
 /// @return
-int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len, NimbleServerResponse* response)
+int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
+                     NimbleServerResponse* response)
 {
     CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
 
@@ -172,7 +173,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 /// @param gameStateOctetCount maximum of 64K supported
 /// @return
 int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
-                            MonotonicTimeMs now)
+                               MonotonicTimeMs now)
 {
     nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
                 self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
@@ -214,7 +215,7 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex)
 {
     NimbleServerParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
-                                                                                        connectionIndex);
+                                                                                                 connectionIndex);
     if (!foundConnection) {
         return -2;
     }
@@ -296,7 +297,8 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
     DatagramTransportOut responseTransport;
 
     for (size_t i = 0; i < 32; ++i) {
-        int octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId, datagram, 1200);
+        int octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId, datagram,
+                                                                  1200);
 
         if (octetCountReceived == 0) {
             return 0;

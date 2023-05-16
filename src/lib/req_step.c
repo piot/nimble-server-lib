@@ -20,7 +20,7 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
 {
     FldOutStream composeStream;
     fldOutStreamInit(&composeStream, composeStepBuffer, maxLength);
-    fldOutStreamWriteUInt8(&composeStream,0); // Participant count, that is filled in later in this function.
+    fldOutStreamWriteUInt8(&composeStream, 0); // Participant count, that is filled in later in this function.
     StepId encounteredStepId;
     size_t foundParticipantCount = 0;
     uint8_t stepReadBuffer[1024];
@@ -48,9 +48,8 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
             }
 
             if (connectionCanProvideId != lookingFor) {
-                CLOG_C_VERBOSE(&connection->log,
-                                  "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X", lookingFor,
-                                  connectionCanProvideId)
+                CLOG_C_VERBOSE(&connection->log, "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X",
+                               lookingFor, connectionCanProvideId)
                 int discardErr = nbsStepsDiscardUpTo(&connection->steps, lookingFor + 1);
                 if (discardErr < 0) {
                     CLOG_C_ERROR(&connection->log, "could not discard including %d", discardErr)
@@ -65,8 +64,8 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
             stepOctetCount = nbdCreateForcedStep(connection, stepReadBuffer, 1024);
             connection->forcedStepInRowCounter++;
             CLOG_C_VERBOSE(&connection->log,
-                        "no steps stored in connection %zu (%u). server is looking for %08X. inserting forced step", i,
-                        connection->id, lookingFor)
+                           "no steps stored in connection %zu (%u). server is looking for %08X. inserting forced step",
+                           i, connection->id, lookingFor)
         }
 
         int verifyResult = nbsStepsVerifyStep(stepReadBuffer, stepOctetCount);
@@ -118,20 +117,22 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
             fldOutStreamWriteUInt8(&composeStream, participantId);
             fldOutStreamWriteUInt8(&composeStream, localStepOctetCount);
             fldOutStreamWriteOctets(&composeStream, splitStepBuffer, localStepOctetCount);
-            //CLOG_C_INFO(&connection->log, "connection %d. Wrote participant ID %d (octetCount %d)", connection->id, participantId, localStepOctetCount)
+            // CLOG_C_INFO(&connection->log, "connection %d. Wrote participant ID %d (octetCount %d)", connection->id,
+            // participantId, localStepOctetCount)
             foundParticipantCount++;
         }
     }
     composeStepBuffer[0] = foundParticipantCount;
     *outSize = composeStream.pos;
 
-    //CLOG_INFO("combined step done. participant count %zu, total octet count: %zu", foundParticipantCount, composeStream.pos);
+    // CLOG_INFO("combined step done. participant count %zu, total octet count: %zu", foundParticipantCount,
+    // composeStream.pos);
 
     return (int) foundParticipantCount;
 }
 
-static int maxPredictedStepContributionForConnections(NimbleServerParticipantConnections* connections, StepId lookingFor,
-                                                      int* outConnectionsThatCouldNotContribute)
+static int maxPredictedStepContributionForConnections(NimbleServerParticipantConnections* connections,
+                                                      StepId lookingFor, int* outConnectionsThatCouldNotContribute)
 {
     int maxConnectionCanAdvanceStepCount = 0;
     int connectionCountThatCanNotContribute = 0;
@@ -164,8 +165,8 @@ static bool shouldComposeNewAuthoritativeStep(NimbleServerParticipantConnections
                                                                     &connectionCountThatCouldNotContribute);
 
     bool shouldCompose = (availableSteps > 3 && connectionCountThatCouldNotContribute == 0) || availableSteps > 5;
-    //CLOG_INFO("available steps for composing: %d couldNotContribute:%d result:%d", availableSteps,
-      //        connectionCountThatCouldNotContribute, shouldCompose)
+    // CLOG_INFO("available steps for composing: %d couldNotContribute:%d result:%d", availableSteps,
+    //         connectionCountThatCouldNotContribute, shouldCompose)
 
     return shouldCompose;
 }
@@ -209,7 +210,8 @@ static void nbdGameShowReport(NimbleServerGame* game, NimbleServerParticipantCon
     CLOG_C_INFO(&game->log, "Authoritative: -----")
 }
 
-static int advanceAuthoritativeAsFarAsWeCan(NimbleServerGame* game, NimbleServerParticipantConnections* connections, StatsIntPerSecond* authoritativeStepsPerSecondStat)
+static int advanceAuthoritativeAsFarAsWeCan(NimbleServerGame* game, NimbleServerParticipantConnections* connections,
+                                            StatsIntPerSecond* authoritativeStepsPerSecondStat)
 {
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
@@ -251,7 +253,7 @@ static int advanceAuthoritativeAsFarAsWeCan(NimbleServerGame* game, NimbleServer
         }
         CLOG_C_VERBOSE(&game->log, "authenticate: we have written %08X", lookingFor);
 
-        //nbdGameShowReport(game, connections);
+        // nbdGameShowReport(game, connections);
 
         writtenAuthoritativeSteps++;
     }
@@ -281,16 +283,17 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundG
     return 0;
 }
 
-static int handleIncomingSteps(NimbleServerGame* foundGame, NimbleServerParticipantConnections* connections, FldInStream* inStream,
-                               NimbleServerTransportConnection* transportConnection,     StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                               StepId* outClientWaitingForStepId,
+static int handleIncomingSteps(NimbleServerGame* foundGame, NimbleServerParticipantConnections* connections,
+                               FldInStream* inStream, NimbleServerTransportConnection* transportConnection,
+                               StatsIntPerSecond* authoritativeStepsPerSecondStat, StepId* outClientWaitingForStepId,
                                uint64_t* outReceiveMask, uint16_t* receivedTimeFromClient)
 {
 
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask, receivedTimeFromClient);
+    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask,
+                                                     receivedTimeFromClient);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;
@@ -360,15 +363,17 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
     if (foundParticipantConnection) {
         tc_snprintf(debug, DEBUG_COUNT, "server: conn %d step count in incoming buffer",
                     foundParticipantConnection->id);
-        statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, debug, "steps");
+        statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, &transportConnection->log, debug,
+                      "steps");
     }
 
     tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)",
                 transportConnection->transportConnectionId);
-    statsIntDebug(&transportConnection->stepsBehindStats, debug, "steps");
+    statsIntDebug(&transportConnection->stepsBehindStats, &transportConnection->log, debug, "steps");
 }
 
-static void updateStats(NimbleServerTransportConnection* transportConnection, NimbleServerGame* foundGame, StepId clientWaitingForStepId)
+static void updateStats(NimbleServerTransportConnection* transportConnection, NimbleServerGame* foundGame,
+                        StepId clientWaitingForStepId)
 {
     NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
     if (foundParticipantConnection != 0) {
@@ -380,8 +385,9 @@ static void updateStats(NimbleServerTransportConnection* transportConnection, Ni
     statsIntAdd(&transportConnection->stepsBehindStats, stepsBehindForClient);
 }
 
-static int sendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection, NimbleServerGame* foundGame,
-                          StepId clientWaitingForStepId, uint64_t receiveMask, uint16_t receivedTimeFromClient)
+static int sendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
+                          NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask,
+                          uint16_t receivedTimeFromClient)
 {
 #define MAX_RANGES_COUNT (3)
     const int maxStepsCount = 8;
@@ -455,7 +461,8 @@ static int sendStepRanges(FldOutStream* outStream, NimbleServerTransportConnecti
             transportConnection->noRangesToSendCounter = 0;
         }
 
-        NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+        NimbleServerParticipantConnection* foundParticipantConnection = transportConnection
+                                                                            ->assignedParticipantConnection;
         if (foundParticipantConnection != 0) {
             lastReceivedStepFromClient = foundParticipantConnection->steps.expectedWriteId - 1;
             bufferDelta = foundParticipantConnection->steps.stepsCount;
@@ -464,7 +471,8 @@ static int sendStepRanges(FldOutStream* outStream, NimbleServerTransportConnecti
         }
     }
 
-    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta, receivedTimeFromClient);
+    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta,
+                                       receivedTimeFromClient);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);
@@ -482,15 +490,17 @@ static int sendStepRanges(FldOutStream* outStream, NimbleServerTransportConnecti
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,  StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                   NimbleServerParticipantConnections* connections, FldInStream* inStream, FldOutStream* outStream)
+int nbdReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
+                   StatsIntPerSecond* authoritativeStepsPerSecondStat, NimbleServerParticipantConnections* connections,
+                   FldInStream* inStream, FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
     uint16_t receivedTimeFromClient;
 
-    int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection, authoritativeStepsPerSecondStat, &clientWaitingForStepId,
-                                        &receiveMask, &receivedTimeFromClient);
+    int errorCode = handleIncomingSteps(foundGame, connections, inStream, transportConnection,
+                                        authoritativeStepsPerSecondStat, &clientWaitingForStepId, &receiveMask,
+                                        &receivedTimeFromClient);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode);
         return errorCode;
@@ -501,5 +511,6 @@ int nbdReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection*
         showStats(transportConnection);
     }
 
-    return sendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask, receivedTimeFromClient);
+    return sendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask,
+                          receivedTimeFromClient);
 }
