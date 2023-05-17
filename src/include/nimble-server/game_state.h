@@ -19,7 +19,9 @@ typedef struct NimbleServerGameState {
     StepId stepId;
 } NimbleServerGameState;
 
-void nbdGameStateInit(NimbleServerGameState* self, struct ImprintAllocator* allocatorWithFree, size_t octetCount);
-void nbdGameStateDestroy(NimbleServerGameState* self);
+void nimbleServerGameStateInit(NimbleServerGameState* self, struct ImprintAllocator* allocatorWithFree,
+                               size_t octetCount);
+int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const uint8_t* gameState,
+                             size_t gameStateOctetCount, Clog* log);
 
 #endif

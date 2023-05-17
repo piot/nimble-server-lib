@@ -23,8 +23,8 @@ typedef struct NimbleServerParticipantJoinInfo {
     uint8_t localIndex;
 } NimbleServerParticipantJoinInfo;
 
-void nbdParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
-int nbdParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
+void nimbleServerParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
+int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         struct NimbleServerParticipant** results);
 
 #endif

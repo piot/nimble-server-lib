@@ -13,7 +13,7 @@ struct NimbleServerTransportConnection;
 struct DatagramTransportOut;
 struct FldInStream;
 
-int nbdReqDownloadGameStateAck(struct NimbleServerTransportConnection* transportConnection, struct FldInStream* inStream,
+int nimbleServerReqDownloadGameStateAck(struct NimbleServerTransportConnection* transportConnection, struct FldInStream* inStream,
                                struct DatagramTransportOut* transportOut);
 
 #endif

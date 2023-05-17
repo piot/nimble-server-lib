@@ -23,26 +23,27 @@ typedef struct NimbleServerParticipantConnections {
     size_t connectionCount;
     size_t capacityCount;
     struct ImprintAllocator* allocator;
-    struct ImprintAllocatorWithFree* allocatorWithFree;
     size_t maxParticipantCountForConnection;
     size_t maxSingleParticipantStepOctetCount;
     Clog log;
 } NimbleServerParticipantConnections;
 
-void nbdParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
-                                   struct ImprintAllocator* connectionAllocator,
-                                   struct ImprintAllocatorWithFree* blobAllocator,
-                                   size_t maxNumberOfParticipantsForConnection, size_t maxSingleParticipantOctetCount,
-                                   Clog log);
-void nbdParticipantConnectionsReset(NimbleServerParticipantConnections* self);
-void nbdParticipantConnectionsDestroy(NimbleServerParticipantConnections* self);
-void nbdParticipantConnectionsRemove(NimbleServerParticipantConnections* self, struct NimbleServerParticipantConnection* connection);
-struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self,
-                                                                         uint8_t connectionIndex);
-struct NimbleServerParticipantConnection* nbdParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
-                                                                                     uint32_t transportConnectionId);
-int nbdParticipantConnectionsCreate(NimbleServerParticipantConnections* self, NimbleServerParticipants* gameParticipants,
-                                    struct NimbleServerTransportConnection* transportConnection, const NimbleServerParticipantJoinInfo* joinInfo,
-                                    StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                    struct NimbleServerParticipantConnection** outConnection);
+void nimbleServerParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
+                                            struct ImprintAllocator* connectionAllocator,
+                                            size_t maxNumberOfParticipantsForConnection,
+                                            size_t maxSingleParticipantOctetCount, Clog log);
+void nimbleServerParticipantConnectionsReset(NimbleServerParticipantConnections* self);
+void nimbleServerParticipantConnectionsRemove(NimbleServerParticipantConnections* self,
+                                              struct NimbleServerParticipantConnection* connection);
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self, uint8_t connectionIndex);
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
+                                                             uint32_t transportConnectionId);
+int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
+                                             NimbleServerParticipants* gameParticipants,
+                                             struct NimbleServerTransportConnection* transportConnection,
+                                             const NimbleServerParticipantJoinInfo* joinInfo,
+                                             StepId latestAuthoritativeStepId, size_t localParticipantCount,
+                                             struct NimbleServerParticipantConnection** outConnection);
 #endif

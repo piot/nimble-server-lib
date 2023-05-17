@@ -5,17 +5,14 @@
 #ifndef NIMBLE_SERVER_TRANSPORT_CONNECTION_STATS_H
 #define NIMBLE_SERVER_TRANSPORT_CONNECTION_STATS_H
 
-#include <stats/stats_per_second.h>
+#include <nimble-steps/steps.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <nimble-steps/steps.h>
 
-struct NimbleServerGame;
-struct NimbleServerParticipantConnection;
-struct NimbleServerParticipantConnections;
 struct NimbleServerTransportConnection;
 struct FldOutStream;
 struct FldInStream;
+struct NimbleServerGame;
 
 void nimbleServerTransportConnectionUpdateStats(struct NimbleServerTransportConnection* transportConnection,
                                                 struct NimbleServerGame* foundGame, StepId clientWaitingForStepId);

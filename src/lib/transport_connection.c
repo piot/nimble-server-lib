@@ -9,7 +9,8 @@
 /// @param self
 /// @param blobStreamAllocator
 /// @param log
-void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log)
+void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
+                             Clog log)
 {
     orderedDatagramOutLogicInit(&self->orderedDatagramOutLogic);
     orderedDatagramInLogicInit(&self->orderedDatagramInLogic);
@@ -21,7 +22,6 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
     self->isUsed = true;
     self->log = log;
     self->noRangesToSendCounter = 0;
-    self->nextAuthoritativeStepIdToSend = 0xFFFFFFFF;
     self->phase = NbTransportConnectionPhaseIdle;
     self->blobStreamOutClientRequestId = 0;
 
@@ -34,5 +34,4 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self, StepId lastAuthoritativeStateTickId)
 {
     self->phase = NbTransportConnectionPhaseInitialStateDetermined;
-    self->nextAuthoritativeStepIdToSend = lastAuthoritativeStateTickId;
 }

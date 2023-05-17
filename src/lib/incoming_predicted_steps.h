@@ -6,7 +6,6 @@
 #define NIMBLE_SERVER_INCOMING_STEPS_H
 
 #include <nimble-steps/steps.h>
-#include <stats/stats_per_second.h>
 #include <stddef.h>
 #include <stdint.h>
 

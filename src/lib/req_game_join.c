@@ -11,24 +11,24 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/server.h>
-#include <nimble-server/transport_connection.h>
 
-static int nbdGameJoinParticipantConnection(NimbleServerParticipantConnections* connections,
-                                            NimbleServerParticipants* gameParticipants,
-                                            NimbleServerTransportConnection* transportConnection,
-                                            const NimbleServerParticipantJoinInfo* joinInfo,
-                                            StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                            struct NimbleServerParticipantConnection** outConnection)
+static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConnections* connections,
+                                                     NimbleServerParticipants* gameParticipants,
+                                                     NimbleServerTransportConnection* transportConnection,
+                                                     const NimbleServerParticipantJoinInfo* joinInfo,
+                                                     StepId latestAuthoritativeStepId, size_t localParticipantCount,
+                                                     struct NimbleServerParticipantConnection** outConnection)
 {
-    NimbleServerParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnectionForTransport(
+    NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnectionForTransport(
         connections, transportConnection->transportConnectionId);
     if (foundConnection != 0) {
         *outConnection = foundConnection;
         return 0;
     }
 
-    int errorCode = nbdParticipantConnectionsCreate(connections, gameParticipants, transportConnection, joinInfo,
-                                                    latestAuthoritativeStepId, localParticipantCount, outConnection);
+    int errorCode = nimbleServerParticipantConnectionsCreate(connections, gameParticipants, transportConnection,
+                                                             joinInfo, latestAuthoritativeStepId, localParticipantCount,
+                                                             outConnection);
     if (errorCode < 0) {
         *outConnection = 0;
         return errorCode;
@@ -37,11 +37,11 @@ static int nbdGameJoinParticipantConnection(NimbleServerParticipantConnections* 
     return 0;
 }
 
-static int nbdReadAndJoinParticipants(NimbleServerParticipantConnections* connections,
-                                      NimbleServerParticipants* gameParticipants,
-                                      NimbleServerTransportConnection* transportConnection,
-                                      struct FldInStream* inStream, StepId latestAuthoritativeStepId,
-                                      struct NimbleServerParticipantConnection** createdConnection)
+static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnections* connections,
+                                               NimbleServerParticipants* gameParticipants,
+                                               NimbleServerTransportConnection* transportConnection,
+                                               struct FldInStream* inStream, StepId latestAuthoritativeStepId,
+                                               struct NimbleServerParticipantConnection** createdConnection)
 {
     uint8_t localParticipantCount;
     fldInStreamReadUInt8(inStream, &localParticipantCount);
@@ -50,9 +50,9 @@ static int nbdReadAndJoinParticipants(NimbleServerParticipantConnections* connec
     for (size_t i = 0; i < localParticipantCount; ++i) {
         fldInStreamReadUInt8(inStream, &joinInfos[i].localIndex);
     }
-    int errorCode = nbdGameJoinParticipantConnection(connections, gameParticipants, transportConnection, joinInfos,
-                                                     latestAuthoritativeStepId, localParticipantCount,
-                                                     createdConnection);
+    int errorCode = nimbleServerGameJoinParticipantConnection(connections, gameParticipants, transportConnection,
+                                                              joinInfos, latestAuthoritativeStepId,
+                                                              localParticipantCount, createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't join game session")
         return errorCode;
@@ -66,8 +66,8 @@ static int nbdReadAndJoinParticipants(NimbleServerParticipantConnections* connec
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
-                   FldOutStream* outStream)
+int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
+                            FldInStream* inStream, FldOutStream* outStream)
 {
 
     NimbleSerializeVersion nimbleProtocolVersion;
@@ -105,8 +105,9 @@ int nbdReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transpor
     }
 
     NimbleServerParticipantConnection* createdConnection;
-    errorCode = nbdReadAndJoinParticipants(&self->connections, &self->game.participants, transportConnection, inStream,
-                                           self->game.authoritativeSteps.expectedWriteId, &createdConnection);
+    errorCode = nimbleServerReadAndJoinParticipants(&self->connections, &self->game.participants, transportConnection,
+                                                    inStream, self->game.authoritativeSteps.expectedWriteId,
+                                                    &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session");
         return errorCode;

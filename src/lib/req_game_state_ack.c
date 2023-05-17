@@ -18,17 +18,17 @@
 /// @param inStream
 /// @param transportOut
 /// @return
-int nbdReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
+int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                                DatagramTransportOut* transportOut)
 {
     NimbleSerializeBlobStreamChannelId channelId;
     int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);
     if (errorCode < 0) {
-        CLOG_SOFT_ERROR("nbdReqJoinGameStateAck: could not get channelId")
+        CLOG_SOFT_ERROR("nimbleServerReqJoinGameStateAck: could not get channelId")
         return errorCode;
     }
 
-    // CLOG_INFO("nbdReqJoinGameStateAck %04X vs %04X", channelId, foundParticipantConnection->blobStreamOutChannel)
+    // CLOG_INFO("nimbleServerReqJoinGameStateAck %04X vs %04X", channelId, foundParticipantConnection->blobStreamOutChannel)
 
     // if (channelId != foundParticipantConnection->blobStreamOutChannel) {
     //  CLOG_SOFT_ERROR("we have ack for wrong channel %04X vs %04X", channelId,
@@ -38,7 +38,7 @@ int nbdReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnect
 
     int receiveResult = blobStreamLogicOutReceive(&transportConnection->blobStreamLogicOut, inStream);
     if (receiveResult < 0) {
-        CLOG_SOFT_ERROR("nbdReqJoinGameStateAck: could not receive blobStreamLogicOut")
+        CLOG_SOFT_ERROR("nimbleServerReqJoinGameStateAck: could not receive blobStreamLogicOut")
         return receiveResult;
     }
 

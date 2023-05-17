@@ -12,7 +12,7 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_step.h>
 
-#define NBD_LOGGING 1
+#define NIMBLE_SERVER_LOGGING 1
 
 static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundGame)
 {
@@ -68,7 +68,7 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
+int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
                    StatsIntPerSecond* authoritativeStepsPerSecondStat, NimbleServerParticipantConnections* connections,
                    FldInStream* inStream, FldOutStream* outStream)
 {

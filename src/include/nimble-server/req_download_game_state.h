@@ -13,7 +13,7 @@ struct NimbleServerGame;
 struct FldOutStream;
 struct FldInStream;
 
-int nbdReqDownloadGameState(struct NimbleServerTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
+int nimbleServerReqDownloadGameState(struct NimbleServerTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
                             const struct NimbleServerGame* game, NimbleSerializeVersion applicationVersion,
                             struct FldInStream* inStream, struct FldOutStream* outStream);
 

@@ -10,7 +10,7 @@
 
 struct NimbleServerParticipantConnection;
 
-int nbdInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection, size_t dropped);
-int nbdCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
+int nimbleServerInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection, size_t dropped);
+int nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
 
 #endif

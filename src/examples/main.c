@@ -14,8 +14,8 @@
 
 #include <imprint/default_setup.h>
 
-#include <nimble-daemon/version.h>
 #include <datagram-transport/transport.h>
+#include <nimble-daemon/version.h>
 
 clog_config g_clog;
 
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     NimbleServerDaemon daemon;
 
-    int err = nbdDaemonInit(&daemon);
+    int err = nimbleServerDaemonInit(&daemon);
     if (err < 0) {
         return err;
     }
@@ -81,10 +81,11 @@ int main(int argc, char* argv[])
 
     nimbleServerInit(&server, setup);
 
-    nbdGameInit(&server.game, &memory.tagAllocator.info, setup.maxSingleParticipantStepOctetCount,  setup.maxGameStateOctetCount, setup.maxParticipantCount, setup.log);
+    nimbleServerGameInit(&server.game, &memory.tagAllocator.info, setup.maxSingleParticipantStepOctetCount,
+                         setup.maxGameStateOctetCount, setup.maxParticipantCount, setup.log);
 
     static uint8_t exampleGameState = 42;
-    nbdGameSetGameState(&server.game, 0, &exampleGameState, 1);
+    nimbleServerGameSetGameState(&server.game, 0, &exampleGameState, 1, &serverLog);
 #define UDP_MAX_SIZE (1200)
 
     uint8_t buf[UDP_MAX_SIZE];
@@ -121,7 +122,8 @@ int main(int argc, char* argv[])
 
             NbsSteps* authoritativeSteps = &server.game.authoritativeSteps;
             if (authoritativeSteps->stepsCount > 30) {
-                nbdGameSetGameState(&server.game, server.game.authoritativeSteps.expectedWriteId, &exampleGameState, 1);
+                nimbleServerGameSetGameState(&server.game, server.game.authoritativeSteps.expectedWriteId,
+                                             &exampleGameState, 1, &serverLog);
             }
         }
     }

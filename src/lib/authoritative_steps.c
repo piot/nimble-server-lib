@@ -10,9 +10,9 @@
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
 
-#define NBD_LOGGING 1
+#define NIMBLE_SERVER_LOGGING 1
 
-static int composeAuthoritativeStep(NimbleServerParticipantConnections* connections, StepId lookingFor,
+static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* connections, StepId lookingFor,
                                     uint8_t* composeStepBuffer, size_t maxLength, size_t* outSize)
 {
     FldOutStream composeStream;
@@ -52,7 +52,7 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
                     CLOG_C_ERROR(&connection->log, "could not discard including %d", discardErr)
                 }
 
-                stepOctetCount = nbdCreateForcedStep(connection, stepReadBuffer, 1024);
+                stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
                 connection->forcedStepInRowCounter++;
                 connection->providedStepsInARow = 0;
             } else {
@@ -60,7 +60,7 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
                 connection->providedStepsInARow++;
             }
         } else {
-            stepOctetCount = nbdCreateForcedStep(connection, stepReadBuffer, 1024);
+            stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
             connection->forcedStepInRowCounter++;
             connection->providedStepsInARow = 0;
             CLOG_C_VERBOSE(&connection->log,
@@ -101,12 +101,12 @@ static int composeAuthoritativeStep(NimbleServerParticipantConnections* connecti
             uint8_t localStepOctetCount;
             fldInStreamReadUInt8(&stepInStream, &localStepOctetCount);
             fldInStreamReadOctets(&stepInStream, splitStepBuffer, localStepOctetCount);
-#if NBD_LOGGING && 0
+#if NIMBLE_SERVER_LOGGING && 0
             CLOG_C_INFO(&connection->log, "step %08X connection %d. Read participant ID %d (octetCount %hhu)",
                         lookingFor, connection->id, participantId, localStepOctetCount)
 #endif
 
-            int hasParticipant = nbdParticipantConnectionHasParticipantId(connection, participantId);
+            int hasParticipant = nimbleServerParticipantConnectionHasParticipantId(connection, participantId);
             if (!hasParticipant) {
                 CLOG_C_SOFT_ERROR(&connection->log,
                                   "participant connection %d had no right to insert steps for participant %hhu",
@@ -189,43 +189,25 @@ static bool shouldAdvanceAuthoritative(NimbleServerParticipantConnections* conne
            canAdvanceDueToDistanceFromLastState(authoritativeSteps);
 }
 
-static void nbdGameShowReport(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
-{
-    NbsSteps* steps = &game->authoritativeSteps;
-    CLOG_C_INFO(&game->log, "Authoritative: steps %08X to %08X (count: %d) latestState: %08X", steps->expectedReadId,
-                steps->expectedWriteId - 1, steps->stepsCount, game->latestState.stepId)
-
-    for (size_t i = 0u; i < connections->connectionCount; ++i) {
-        const NimbleServerParticipantConnection* connection = &connections->connections[i];
-        if (connection->steps.stepsCount == 0) {
-            CLOG_C_INFO(&game->log, " .. con#%d: no steps, lastStepId: %08X", connection->id,
-                        connection->steps.expectedWriteId - 1)
-
-        } else {
-            CLOG_C_INFO(&game->log, " .. con#%d: steps: %08X to %08X count:%zu", connection->id,
-                        connection->steps.expectedReadId, connection->steps.expectedWriteId - 1,
-                        connection->steps.stepsCount)
-        }
-    }
-    CLOG_C_INFO(&game->log, "Authoritative: -----")
-}
-
+/// Compose as many authoritative steps as possible
+/// @param game
+/// @param connections
+/// @return number of combined steps composed
 int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
 {
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
 
-#if NBD_LOGGING && CLOG_LOG_ENABLED
+#if NIMBLE_SERVER_LOGGING && CLOG_LOG_ENABLED
     StepId firstLookingFor = authoritativeSteps->expectedWriteId;
 #endif
-    // nbdGameShowReport(game, connections);
 
     while (shouldAdvanceAuthoritative(connections, authoritativeSteps)) {
         StepId lookingFor = authoritativeSteps->expectedWriteId;
 
         uint8_t composeStepBuffer[1024];
         size_t authoritativeStepOctetCount;
-        int foundParticipantCount = composeAuthoritativeStep(connections, lookingFor, composeStepBuffer, 1024,
+        int foundParticipantCount = composeOneAuthoritativeStep(connections, lookingFor, composeStepBuffer, 1024,
                                                              &authoritativeStepOctetCount);
         if (foundParticipantCount < 0) {
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't compose a authoritative step")
@@ -248,14 +230,11 @@ int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerPa
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't write")
             return octetsWritten;
         }
-        CLOG_C_VERBOSE(&game->log, "authenticate: we have written %08X", lookingFor);
-
-        // nbdGameShowReport(game, connections);
 
         writtenAuthoritativeSteps++;
     }
 
-#if NBD_LOGGING && CLOG_LOG_ENABLED
+#if NIMBLE_SERVER_LOGGING && CLOG_LOG_ENABLED
     if (writtenAuthoritativeSteps > 0) {
         CLOG_C_VERBOSE(&game->log, "authoritative: written steps from %08X to %zX (%zX)", firstLookingFor,
                        firstLookingFor + writtenAuthoritativeSteps - 1, writtenAuthoritativeSteps)

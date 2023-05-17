@@ -25,6 +25,10 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
     statsIntDebug(&transportConnection->stepsBehindStats, &transportConnection->log, debug, "steps");
 }
 
+/// Update stats for the transport connection.
+/// @param transportConnection
+/// @param foundGame
+/// @param clientWaitingForStepId
 void nimbleServerTransportConnectionUpdateStats(NimbleServerTransportConnection* transportConnection,
                                                 NimbleServerGame* foundGame, StepId clientWaitingForStepId)
 {

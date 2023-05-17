@@ -25,7 +25,7 @@ typedef struct NimbleServerParticipantReferences {
 typedef enum NimbleServerParticipantConnectionState {
     NimbleServerParticipantConnectionStateNormal,
     NimbleServerParticipantConnectionStateImpendingDisconnect,
-    NimbleServerParticipantConnectionStateImpendingDisconnected
+    NimbleServerParticipantConnectionStateDisconnected
 } NimbleServerParticipantConnectionState;
 
 /// Represents a UDP "connection" from a client which can hold several game participants. */
@@ -46,13 +46,13 @@ typedef struct NimbleServerParticipantConnection {
     Clog log;
 } NimbleServerParticipantConnection;
 
-void nbdParticipantConnectionInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection,
+void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection,
                                   ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
                                   size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
                                   Clog log);
 
-void nbdParticipantConnectionReset(NimbleServerParticipantConnection* self);
+void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self);
 
-bool nbdParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
+bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
 
 #endif

@@ -75,7 +75,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
-        return nbdReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut);
+        return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut);
     }
 
 #define UDP_MAX_SIZE (1200)
@@ -88,15 +88,15 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     int result = -1;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
-            result = nbdReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
-                                    &self->connections, &inStream, &outStream);
+            result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
+                                             &self->connections, &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
-            result = nbdReqGameJoin(self, transportConnection, &inStream, &outStream);
+            result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nbdReqDownloadGameState(transportConnection, self->pageAllocator, &self->game,
-                                             self->applicationVersion, &inStream, &outStream);
+            result = nimbleServerReqDownloadGameState(transportConnection, self->pageAllocator, &self->game,
+                                                      self->applicationVersion, &inStream, &outStream);
             break;
         default:
             CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0]);
@@ -104,12 +104,12 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     }
 
     if (result < 0) {
-        CLOG_SOFT_ERROR("error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
+        CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
         return result;
     }
 
     if (inStream.pos != inStream.size) {
-        CLOG_ERROR("not read everything from buffer %d of %d", inStream.pos, inStream.size)
+        CLOG_C_ERROR(&self->log, "not read everything from buffer %d of %d", inStream.pos, inStream.size)
     }
 
     if (outStream.pos <= 2) {
@@ -132,9 +132,9 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 {
     self->log = setup.log;
     self->multiTransport = setup.multiTransport;
-    if (setup.maxConnectionCount > NBD_SERVER_MAX_TRANSPORT_CONNECTIONS) {
+    if (setup.maxConnectionCount > NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
-                     NBD_SERVER_MAX_TRANSPORT_CONNECTIONS)
+                     NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS)
         return -1;
     }
 
@@ -145,21 +145,21 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
         return -1;
     }
 
-    const size_t maximumNumberOfParticipantsAllowed = NBD_SERVER_MAX_TRANSPORT_CONNECTIONS;
+    const size_t maximumNumberOfParticipantsAllowed = NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS;
     if (setup.maxParticipantCount > maximumNumberOfParticipantsAllowed) {
         CLOG_C_ERROR(&self->log, "nimbleServerInit. maximum number of participant count is too high: %zu of %zu",
                      setup.maxParticipantCount, maximumNumberOfParticipantsAllowed)
         return -1;
     }
 
-    nbdParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory, setup.blobAllocator,
-                                  setup.maxParticipantCountForEachConnection, setup.maxSingleParticipantStepOctetCount,
-                                  setup.log);
+    nimbleServerParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory,
+                                           setup.maxParticipantCountForEachConnection,
+                                           setup.maxSingleParticipantStepOctetCount, setup.log);
     self->pageAllocator = setup.memory;
     self->blobAllocator = setup.blobAllocator;
     self->applicationVersion = setup.applicationVersion;
     self->setup = setup;
-    for (size_t i = 0; i < NBD_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
+    for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
         self->transportConnections[i].transportConnectionId = i;
         self->transportConnections[i].isUsed = false;
@@ -179,13 +179,13 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
                                MonotonicTimeMs now)
 {
-    nbdGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
-                self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
-    nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
+    nimbleServerGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
+                         self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
+    nimbleServerGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount, &self->log);
 
     nbsStepsReInit(&self->game.authoritativeSteps, stepId);
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, now, 1000);
-    nbdParticipantConnectionsReset(&self->connections);
+    nimbleServerParticipantConnectionsReset(&self->connections);
     self->statsCounter = 0;
     return 0;
 }
@@ -218,8 +218,8 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 /// @return
 int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex)
 {
-    NimbleServerParticipantConnection* foundConnection = nbdParticipantConnectionsFindConnection(&self->connections,
-                                                                                                 connectionIndex);
+    NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnection(
+        &self->connections, connectionIndex);
     if (!foundConnection) {
         return -2;
     }
@@ -237,7 +237,7 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
     return 0;
 }
 
-const static size_t NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
+const static size_t NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 
 /// Indicates if a serialized game state must be provided this tick
 ///
@@ -247,7 +247,7 @@ bool nimbleServerMustProvideGameState(const NimbleServer* self)
 {
     int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId -
                                            self->game.latestState.stepId;
-    return deltaTickCountSinceLastGameState > NBD_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
+    return deltaTickCountSinceLastGameState > NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
 }
 
 /// Sets the game state
@@ -259,21 +259,14 @@ bool nimbleServerMustProvideGameState(const NimbleServer* self)
 void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
     CLOG_C_DEBUG(&self->log, "game state was set locally for stepId %08X (%zu octetCount)", stepId, gameStateOctetCount)
-    nbdGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount);
+    nimbleServerGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount, &self->log);
 }
 
 /// Resets the server
 /// @param self
 void nimbleServerReset(NimbleServer* self)
 {
-    // nbdParticipantConnectionsReset(&self->connections);
-}
-
-/// Free all resources made by the server
-/// @param self
-void nimbleServerDestroy(NimbleServer* self)
-{
-    nbdParticipantConnectionsDestroy(&self->connections);
+    // nimbleServerParticipantConnectionsReset(&self->connections);
 }
 
 typedef struct ReplyOnlyToConnection {

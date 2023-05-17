@@ -11,7 +11,6 @@
 
 struct ImprintAllocator;
 
-
 /// Tracks the latestState, as well as the all authoritative Steps after the game state.
 typedef struct NimbleServerGame {
     NbsSteps authoritativeSteps;
@@ -20,9 +19,10 @@ typedef struct NimbleServerGame {
     Clog log;
 } NimbleServerGame;
 
-void nbdGameInit(NimbleServerGame* self, struct ImprintAllocator* allocator, size_t maxSingleParticipantStepOctetCount,
-                 size_t maxGameStateOctetSize, size_t maxParticipantCount, Clog log);
-void nbdGameDestroy(NimbleServerGame* self);
-int nbdGameSetGameState(NimbleServerGame* game, StepId stepId, const uint8_t* gameState, size_t gameStateOctetCount);
+void nimbleServerGameInit(NimbleServerGame* self, struct ImprintAllocator* allocator,
+                          size_t maxSingleParticipantStepOctetCount, size_t maxGameStateOctetSize,
+                          size_t maxParticipantCount, Clog log);
+int nimbleServerGameSetGameState(NimbleServerGame* game, StepId stepId, const uint8_t* gameState,
+                                 size_t gameStateOctetCount, Clog* log);
 
 #endif

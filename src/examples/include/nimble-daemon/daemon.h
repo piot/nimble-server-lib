@@ -13,6 +13,6 @@ typedef struct NimbleServerDaemon {
     UdpServerSocket socket;
 } NimbleServerDaemon;
 
-int nbdDaemonInit(NimbleServerDaemon* self);
+int nimbleServerDaemonInit(NimbleServerDaemon* self);
 
 #endif

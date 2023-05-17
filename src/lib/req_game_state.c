@@ -16,7 +16,7 @@
 /// @param inStream
 /// @param outStream
 /// @return
-int nbdReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
+int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
                             const NimbleServerGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
                             FldOutStream* outStream)
 {

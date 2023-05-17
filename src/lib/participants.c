@@ -13,7 +13,7 @@
 /// @param localParticipantCount
 /// @param results
 /// @return
-int nbdParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
+int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         NimbleServerParticipant** results)
 {
     if (self->participantCount + localParticipantCount > self->participantCapacity) {
@@ -48,7 +48,7 @@ int nbdParticipantsJoin(NimbleServerParticipants* self, const NimbleServerPartic
 /// @param self
 /// @param allocator
 /// @param maxCount
-void nbdParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount)
+void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount)
 {
     self->participantCapacity = maxCount;
     self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NimbleServerParticipant, maxCount);

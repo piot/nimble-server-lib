@@ -5,7 +5,6 @@
 #ifndef NIMBLE_SERVER_CHECK_FOR_DISCONNECTS_H
 #define NIMBLE_SERVER_CHECK_FOR_DISCONNECTS_H
 
-#include <stats/stats_per_second.h>
 #include <stddef.h>
 #include <stdint.h>
 

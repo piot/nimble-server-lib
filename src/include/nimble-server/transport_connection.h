@@ -43,7 +43,6 @@ typedef struct NimbleServerTransportConnection {
     size_t debugCounter;
     Clog log;
     bool isUsed;
-    StepId nextAuthoritativeStepIdToSend;
     uint8_t noRangesToSendCounter;
     NimbleServerTransportConnectionPhase phase;
 } NimbleServerTransportConnection;

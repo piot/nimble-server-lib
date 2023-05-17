@@ -10,6 +10,15 @@
 #include <nimble-steps-serialize/pending_out_serialize.h>
 #include <nimble-steps/pending_steps.h>
 
+/// Send authoritative steps to a transport connection using a client provided receiveMask.
+/// @param outStream
+/// @param transportConnection
+/// @param foundGame
+/// @param clientWaitingForStepId
+/// @param receiveMask
+/// @param receivedTimeFromClient timestamp received from client. Server just sends this back so the client can figure
+/// out the latency.
+/// @return
 int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
                                NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask,
                                uint16_t receivedTimeFromClient)
@@ -38,35 +47,24 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
             return rangeCount;
         }
 
-        if (foundGame->authoritativeSteps.expectedWriteId > transportConnection->nextAuthoritativeStepIdToSend) {
+        if (foundGame->authoritativeSteps.expectedWriteId > clientWaitingForStepId) {
             // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,
             //        foundGame->authoritativeSteps.expectedWriteId);
 
-            size_t availableCount = foundGame->authoritativeSteps.expectedWriteId -
-                                    transportConnection->nextAuthoritativeStepIdToSend;
-            const size_t redundancyStepCount = 5;
-            if (availableCount > redundancyStepCount) {
-                availableCount = redundancyStepCount;
+            size_t availableCount = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;
+            const size_t maxRedundancyStepCount = 20;
+            if (availableCount > maxRedundancyStepCount) {
+                availableCount = maxRedundancyStepCount;
             }
-            ranges[rangeCount].startId = transportConnection->nextAuthoritativeStepIdToSend;
+            ranges[rangeCount].startId = clientWaitingForStepId;
             ranges[rangeCount].count = availableCount;
 
-            StepId maxStepIdToSend = clientWaitingForStepId + NBS_WINDOW_SIZE - 1;
-            if (maxStepIdToSend >= foundGame->authoritativeSteps.expectedWriteId) {
-                maxStepIdToSend = foundGame->authoritativeSteps.expectedWriteId;
-            }
-
-            if (transportConnection->nextAuthoritativeStepIdToSend + redundancyStepCount < maxStepIdToSend) {
-                transportConnection->nextAuthoritativeStepIdToSend += redundancyStepCount;
-            }
             CLOG_C_VERBOSE(&transportConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
                            ranges[rangeCount].count);
             rangeCount++;
         } else {
-            CLOG_C_VERBOSE(&transportConnection->log,
-                           "no need to force any range. we have %08X and client wants %08X iteratorIsAt: %08X",
-                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId,
-                           transportConnection->nextAuthoritativeStepIdToSend);
+            CLOG_C_VERBOSE(&transportConnection->log, "no need to force any range. we have %08X and client wants %08X",
+                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId);
         }
         /*
             nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount,

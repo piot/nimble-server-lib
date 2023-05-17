@@ -10,12 +10,19 @@
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/pending_in_serialize.h>
 
+/// Read pending steps from an inStream and move over ready steps to the incoming step buffer
+/// @param foundGame
+/// @param inStream
+/// @param transportConnection
+/// @param outClientWaitingForStepId
+/// @param outReceiveMask
+/// @param receivedTimeFromClient
+/// @return
 int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* inStream,
                                     NimbleServerTransportConnection* transportConnection,
                                     StepId* outClientWaitingForStepId, uint64_t* outReceiveMask,
                                     uint16_t* receivedTimeFromClient)
 {
-
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
@@ -29,7 +36,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outClientWaitingForStepId = clientWaitingForStepId;
     *outReceiveMask = receiveMask;
 
-    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %08X",
+    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %08lX",
                    transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
 
     size_t stepsThatFollow;
@@ -44,7 +51,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     if (foundParticipantConnection == 0) {
         return 0;
     }
-    if (foundParticipantConnection->state != NimbleServerParticipantConnectionStateNormal) {
+    if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
         CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %zu that is disconnected",
                       foundParticipantConnection->id)
         return -2;
@@ -63,7 +70,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
         CLOG_C_WARN(&foundParticipantConnection->log,
                     "client step: dropped %zu steps. expected %08X, but got from %08X to %08X", dropped,
                     foundParticipantConnection->steps.expectedWriteId, firstStepId, firstStepId + stepsThatFollow - 1)
-        nbdInsertForcedSteps(foundParticipantConnection, dropped);
+        nimbleServerInsertForcedSteps(foundParticipantConnection, dropped);
     }
 
     int addedStepsCount = nbsStepsInSerialize(inStream, &foundParticipantConnection->steps, firstStepId,
