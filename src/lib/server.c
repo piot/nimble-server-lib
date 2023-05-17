@@ -49,8 +49,9 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 {
     CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
 
-    if (connectionIndex >= self->connections.capacityCount) {
+    if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
+        return -83;
     }
 
     FldInStream inStream;
