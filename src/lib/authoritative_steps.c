@@ -13,7 +13,7 @@
 #define NIMBLE_SERVER_LOGGING 1
 
 static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* connections, StepId lookingFor,
-                                    uint8_t* composeStepBuffer, size_t maxLength, size_t* outSize)
+                                       uint8_t* composeStepBuffer, size_t maxLength, size_t* outSize)
 {
     FldOutStream composeStream;
     fldOutStreamInit(&composeStream, composeStepBuffer, maxLength);
@@ -53,7 +53,9 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                 }
 
                 stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
-                connection->forcedStepInRowCounter++;
+                if (blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
+                    connection->forcedStepInRowCounter++;
+                }
                 connection->providedStepsInARow = 0;
             } else {
                 connection->forcedStepInRowCounter = 0;
@@ -61,7 +63,9 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
             }
         } else {
             stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
-            connection->forcedStepInRowCounter++;
+            if (blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
+                connection->forcedStepInRowCounter++;
+            }
             connection->providedStepsInARow = 0;
             CLOG_C_VERBOSE(&connection->log,
                            "no steps stored in connection %zu (%u). server is looking for %08X. inserting forced step",
@@ -208,7 +212,7 @@ int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerPa
         uint8_t composeStepBuffer[1024];
         size_t authoritativeStepOctetCount;
         int foundParticipantCount = composeOneAuthoritativeStep(connections, lookingFor, composeStepBuffer, 1024,
-                                                             &authoritativeStepOctetCount);
+                                                                &authoritativeStepOctetCount);
         if (foundParticipantCount < 0) {
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't compose a authoritative step")
             return foundParticipantCount;
