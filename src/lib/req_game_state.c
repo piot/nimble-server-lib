@@ -16,9 +16,10 @@
 /// @param inStream
 /// @param outStream
 /// @return
-int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
-                            const NimbleServerGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
-                            FldOutStream* outStream)
+int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection,
+                                     ImprintAllocator* pageAllocator, const NimbleServerGame* game,
+                                     NimbleSerializeVersion applicationVersion, FldInStream* inStream,
+                                     FldOutStream* outStream)
 {
     const NimbleServerGameState* latestState = &game->latestState;
     if (latestState->octetCount == 0) {
@@ -70,8 +71,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
     outGameState.gameState = latestState->state;
 
     if (transportConnection->blobStreamOutClientRequestId != downloadClientRequestId) {
-        blobStreamOutInit(&transportConnection->blobStreamOut, pageAllocator,
-                          transportConnection->blobStreamOutAllocator, outGameState.gameState,
+        blobStreamOutReInit(&transportConnection->blobStreamOut, pageAllocator, outGameState.gameState,
                           outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE, transportConnection->log);
         blobStreamLogicOutInit(&transportConnection->blobStreamLogicOut, &transportConnection->blobStreamOut);
 

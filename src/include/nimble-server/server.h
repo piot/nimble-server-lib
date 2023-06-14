@@ -34,14 +34,11 @@ struct NimbleServerParticipant;
 typedef struct NimbleServerSetup {
     NimbleSerializeVersion applicationVersion;
     struct ImprintAllocator* memory;
-    struct ImprintAllocatorWithFree* blobAllocator;
-    size_t maxConnectionCount;
+    size_t maxParticipantConnectionCount;
     size_t maxParticipantCount;
     size_t maxSingleParticipantStepOctetCount;
     size_t maxParticipantCountForEachConnection;
     size_t maxGameStateOctetCount;
-    const uint8_t* zeroInputOctets;
-    size_t zeroInputOctetCount;
     DatagramTransportMulti multiTransport;
     MonotonicTimeMs now;
     Clog log;
@@ -54,7 +51,6 @@ typedef struct NimbleServer {
     NimbleServerGame game;
 
     struct ImprintAllocator* pageAllocator;
-    struct ImprintAllocatorWithFree* blobAllocator;
 
     NimbleSerializeVersion applicationVersion;
     Clog log;

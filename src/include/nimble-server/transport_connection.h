@@ -38,7 +38,6 @@ typedef struct NimbleServerTransportConnection {
     NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
     NimbleSerializeBlobStreamChannelId nextBlobStreamOutChannel;
     uint8_t blobStreamOutClientRequestId;
-    ImprintAllocatorWithFree* blobStreamOutAllocator;
     StatsInt stepsBehindStats;
     size_t debugCounter;
     Clog log;
@@ -47,7 +46,7 @@ typedef struct NimbleServerTransportConnection {
     NimbleServerTransportConnectionPhase phase;
 } NimbleServerTransportConnection;
 
-void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
+void transportConnectionInit(NimbleServerTransportConnection* self, Clog log);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self, StepId lastAuthoritativeStateTickId);
 
 #endif

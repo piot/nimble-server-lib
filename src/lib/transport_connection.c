@@ -9,14 +9,13 @@
 /// @param self
 /// @param blobStreamAllocator
 /// @param log
-void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
+void transportConnectionInit(NimbleServerTransportConnection* self,
                              Clog log)
 {
     orderedDatagramOutLogicInit(&self->orderedDatagramOutLogic);
     orderedDatagramInLogicInit(&self->orderedDatagramInLogic);
 
     self->nextBlobStreamOutChannel = 127;
-    self->blobStreamOutAllocator = blobStreamAllocator;
     self->log = self->log;
     self->debugCounter = 0;
     self->isUsed = true;
@@ -24,6 +23,9 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
     self->noRangesToSendCounter = 0;
     self->phase = NbTransportConnectionPhaseIdle;
     self->blobStreamOutClientRequestId = 0;
+
+    blobStreamOutInit(&self->blobStreamOut, pageAllocator, outGameState.gameState,
+                      outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE, transportConnection->log);
 
     statsIntInit(&self->stepsBehindStats, 60);
 }

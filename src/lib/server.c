@@ -133,11 +133,6 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 {
     self->log = setup.log;
     self->multiTransport = setup.multiTransport;
-    if (setup.maxConnectionCount > NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
-        CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
-                     NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS)
-        return -1;
-    }
 
     const size_t maximumSingleStepCountAllowed = 24;
     if (setup.maxSingleParticipantStepOctetCount > maximumSingleStepCountAllowed) {
@@ -153,11 +148,10 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
         return -1;
     }
 
-    nimbleServerParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory,
+    nimbleServerParticipantConnectionsInit(&self->connections, setup.maxParticipantCount, setup.memory,
                                            setup.maxParticipantCountForEachConnection,
                                            setup.maxSingleParticipantStepOctetCount, setup.log);
     self->pageAllocator = setup.memory;
-    self->blobAllocator = setup.blobAllocator;
     self->applicationVersion = setup.applicationVersion;
     self->setup = setup;
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
@@ -208,7 +202,7 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
     CLOG_C_DEBUG(&self->log, "connection %d connected", connectionIndex)
 
     transportConnection->isUsed = true;
-    transportConnectionInit(transportConnection, self->blobAllocator, self->log);
+    transportConnectionInit(transportConnection, self->log);
 
     return 0;
 }
