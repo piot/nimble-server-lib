@@ -110,7 +110,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     }
 
     if (inStream.pos != inStream.size) {
-        CLOG_C_ERROR(&self->log, "not read everything from buffer %d of %d", inStream.pos, inStream.size)
+        CLOG_C_ERROR(&self->log, "not read everything from buffer %zu of %zu", inStream.pos, inStream.size)
     }
 
     if (outStream.pos <= 2) {
@@ -248,7 +248,7 @@ bool nimbleServerMustProvideGameState(const NimbleServer* self)
 {
     int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId -
                                            self->game.latestState.stepId;
-    return deltaTickCountSinceLastGameState > NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
+    return deltaTickCountSinceLastGameState > (int)NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
 }
 
 /// Sets the game state

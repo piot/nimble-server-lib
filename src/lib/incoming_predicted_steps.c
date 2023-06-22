@@ -9,6 +9,7 @@
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/pending_in_serialize.h>
+#include <inttypes.h>
 
 /// Read pending steps from an inStream and move over ready steps to the incoming step buffer
 /// @param foundGame
@@ -36,7 +37,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outClientWaitingForStepId = clientWaitingForStepId;
     *outReceiveMask = receiveMask;
 
-    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %08lX",
+    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
                    transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
 
     size_t stepsThatFollow;
@@ -52,7 +53,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
         return 0;
     }
     if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
-        CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %zu that is disconnected",
+        CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %u that is disconnected",
                       foundParticipantConnection->id)
         return -2;
     }
@@ -64,11 +65,11 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     size_t dropped = nbsStepsDropped(&foundParticipantConnection->steps, firstStepId);
     if (dropped > 0) {
         if (dropped > 60U) {
-            CLOG_C_WARN(&foundParticipantConnection->log, "dropped %d", dropped)
+            CLOG_C_WARN(&foundParticipantConnection->log, "dropped %zu", dropped)
             return -3;
         }
         CLOG_C_WARN(&foundParticipantConnection->log,
-                    "client step: dropped %zu steps. expected %08X, but got from %08X to %08X", dropped,
+                    "client step: dropped %zu steps. expected %08X, but got from %u to %zu", dropped,
                     foundParticipantConnection->steps.expectedWriteId, firstStepId, firstStepId + stepsThatFollow - 1)
         nimbleServerInsertForcedSteps(foundParticipantConnection, dropped);
     }

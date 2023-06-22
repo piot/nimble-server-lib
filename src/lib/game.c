@@ -32,7 +32,7 @@ void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
 static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
 {
     NbsSteps* steps = &game->authoritativeSteps;
-    CLOG_C_INFO(&game->log, "Authoritative: steps %08X to %08X (count: %d) latestState: %08X", steps->expectedReadId,
+    CLOG_C_INFO(&game->log, "Authoritative: steps %08X to %08X (count: %zu) latestState: %08X", steps->expectedReadId,
                 steps->expectedWriteId - 1, steps->stepsCount, game->latestState.stepId)
 
     for (size_t i = 0u; i < connections->connectionCount; ++i) {
