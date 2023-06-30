@@ -9,13 +9,13 @@
 #include <nimble-server/req_download_game_state.h>
 
 /// Handles a request from the client to download the latest game state.
-/// @param transportConnection
-/// @param pageAllocator
-/// @param game
-/// @param applicationVersion
-/// @param inStream
-/// @param outStream
-/// @return
+/// @param transportConnection transport connection that request to download the latest game state
+/// @param pageAllocator page allocator
+/// @param game game that the connection wants to download state from
+/// @param applicationVersion application version is used for comparison
+/// @param inStream stream to read the request from
+/// @param outStream out stream to write the response to
+/// @return negative on error
 int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
                             const NimbleServerGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
                             FldOutStream* outStream)
@@ -23,7 +23,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
     const NimbleServerGameState* latestState = &game->latestState;
     if (latestState->octetCount == 0) {
         CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u",
-                    transportConnection->transportConnectionId);
+                    transportConnection->transportConnectionId)
         return -2;
     }
 
@@ -57,7 +57,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
                    nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {
-        CLOG_SOFT_ERROR("Wrong application version");
+        CLOG_SOFT_ERROR("Wrong application version")
         return -44;
     }
 
@@ -77,19 +77,19 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
 
         transportConnection->blobStreamOutChannel = ++transportConnection->nextBlobStreamOutChannel;
         transportConnection->blobStreamOutClientRequestId = downloadClientRequestId;
-        transportConnectionSetGameStateTickId(transportConnection, outGameState.stepId);
+        transportConnectionSetGameStateTickId(transportConnection);
 
         CLOG_C_DEBUG(
             &transportConnection->log,
             "start download state for connection %d, requestId %02X with blobStreamChannel %02X octetCount:%zu",
             transportConnection->transportConnectionId, transportConnection->blobStreamOutClientRequestId,
-            transportConnection->blobStreamOutChannel, outGameState.gameStateOctetCount);
+            transportConnection->blobStreamOutChannel, outGameState.gameStateOctetCount)
     } else {
         CLOG_C_VERBOSE(
             &transportConnection->log,
             "download request reply for for connection %d, requestId %02X with blobStreamChannel %02X octetCount:%zu",
             transportConnection->transportConnectionId, transportConnection->blobStreamOutClientRequestId,
-            transportConnection->blobStreamOutChannel, outGameState.gameStateOctetCount);
+            transportConnection->blobStreamOutChannel, outGameState.gameStateOctetCount)
     }
 
     return nimbleSerializeServerOutGameStateResponse(outStream, outGameState,

@@ -8,11 +8,11 @@
 #include <nimble-server/participants.h>
 
 /// Creates a new participant using the join information.
-/// @param self
-/// @param joinInfo
-/// @param localParticipantCount
-/// @param results
-/// @return
+/// @param self participants collection
+/// @param joinInfo information about joining participants
+/// @param localParticipantCount the number of participants in joinInfo
+/// @param[out] results the resulting participant
+/// @return negative on error
 int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         NimbleServerParticipant** results)
 {
@@ -45,9 +45,9 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
 }
 
 /// Initializes and allocates memory the participant collection
-/// @param self
-/// @param allocator
-/// @param maxCount
+/// @param self participants collection
+/// @param allocator allocator to pre-alloc the collection
+/// @param maxCount maximum number of participants to pre-alloc
 void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount)
 {
     self->participantCapacity = maxCount;

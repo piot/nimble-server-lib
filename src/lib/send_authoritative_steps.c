@@ -11,14 +11,14 @@
 #include <nimble-steps/pending_steps.h>
 
 /// Send authoritative steps to a transport connection using a client provided receiveMask.
-/// @param outStream
-/// @param transportConnection
-/// @param foundGame
-/// @param clientWaitingForStepId
-/// @param receiveMask
+/// @param outStream stream to send step ranges to
+/// @param transportConnection transport connection that wants the steps
+/// @param foundGame the game to send steps from
+/// @param clientWaitingForStepId client is waiting for this StepId
+/// @param receiveMask receive status for steps that has been received prior to clientWaitingForStepId
 /// @param receivedTimeFromClient timestamp received from client. Server just sends this back so the client can figure
 /// out the latency.
-/// @return
+/// @return negative on error
 int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
                                NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask,
                                uint16_t receivedTimeFromClient)
@@ -32,7 +32,7 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
     int authoritativeBufferDelta = 0;
 
     bool moreDebug = true; // (transportConnection->id == 0);
-    int rangeCount = 0;
+    size_t rangeCount = 0;
 
     if (clientWaitingForStepId < foundGame->authoritativeSteps.expectedReadId) {
         CLOG_C_NOTICE(&transportConnection->log,
@@ -40,12 +40,15 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
                       clientWaitingForStepId, foundGame->authoritativeSteps.expectedReadId)
         rangeCount = 0;
     } else {
-        rangeCount = nbsPendingStepsRanges(clientWaitingForStepId, foundGame->authoritativeSteps.expectedWriteId,
-                                           receiveMask, ranges, MAX_RANGES_COUNT, maxStepsCount);
-        if (rangeCount < 0) {
+        int pendingRangeCount = nbsPendingStepsRanges(clientWaitingForStepId,
+                                                      foundGame->authoritativeSteps.expectedWriteId, receiveMask,
+                                                      ranges, MAX_RANGES_COUNT, maxStepsCount);
+        if (pendingRangeCount < 0) {
             CLOG_C_VERBOSE(&transportConnection->log, "ranges error")
-            return rangeCount;
+            return pendingRangeCount;
         }
+
+        rangeCount = (size_t) pendingRangeCount;
 
         if (foundGame->authoritativeSteps.expectedWriteId > clientWaitingForStepId) {
             // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,
@@ -60,11 +63,11 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
             ranges[rangeCount].count = availableCount;
 
             CLOG_C_VERBOSE(&transportConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
-                           ranges[rangeCount].count);
+                           ranges[rangeCount].count)
             rangeCount++;
         } else {
             CLOG_C_VERBOSE(&transportConnection->log, "no need to force any range. we have %08X and client wants %08X",
-                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId);
+                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId)
         }
         /*
             nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount,
@@ -77,7 +80,7 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
                 int noticeTime = 0; // transportConnection->noRangesToSendCounter % 2;
                 if (noticeTime == 0) {
                     CLOG_C_NOTICE(&transportConnection->log, "no ranges to send for %d ticks, suspicious",
-                                  transportConnection->noRangesToSendCounter);
+                                  transportConnection->noRangesToSendCounter)
                 }
             }
         } else {
@@ -94,8 +97,8 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
         }
     }
 
-    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta, authoritativeBufferDelta,
-                                       receivedTimeFromClient);
+    nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
+                                       (int8_t) authoritativeBufferDelta, receivedTimeFromClient);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);

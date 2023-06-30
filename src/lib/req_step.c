@@ -12,8 +12,6 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_step.h>
 
-#define NIMBLE_SERVER_LOGGING 1
-
 static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundGame)
 {
     size_t authoritativeStepCount = foundGame->authoritativeSteps.stepsCount;
@@ -61,16 +59,17 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(
 
 /// Handles a request from the client to insert predicted inputs into the authoritative step buffer
 /// It will respond with sending authoritative steps that the client requires.
-/// @param foundGame
-/// @param transportConnection
-/// @param authoritativeStepsPerSecondStat
-/// @param connections
-/// @param inStream
-/// @param outStream
-/// @return
+/// @param foundGame game
+/// @param transportConnection transport connection that provides the steps
+/// @param authoritativeStepsPerSecondStat stats to update
+/// @param connections participant connections collection
+/// @param inStream stream to read from
+/// @param outStream out stream for reply
+/// @return negative on error
 int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
-                   StatsIntPerSecond* authoritativeStepsPerSecondStat, NimbleServerParticipantConnections* connections,
-                   FldInStream* inStream, FldOutStream* outStream)
+                            StatsIntPerSecond* authoritativeStepsPerSecondStat,
+                            NimbleServerParticipantConnections* connections, FldInStream* inStream,
+                            FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
@@ -80,7 +79,7 @@ int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportCo
         foundGame, connections, inStream, transportConnection, authoritativeStepsPerSecondStat, &clientWaitingForStepId,
         &receiveMask, &receivedTimeFromClient);
     if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode);
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode)
         return errorCode;
     }
 

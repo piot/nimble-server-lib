@@ -8,8 +8,6 @@
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
 
-#define NIMBLE_SERVER_LOGGING 1
-
 static void disconnectConnection(NimbleServerParticipantConnections* connections,
                                  NimbleServerParticipantConnection* connection)
 {
@@ -19,7 +17,7 @@ static void disconnectConnection(NimbleServerParticipantConnections* connections
 }
 
 /// Check all connections and disconnect those that have low network quality.
-/// @param connections
+/// @param connections transport connections to check
 void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* connections)
 {
     for (size_t i = 0; i < connections->capacityCount; ++i) {
@@ -29,7 +27,7 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
         }
         if (connection->forcedStepInRowCounter > 140U) {
             CLOG_C_DEBUG(&connections->log, "disconnect connection %d due to not providing steps for a long time",
-                         connection->id);
+                         connection->id)
             disconnectConnection(connections, connection);
         } else if (connection->forcedStepInRowCounter > 4U) {
             if (connection->state == NimbleServerParticipantConnectionStateNormal) {
@@ -38,7 +36,7 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
                 if (connection->impedingDisconnectCounter >= 3) {
                     CLOG_C_DEBUG(&connections->log,
                                  "disconnect connection %d due to multiple occurrences of not providing steps",
-                                 connection->id);
+                                 connection->id)
                     disconnectConnection(connections, connection);
                 }
             }

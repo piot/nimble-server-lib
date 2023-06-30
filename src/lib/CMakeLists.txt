@@ -1,102 +1,142 @@
-cmake_minimum_required(VERSION 3.17)
-project(nimble_server C)
+cmake_minimum_required(VERSION 3.16.3)
 
-if(DEFINED PLATFORM)
-  if(PLATFORM STREQUAL "OS64")
-    add_compile_definitions(TORNADO_OS_IOS)
-    set(OS_IOS 1)
-    set(OS_NAME "ios")
-  endif()
-elseif(APPLE)
-  add_compile_definitions(TORNADO_OS_MACOS)
-  set(OS_MACOS 1)
-  set(OS_NAME "macos")
-elseif(UNIX)
-  add_compile_definitions(TORNADO_OS_LINUX)
-  set(OS_LINUX 1)
-  set(OS_NAME "linux")
-elseif(WIN32)
-  add_compile_definitions(TORNADO_OS_WINDOWS)
-  set(OS_WINDOWS 1)
-  set(OS_NAME "windows")
-endif()
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_EXTENSIONS false)
 
-set(deps ../../deps/)
+
+# --- Detect CMake build type, compiler and operating system ---
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message("detected debug build")
   set(isDebug TRUE)
 else()
-  message("no debug")
+  message("detected release build")
   set(isDebug FALSE)
 endif()
 
-file(GLOB_RECURSE deps_src FOLLOW_SYMLINKS "${deps}*/src/lib/*.c")
 
-file(GLOB_RECURSE lib_src FOLLOW_SYMLINKS "*.c")
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(COMPILER_NAME "clang")
+  set(COMPILER_CLANG 1)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+  set(COMPILER_NAME "gcc")
+  set(COMPILER_GCC 1)
+elseif(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  set(COMPILER_NAME "msvc")
+  set(COMPILER_MSVC 1)
+endif()
 
-add_library(nimble_server_lib STATIC ${deps_src} ${lib_src})
+message("detected compiler: '${CMAKE_C_COMPILER_ID}' (${COMPILER_NAME})")
 
-set_property(TARGET nimble_server_lib PROPERTY C_STANDARD 11)
+set(useSanitizers false)
 
-set_target_properties(nimble_server_lib PROPERTIES ARCHIVE_OUTPUT_DIRECTORY
-                                                   "${CMAKE_BINARY_DIR}/bin")
+if(useSanitizers)
+  message("using sanitizers")
+  set(sanitizers "-fsanitize=address")
+endif()
 
-if(OS_WINDOWS)
-  target_compile_options(nimble_server_lib PRIVATE -Wall -pedantic -W4)
-else()
-  target_compile_options(
-    nimble_server_lib
-    PRIVATE -Wall
-            -Wextra
-            -Wshadow
-            -Wstrict-aliasing
-            -pedantic
-            -Wno-declaration-after-statement
-            -Wno-extra-semi-stmt
-            -Wno-undef
-            -Wno-unused-variable
-            -Wno-unused-parameter
-            -Wno-padded
-            -Werror=implicit-function-declaration
-            -Werror=incompatible-pointer-types
-            -Werror=missing-prototypes
-            -Werror=int-conversion
-            -Werror=return-type
-            -Werror=incompatible-function-pointer-types)
+
+# --- Library ---
+
+
+file(GLOB lib_src FOLLOW_SYMLINKS "./*.c")
+
+
+add_library(nimble-server-lib STATIC ${lib_src})
+
+
+if(APPLE)
+  target_compile_definitions(nimble-server-lib PRIVATE TORNADO_OS_MACOS)
+  set(OS_MACOS 1)
+elseif(UNIX)
+  target_compile_definitions(nimble-server-lib PRIVATE TORNADO_OS_LINUX)
+  set(OS_LINUX 1)
+elseif(WIN32)
+  target_compile_definitions(nimble-server-lib PRIVATE TORNADO_OS_WINDOWS)
+  set(OS_WINDOWS 1)
+
 endif()
 
 if(isDebug)
-  message("Debug build detected")
-  add_compile_definitions(CONFIGURATION_DEBUG TYRAN_CONFIGURATION_DEBUG)
-
-  set(CONFIGURATION_DEBUG 1)
-else()
-  message("Release build detected")
-  target_compile_options(nimble_server_lib PRIVATE -ffast-math -O3)
-  target_link_options(nimble_server_lib PRIVATE -s)
+  message("Setting definitions based on debug")
+  target_compile_definitions(nimble-server-lib PRIVATE CONFIGURATION_DEBUG)
 endif()
 
-target_include_directories(
-  nimble_server_lib
-  PRIVATE ${deps}piot/tiny-libc/src/include # needed from flood-c
-          ${deps}piot/flood-c/src/include
-          ${deps}piot/monotonic-time-c/src/include
-          ${deps}piot/stats-c/src/include
-          ${deps}piot/udp-server-c/src/include
-          ${deps}piot/nimble-steps-c/src/include
-          ${deps}piot/nimble-steps-serialize-c/src/include
-          ${deps}piot/nimble-serialize-c/src/include
-          ${deps}piot/ordered-datagram-c/src/include
-          ${deps}piot/discoid-c/src/include
-          ${deps}piot/clog/src/include
-          ${deps}piot/imprint/src/include
-          ${deps}piot/blob-stream/src/include
-          ${deps}piot/bit-array/src/include
-          ${deps}piot/datagram-transport-c/src/include
-          ../include)
 
-if(OS_WINDOWS)
-  target_link_libraries(nimble_server_lib ws2_32)
+function(unixlike)
+endfunction()
+
+if(OS_LINUX)
+  message("Linux Detected!")
+  unixlike()
+
+elseif(OS_MACOS)
+  message("MacOS detected!")
+  unixlike()
+endif()
+
+target_include_directories(nimble-server-lib PUBLIC ../include)
+
+if(COMPILER_CLANG)
+  target_compile_options(
+    nimble-server-lib
+    PRIVATE -Weverything
+            -Werror
+            -Wno-padded # the order of the fields in struct can matter (ABI)
+            -Wno-declaration-after-statement # must be bug in clang? shows up
+                                             # even if std=c99
+            -Wno-unsafe-buffer-usage # unclear why it fails on clang-16
+            -Wno-unknown-warning-option # support newer clang versions, e.g. clang-16
+            ${sanitizers})
+elseif(COMPILER_GCC)
+target_compile_options(
+    nimble-server-lib
+    PRIVATE -Wall
+            -Wextra
+            -Wpedantic
+            -Werror
+            -Wno-padded # the order of the fields in struct can matter (ABI)
+            ${sanitizers})
+elseif(COMPILER_MSVC)
+  target_compile_options(
+    nimble-server-lib
+    PRIVATE /F
+            5000000
+            /Wall
+            /wd4668
+            /wd4820
+            /wd4100
+            /wd4710
+            /wd4711
+            /wd5945
+            /wd5105
+            /wd5045
+            /we4047
+            /we4255
+            /we4013
+            /we4020
+            /we4474
+            /we4477
+            /we4057
+            /we4101
+            /we4189) # /WX
 else()
-  target_link_libraries(nimble_server_lib m)
+  target_compile_options(nimble-server-lib PRIVATE -Wall)
+endif()
+
+
+target_link_libraries(nimble-server-lib PUBLIC discoid PUBLIC nimble-serialize PUBLIC nimble-steps-serialize PUBLIC stats PUBLIC blob-stream PUBLIC datagram-transport PUBLIC ordered-datagram)
+
+
+if(useSanitizers)
+  target_link_libraries(nimble-server-lib PRIVATE ${sanitizers})
+endif()
+
+if(NOT isDebug)
+  message("optimize!")
+  target_compile_options(nimble-server-lib PRIVATE -O3)
+endif()
+
+if (NOT MSVC)
+target_link_libraries(nimble-server-lib PRIVATE m)
 endif()

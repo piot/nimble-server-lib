@@ -7,10 +7,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 struct NimbleServerParticipantConnection;
 
 int nimbleServerInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection, size_t dropped);
-int nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
+ssize_t nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
 
 #endif

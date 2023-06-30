@@ -12,13 +12,13 @@
 #include <inttypes.h>
 
 /// Read pending steps from an inStream and move over ready steps to the incoming step buffer
-/// @param foundGame
-/// @param inStream
-/// @param transportConnection
-/// @param outClientWaitingForStepId
-/// @param outReceiveMask
-/// @param receivedTimeFromClient
-/// @return
+/// @param foundGame game
+/// @param inStream stream to read steps from
+/// @param transportConnection stream comes from this transport connection
+/// @param[out] outClientWaitingForStepId transport connection is waiting for this StepID
+/// @param[out] outReceiveMask transport connection reported this receive mask
+/// @param[out] receivedTimeFromClient latest local time on client
+/// @return negative on error
 int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* inStream,
                                     NimbleServerTransportConnection* transportConnection,
                                     StepId* outClientWaitingForStepId, uint64_t* outReceiveMask,

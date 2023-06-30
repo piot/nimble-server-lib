@@ -40,24 +40,24 @@ void nimbleServerParticipantConnectionsReset(NimbleServerParticipantConnections*
 }
 
 /// Finds the participant connection using the internal index
-/// @param self
-/// @param connectionIndex
-/// @return
+/// @param self participant connections
+/// @param connectionIndex connection index to find
+/// @return return NULL if connection was not found
 struct NimbleServerParticipantConnection*
 nimbleServerParticipantConnectionsFindConnection(NimbleServerParticipantConnections* self, uint8_t connectionIndex)
 {
     if (connectionIndex >= self->capacityCount) {
         CLOG_C_ERROR(&self->log, "Illegal connection index: %d", connectionIndex)
-        return 0;
+        // return 0;
     }
 
     return &self->connections[connectionIndex];
 }
 
 /// Finds the participant connection for the specified connection id
-/// @param self
-/// @param transportConnectionId
-/// @return pointer to a participant connection, or 0 otherwise
+/// @param self participant connections
+/// @param transportConnectionId find participant connection for the specified transport connection
+/// @return pointer to a participant connection, or NULL otherwise
 struct NimbleServerParticipantConnection*
 nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
                                                              uint32_t transportConnectionId)
@@ -74,13 +74,14 @@ nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerPartici
 
 /// Creates a participant connection for the specified room.
 /// @note In this version there must be an existing game in the room.
-/// @param self
-/// @param transportConnectionId
-/// @param ownerOfConnection
-/// @param joinInfo
-/// @param localParticipantCount
-/// @param outConnection
-/// @return error code
+/// @param self participant connections
+/// @param gameParticipants participants collection
+/// @param transportConnection the transport connection to create the participant connection for
+/// @param joinInfo information about the joining participants
+/// @param latestAuthoritativeStepId latest known authoritative stepID
+/// @param localParticipantCount local participant count
+/// @param[out] outConnection the created connection
+/// @return negative on error
 int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
                                              NimbleServerParticipants* gameParticipants,
                                              struct NimbleServerTransportConnection* transportConnection,
@@ -101,7 +102,7 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
             return errorCode;
         }
 
-        participantConnection->id = i;
+        participantConnection->id = (uint32_t) i;
         nimbleServerParticipantConnectionInit(participantConnection, transportConnection, self->allocator,
                                               latestAuthoritativeStepId, self->maxParticipantCountForConnection,
                                               self->maxSingleParticipantStepOctetCount, self->log);
@@ -123,8 +124,8 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
 }
 
 /// Remove participant connection from participant connections collection
-/// @param self
-/// @param connection
+/// @param self participant connections
+/// @param connection connection to remove from collection
 void nimbleServerParticipantConnectionsRemove(NimbleServerParticipantConnections* self,
                                               struct NimbleServerParticipantConnection* connection)
 {

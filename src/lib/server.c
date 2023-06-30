@@ -19,9 +19,9 @@
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
-/// @param self
-/// @param now
-/// @return
+/// @param self server
+/// @param now current local server time
+/// @return negative one error
 int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 {
     nimbleServerReadFromMultiTransport(self);
@@ -38,12 +38,12 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 
 /// Handle an incoming request from a client identified by the connectionIndex
 /// It uses the NimbleServerResponse to send datagrams back to the client
-/// @param self
-/// @param connectionIndex
-/// @param data
-/// @param len
-/// @param response
-/// @return
+/// @param self server
+/// @param connectionIndex transport connection index that we received datagram from
+/// @param data datagram payload
+/// @param len octet count of data
+/// @param response info on how to make a response
+/// @return negative on error
 int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
@@ -86,7 +86,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &outStream);
 
-    int result = -1;
+    int result;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
@@ -100,7 +100,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
                                                       self->applicationVersion, &inStream, &outStream);
             break;
         default:
-            CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0]);
+            CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
             return 0;
     }
 
@@ -115,7 +115,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     if (outStream.pos <= 2) {
         CLOG_C_ERROR(&self->log, "no reply to send")
-        return 0;
+        // return 0;
     }
 
     orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
@@ -124,11 +124,9 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 }
 
 /// Initialize nimble server
-/// @param self
-/// @param applicationVersion the version for the application
-/// @param memory
-/// @param blobAllocator
-/// @return
+/// @param self server
+/// @param setup the initial server values
+/// @return negative on error
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 {
     self->log = setup.log;
@@ -136,21 +134,21 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     if (setup.maxConnectionCount > NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
                      NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS)
-        return -1;
+        // return -1;
     }
 
     const size_t maximumSingleStepCountAllowed = 24;
     if (setup.maxSingleParticipantStepOctetCount > maximumSingleStepCountAllowed) {
         CLOG_C_ERROR(&self->log, "nimbleServerInit. Single step octet count is not allowed %zu of %zu",
                      setup.maxSingleParticipantStepOctetCount, maximumSingleStepCountAllowed)
-        return -1;
+        // return -1;
     }
 
     const size_t maximumNumberOfParticipantsAllowed = NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS;
     if (setup.maxParticipantCount > maximumNumberOfParticipantsAllowed) {
         CLOG_C_ERROR(&self->log, "nimbleServerInit. maximum number of participant count is too high: %zu of %zu",
                      setup.maxParticipantCount, maximumNumberOfParticipantsAllowed)
-        return -1;
+        // return -1;
     }
 
     nimbleServerParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory,
@@ -162,7 +160,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->setup = setup;
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
-        self->transportConnections[i].transportConnectionId = i;
+        self->transportConnections[i].transportConnectionId = (uint8_t) i;
         self->transportConnections[i].isUsed = false;
     }
 
@@ -173,10 +171,10 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 
 /// Reinitialize (reuse the memory) and set a new game state.
 /// The gameState must be present for the first client that connects to the game.
-/// @param self
-/// @param gameState
+/// @param self server
+/// @param gameState game state to reinitialize with
 /// @param gameStateOctetCount maximum of 64K supported
-/// @return
+/// @return negative on error
 int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
                                MonotonicTimeMs now)
 {
@@ -192,11 +190,9 @@ int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, siz
 }
 
 /// Notify the server that a connection has been connected on the transport layer.
-/// @param self
-/// @param connectionIndex
-/// @param participants
-/// @param participantCount
-/// @return
+/// @param self server
+/// @param connectionIndex connectionIndex that connected
+/// @return negative on error
 int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 {
     NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
@@ -214,9 +210,9 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 }
 
 /// Notify the server that a connection has been disconnected on the transport layer.
-/// @param self
-/// @param connectionIndex
-/// @return
+/// @param self server
+/// @param connectionIndex transport connection index that disconnected
+/// @return negative on error
 int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex)
 {
     NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnection(
@@ -241,22 +237,21 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
 const static size_t NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
 
 /// Indicates if a serialized game state must be provided this tick
-///
-/// @param self
-/// @return
+/// @param self server
+/// @return true if game state must be provided
 bool nimbleServerMustProvideGameState(const NimbleServer* self)
 {
-    int deltaTickCountSinceLastGameState = self->game.authoritativeSteps.expectedWriteId -
-                                           self->game.latestState.stepId;
-    return deltaTickCountSinceLastGameState > (int)NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
+    int deltaTickCountSinceLastGameState = (int) self->game.authoritativeSteps.expectedWriteId -
+                                           (int) self->game.latestState.stepId;
+    return deltaTickCountSinceLastGameState > (int) NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
 }
 
 /// Sets the game state
 /// Should only be called if nimbleServerMustProvideGameState() returns true.
-/// @param self
-/// @param gameState
-/// @param gameStateOctetCount
-/// @param stepId
+/// @param self server
+/// @param gameState game state to set
+/// @param gameStateOctetCount number of octets in gameState
+/// @param stepId stepID for the game state
 void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
 {
     CLOG_C_DEBUG(&self->log, "game state was set locally for stepId %08X (%zu octetCount)", stepId, gameStateOctetCount)
@@ -264,9 +259,10 @@ void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size
 }
 
 /// Resets the server
-/// @param self
+/// @param self server
 void nimbleServerReset(NimbleServer* self)
 {
+    (void) self;
     // nimbleServerParticipantConnectionsReset(&self->connections);
 }
 
@@ -282,8 +278,8 @@ static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t
     return self->multiTransport.sendTo(self->multiTransport.self, self->connectionIndex, data, octetCount);
 }
 
-/// Read all datagrams from the multitransport
-/// @param nimbleServer
+/// Read all datagrams from the multi-transport
+/// @param self server
 int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
@@ -308,12 +304,12 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
         bool didConnectNow = !self->transportConnections[connectionId].isUsed;
 
         if (didConnectNow) {
-            nimbleServerConnectionConnected(self, connectionId);
+            nimbleServerConnectionConnected(self, (uint8_t) connectionId);
         }
 
         bool disconnectNow = self->transportConnections[connectionId].phase == NbTransportConnectionPhaseDisconnected;
         if (disconnectNow) {
-            nimbleServerConnectionDisconnected(self, connectionId);
+            nimbleServerConnectionDisconnected(self, (uint8_t) connectionId);
         }
 
         replyOnlyToConnection.connectionIndex = connectionId;
@@ -323,7 +319,8 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
         NimbleServerResponse response;
         response.transportOut = &responseTransport;
 
-        int errorCode = nimbleServerFeed(self, connectionId, datagram, octetCountReceived, &response);
+        int errorCode = nimbleServerFeed(self, (uint8_t) connectionId, datagram, (size_t) octetCountReceived,
+                                         &response);
         if (errorCode < 0) {
             CLOG_C_SOFT_ERROR(&self->log, "error on feed %d", errorCode)
             return errorCode;

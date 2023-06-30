@@ -13,16 +13,18 @@
 /// of other participant connections.
 /// @note currently all applications must support a zero octet length step as a zero, "empty" step.
 /// @todo option to copy the last received step and also support application-specific rules for forced steps.
-/// @param connection
-/// @param forcedStepsBuffer
-/// @param maxCount
-/// @return
-int nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connection, uint8_t* forcedStepsBuffer, size_t maxCount)
+/// @param connection participant connection
+/// @param forcedStepsBuffer buffer to write forced step to
+/// @param maxCount maximum count of forced step buffer
+/// @return negative on error
+ssize_t nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connection, uint8_t* forcedStepsBuffer,
+                                     size_t maxCount)
 {
     NimbleStepsOutSerializeLocalParticipants participants;
     participants.participantCount = connection->participantReferences.participantReferenceCount;
     for (size_t i = 0; i < participants.participantCount; ++i) {
-        participants.participants[i].participantId = connection->participantReferences.participantReferences[i]->id;
+        participants.participants[i]
+            .participantId = (uint8_t) connection->participantReferences.participantReferences[i]->id;
         participants.participants[i].payload = 0;
         participants.participants[i].payloadCount = 0;
     }
@@ -30,19 +32,21 @@ int nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connection, 
 }
 
 /// Insert forced steps for a participant connection
-///
-/// @param foundParticipantConnection
+/// @param foundParticipantConnection connection to insert forced step to
 /// @param stepCount number of forced steps to insert
 /// @return negative value on error.
 int nimbleServerInsertForcedSteps(NimbleServerParticipantConnection* foundParticipantConnection, size_t stepCount)
 {
     uint8_t forcedStepsBuffer[64];
     StepId stepIdToWrite = foundParticipantConnection->steps.expectedWriteId;
-    int forcedStepOctetCount = nimbleServerCreateForcedStep(foundParticipantConnection, forcedStepsBuffer, 64);
+    ssize_t forcedStepOctetCount = nimbleServerCreateForcedStep(foundParticipantConnection, forcedStepsBuffer, 64);
+    if (forcedStepOctetCount < 0) {
+        return (int) forcedStepOctetCount;
+    }
     CLOG_VERBOSE("nimbleServer: insert zero input as forced steps (0)")
     for (size_t i = 0; i < stepCount; ++i) {
         int errorCode = nbsStepsWrite(&foundParticipantConnection->steps, stepIdToWrite, forcedStepsBuffer,
-                                      forcedStepOctetCount);
+                                      (size_t) forcedStepOctetCount);
         if (errorCode < 0) {
             return errorCode;
         }
