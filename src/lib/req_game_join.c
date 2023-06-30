@@ -100,7 +100,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
                    nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&self->applicationVersion, &clientApplicationVersion)) {
-        CLOG_SOFT_ERROR("Wrong application version");
+        CLOG_SOFT_ERROR("Wrong application version")
         return -44;
     }
 

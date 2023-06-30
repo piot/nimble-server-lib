@@ -2,10 +2,8 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-#include <flood/in_stream.h>
 #include <imprint/allocator.h>
 #include <nimble-server/game.h>
-#include <nimble-server/participant_connection.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
 /// Initializes and allocated memory for a game.

@@ -67,7 +67,7 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
             rangeCount++;
         } else {
             CLOG_C_VERBOSE(&transportConnection->log, "no need to force any range. we have %08X and client wants %08X",
-                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId);
+                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId)
         }
         /*
             nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount,

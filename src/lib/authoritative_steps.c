@@ -96,7 +96,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
         uint8_t localParticipantCount;
         fldInStreamReadUInt8(&stepInStream, &localParticipantCount);
         if (localParticipantCount == 0) {
-            CLOG_C_ERROR(&connection->log, "not allowed to have zero participant count in message");
+            CLOG_C_ERROR(&connection->log, "not allowed to have zero participant count in message")
         }
 
         if (localParticipantCount != connection->participantReferences.participantReferenceCount) {

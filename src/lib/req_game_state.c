@@ -57,7 +57,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
                    nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
 
     if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {
-        CLOG_SOFT_ERROR("Wrong application version");
+        CLOG_SOFT_ERROR("Wrong application version")
         return -44;
     }
 

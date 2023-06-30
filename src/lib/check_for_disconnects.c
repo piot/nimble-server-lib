@@ -27,7 +27,7 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
         }
         if (connection->forcedStepInRowCounter > 140U) {
             CLOG_C_DEBUG(&connections->log, "disconnect connection %d due to not providing steps for a long time",
-                         connection->id);
+                         connection->id)
             disconnectConnection(connections, connection);
         } else if (connection->forcedStepInRowCounter > 4U) {
             if (connection->state == NimbleServerParticipantConnectionStateNormal) {
@@ -36,7 +36,7 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
                 if (connection->impedingDisconnectCounter >= 3) {
                     CLOG_C_DEBUG(&connections->log,
                                  "disconnect connection %d due to multiple occurrences of not providing steps",
-                                 connection->id);
+                                 connection->id)
                     disconnectConnection(connections, connection);
                 }
             }

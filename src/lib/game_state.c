@@ -29,7 +29,7 @@ int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const 
 {
     // CLOG_VERBOSE("trying to set game state %08X (octet count:%zu)", stepId, gameStateOctetCount);
     if (state->octetCount != 0 && stepId <= state->stepId) {
-        CLOG_C_SOFT_ERROR(log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId);
+        CLOG_C_SOFT_ERROR(log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId)
         return 0;
     }
     size_t diff = stepId - state->stepId;
@@ -47,7 +47,7 @@ int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const 
     state->octetCount = gameStateOctetCount;
     state->stepId = stepId;
 
-    CLOG_C_DEBUG(log, "Server now has a new state for stepId:%08X and octetCount:%zu", stepId, gameStateOctetCount);
+    CLOG_C_DEBUG(log, "Server now has a new state for stepId:%08X and octetCount:%zu", stepId, gameStateOctetCount)
 
     return 1;
 }
