@@ -29,20 +29,22 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
         }
         NbsSteps* steps = &connection->steps;
 
-        int stepOctetCount;
+        size_t stepOctetCount;
         if (steps->stepsCount >= 1u) {
-            stepOctetCount = nbsStepsRead(steps, &encounteredStepId, stepReadBuffer, 1024);
+            int readStepOctetCount = nbsStepsRead(steps, &encounteredStepId, stepReadBuffer, 1024);
 
             // CLOG_VERBOSE("authenticate: connection %d, found step:%08X, octet count: %d", connection->id,
             // encounteredStepId, stepOctetCount);
 
             StepId connectionCanProvideId = encounteredStepId;
 
-            if (stepOctetCount < 0) {
+            if (readStepOctetCount < 0) {
                 CLOG_C_SOFT_ERROR(&connection->log, "couldn't read from connection %d, server was hoping for step %08X",
-                                  stepOctetCount, lookingFor)
-                return stepOctetCount;
+                                  readStepOctetCount, lookingFor)
+                return readStepOctetCount;
             }
+
+            stepOctetCount = (size_t) readStepOctetCount;
 
             if (connectionCanProvideId != lookingFor) {
                 CLOG_C_VERBOSE(&connection->log, "strange, wasn't the ID I was looking for. Wanted %08X, but got %08X",
@@ -52,7 +54,11 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                     CLOG_C_ERROR(&connection->log, "could not discard including %d", discardErr)
                 }
 
-                stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
+                ssize_t createdForcedStepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
+                if (createdForcedStepOctetCount < 0) {
+                    return (int) createdForcedStepOctetCount;
+                }
+                stepOctetCount = (size_t) createdForcedStepOctetCount;
                 if (blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
                     connection->forcedStepInRowCounter++;
                 }
@@ -62,7 +68,11 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                 connection->providedStepsInARow++;
             }
         } else {
-            stepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
+            ssize_t createdForcedStepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
+            if (createdForcedStepOctetCount < 0) {
+                return (int) createdForcedStepOctetCount;
+            }
+            stepOctetCount = (size_t) createdForcedStepOctetCount;
             if (blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
                 connection->forcedStepInRowCounter++;
             }
@@ -126,7 +136,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
             foundParticipantCount++;
         }
     }
-    composeStepBuffer[0] = foundParticipantCount;
+    composeStepBuffer[0] = (uint8_t) foundParticipantCount;
     *outSize = composeStream.pos;
 
     // CLOG_INFO("combined step done. participant count %zu, total octet count: %zu", foundParticipantCount,
@@ -148,7 +158,7 @@ static int maxPredictedStepContributionForConnections(NimbleServerParticipantCon
         }
         int connectionCanAdvanceStepCount = 0;
         if (connection->steps.stepsCount > 0u && connection->steps.expectedWriteId > lookingFor) {
-            connectionCanAdvanceStepCount = connection->steps.expectedWriteId - lookingFor + 1u;
+            connectionCanAdvanceStepCount = (int) (connection->steps.expectedWriteId - lookingFor + 1u);
         } else {
             connectionCountThatCanNotContribute++;
         }
@@ -194,8 +204,8 @@ static bool shouldAdvanceAuthoritative(NimbleServerParticipantConnections* conne
 }
 
 /// Compose as many authoritative steps as possible
-/// @param game
-/// @param connections
+/// @param game game
+/// @param connections connections to compose steps for
 /// @return number of combined steps composed
 int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
 {

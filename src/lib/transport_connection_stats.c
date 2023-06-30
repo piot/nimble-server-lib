@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include "transport_connection_stats.h"
-#include <nimble-server/transport_connection.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/transport_connection.h>
 
 static void showStats(NimbleServerTransportConnection* transportConnection)
 {
@@ -26,20 +26,20 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
 }
 
 /// Update stats for the transport connection.
-/// @param transportConnection
-/// @param foundGame
-/// @param clientWaitingForStepId
+/// @param transportConnection transport connection
+/// @param foundGame game to update stats for
+/// @param clientWaitingForStepId client is waiting for this stepID
 void nimbleServerTransportConnectionUpdateStats(NimbleServerTransportConnection* transportConnection,
                                                 NimbleServerGame* foundGame, StepId clientWaitingForStepId)
 {
     NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
     if (foundParticipantConnection != 0) {
         statsIntAdd(&foundParticipantConnection->incomingStepCountInBufferStats,
-                    foundParticipantConnection->steps.stepsCount);
+                    (int) foundParticipantConnection->steps.stepsCount);
     }
 
     size_t stepsBehindForClient = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;
-    statsIntAdd(&transportConnection->stepsBehindStats, stepsBehindForClient);
+    statsIntAdd(&transportConnection->stepsBehindStats, (int) stepsBehindForClient);
 
     if ((transportConnection->debugCounter++ % 3000) == 0) {
         showStats(transportConnection);

@@ -9,15 +9,13 @@
 
 /// Initializes a participant connection.
 /// @param self the participant connection
-/// @param transportConnectionIndex the transport connection id
+/// @param connectionAllocator allocator for connection collection
+/// @param currentAuthoritativeStepId latest authoritative state step ID
+/// @param maxParticipantCountForConnection maximum number of participants for a single connection (e.g. for split-screen it is usually 2-4).
+/// @param transportConnection the transport connection id
 /// @param maxSingleParticipantStepOctetCount max number of octets for one single step.
-/// @param stepId starting StepId for this connection. Game creator will have 0, but later
-/// joiners can have another number.
-/// @param participants The participants to associate with this connection.
-/// @param participantCount number of participants in \p participants.
-///
+/// @param log the log to use for logging
 /// Need to create Participants to the game before associating them to the connection.
-///
 void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* self,
                                   NimbleServerTransportConnection* transportConnection,
                                   ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
@@ -45,7 +43,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
 }
 
 /// Resets the participant connection
-/// @param self
+/// @param self participant connection
 void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self)
 {
     self->isUsed = false;
@@ -53,8 +51,8 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
 }
 
 /// Checks if a participantId is in the participant connection
-/// @param self
-/// @param participantId
+/// @param self participant connection to check
+/// @param participantId participantId to check for
 /// @return true if found, false otherwise
 bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId)
 {

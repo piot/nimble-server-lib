@@ -6,9 +6,9 @@
 
 /// Initializes a transport connection
 /// Holds information for a specified connection in the transport
-/// @param self
-/// @param blobStreamAllocator
-/// @param log
+/// @param self transport connection
+/// @param blobStreamAllocator allocator for the blob stream
+/// @param log target logging
 void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
                              Clog log)
 {
@@ -29,9 +29,8 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
 }
 
 /// sets the latest authoritative state tick id
-/// @param self
-/// @param lastAuthoritativeStateTickId
-void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self, StepId lastAuthoritativeStateTickId)
+/// @param self transport connection
+void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self)
 {
     self->phase = NbTransportConnectionPhaseInitialStateDetermined;
 }

@@ -48,6 +48,6 @@ typedef struct NimbleServerTransportConnection {
 } NimbleServerTransportConnection;
 
 void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
-void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self, StepId lastAuthoritativeStateTickId);
+void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
 
 #endif

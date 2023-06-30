@@ -14,10 +14,10 @@
 #include <datagram-transport/transport.h>
 
 /// Handles a download state progress ack from the client
-/// @param transportConnection
-/// @param inStream
-/// @param transportOut
-/// @return
+/// @param transportConnection transportConnection
+/// @param inStream stream to read game state ack from
+/// @param transportOut the transport to send reply to
+/// @return negative on error
 int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                                DatagramTransportOut* transportOut)
 {

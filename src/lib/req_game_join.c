@@ -61,11 +61,11 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnection
 }
 
 /// Handles a join request from the client
-/// @param self
-/// @param transportConnection
-/// @param inStream
-/// @param outStream
-/// @return
+/// @param self server
+/// @param transportConnection transport connection that wants to join
+/// @param inStream read join request from this stream
+/// @param outStream writes reply to out stream
+/// @return negative on error
 int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
                             FldInStream* inStream, FldOutStream* outStream)
 {
@@ -109,7 +109,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
                                                     inStream, self->game.authoritativeSteps.expectedWriteId,
                                                     &createdConnection);
     if (errorCode < 0) {
-        CLOG_WARN("couldn't find game session");
+        CLOG_WARN("couldn't find game session")
         return errorCode;
     }
 
@@ -126,8 +126,8 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
 
     CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
                self->game.authoritativeSteps.expectedWriteId - 1,
-               createdConnection->participantReferences.participantReferenceCount);
-    nimbleSerializeServerOutGameJoinResponse(outStream, createdConnection->id, participants,
+               createdConnection->participantReferences.participantReferenceCount)
+    nimbleSerializeServerOutGameJoinResponse(outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, participants,
                                              createdConnection->participantReferences.participantReferenceCount);
 
     return 0;

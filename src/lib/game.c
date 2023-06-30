@@ -10,12 +10,12 @@
 
 /// Initializes and allocated memory for a game.
 /// A Game holds information about the latest game state for joining, authoritative steps and accepted participants.
-/// @param self
-/// @param allocator
-/// @param maxSingleParticipantStepOctetCount
-/// @param maxGameStateOctetSize
-/// @param maxParticipantCount
-/// @param log
+/// @param self game
+/// @param allocator allocator
+/// @param maxSingleParticipantStepOctetCount maximum octet count for a single participant
+/// @param maxGameStateOctetSize maximum application specific complete game state
+/// @param maxParticipantCount maximum number of participants in a game
+/// @param log target log
 void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
                           size_t maxSingleParticipantStepOctetCount, size_t maxGameStateOctetSize,
                           size_t maxParticipantCount, Clog log)
@@ -29,6 +29,7 @@ void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
     nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount);
 }
 
+#if 0
 static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
 {
     NbsSteps* steps = &game->authoritativeSteps;
@@ -49,6 +50,8 @@ static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerParti
     }
     CLOG_C_INFO(&game->log, "Authoritative: -----")
 }
+#endif
+
 
 int nimbleServerGameSetGameState(NimbleServerGame* game, StepId stepId, const uint8_t* gameState,
                                  size_t gameStateOctetCount, Clog* log)
