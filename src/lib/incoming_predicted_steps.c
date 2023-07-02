@@ -27,6 +27,8 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
+    (void) foundGame;
+
     int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask,
                                                      receivedTimeFromClient);
     if (errorCode < 0) {

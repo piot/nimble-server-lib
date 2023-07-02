@@ -27,6 +27,8 @@ void nimbleServerGameStateInit(NimbleServerGameState* self, ImprintAllocator* al
 int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const uint8_t* gameState,
                                  size_t gameStateOctetCount, Clog* log)
 {
+    (void) log;
+
     // CLOG_VERBOSE("trying to set game state %08X (octet count:%zu)", stepId, gameStateOctetCount);
     if (state->octetCount != 0 && stepId <= state->stepId) {
         CLOG_C_SOFT_ERROR(log, "ignoring old game state. we have %08X, but tried to set %08X", state->stepId, stepId)

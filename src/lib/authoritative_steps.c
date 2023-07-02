@@ -212,7 +212,7 @@ int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerPa
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
 
-#if NIMBLE_SERVER_LOGGING && CLOG_LOG_ENABLED
+#if NIMBLE_SERVER_LOGGING && defined CLOG_LOG_ENABLED
     StepId firstLookingFor = authoritativeSteps->expectedWriteId;
 #endif
 
@@ -248,7 +248,7 @@ int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerPa
         writtenAuthoritativeSteps++;
     }
 
-#if NIMBLE_SERVER_LOGGING && CLOG_LOG_ENABLED
+#if NIMBLE_SERVER_LOGGING && defined CLOG_LOG_ENABLED
     if (writtenAuthoritativeSteps > 0) {
         CLOG_C_VERBOSE(&game->log, "authoritative: written steps from %08X to %zX (%zX)", firstLookingFor,
                        firstLookingFor + writtenAuthoritativeSteps - 1, writtenAuthoritativeSteps)

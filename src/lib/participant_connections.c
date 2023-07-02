@@ -129,6 +129,7 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
 void nimbleServerParticipantConnectionsRemove(NimbleServerParticipantConnections* self,
                                               struct NimbleServerParticipantConnection* connection)
 {
+    (void) self;
     CLOG_C_DEBUG(&self->log, "disconnecting connection %u forcedSteps:%zu impendingDisconnect:%zu", connection->id,
                  connection->forcedStepInRowCounter, connection->impedingDisconnectCounter)
     nimbleServerParticipantConnectionReset(connection);

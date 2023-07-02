@@ -291,15 +291,14 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
     DatagramTransportOut responseTransport;
 
     for (size_t i = 0; i < 32; ++i) {
-        int octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId, datagram,
-                                                                  1200);
-
+        ssize_t octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId,
+                                                                      datagram, 1200);
         if (octetCountReceived == 0) {
             return 0;
         }
 
         if (octetCountReceived < 0) {
-            return octetCountReceived;
+            return (int) octetCountReceived;
         }
         bool didConnectNow = !self->transportConnections[connectionId].isUsed;
 
