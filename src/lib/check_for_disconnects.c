@@ -25,7 +25,12 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
         if (!connection->isUsed || connection->transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
             continue;
         }
-        if (connection->forcedStepInRowCounter > 140U) {
+        size_t forcedStepInRowCounterThreshold = 120U;
+        if (!blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
+            forcedStepInRowCounterThreshold = 280U;
+        }
+
+        if (connection->forcedStepInRowCounter > forcedStepInRowCounterThreshold) {
             CLOG_C_DEBUG(&connections->log, "disconnect connection %d due to not providing steps for a long time",
                          connection->id)
             disconnectConnection(connections, connection);
@@ -41,6 +46,7 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
                 }
             }
         }
+
         if (connection->impedingDisconnectCounter > 0 && connection->providedStepsInARow > 62 * 60U) {
             connection->impedingDisconnectCounter = 0;
             connection->state = NimbleServerParticipantConnectionStateNormal;
