@@ -8,7 +8,7 @@
 #include <flood/out_stream.h>
 #include <nimble-daemon/daemon.h>
 
-#if !TORNADO_OS_WINDOWS
+#if !defined TORNADO_OS_WINDOWS
 #include <unistd.h>
 #endif
 
@@ -91,7 +91,6 @@ int main(int argc, char* argv[])
     uint8_t buf[UDP_MAX_SIZE];
     size_t size;
     struct sockaddr_in address;
-    int errorCode;
 
 #define UDP_REPLY_MAX_SIZE (UDP_MAX_SIZE)
 
@@ -103,9 +102,9 @@ int main(int argc, char* argv[])
 
     while (1) {
         size = UDP_MAX_SIZE;
-        errorCode = udpServerReceive(&daemon.socket, buf, &size, &address);
+        ssize_t errorCode = udpServerReceive(&daemon.socket, buf, size, &address);
         if (errorCode < 0) {
-            CLOG_WARN("problem with receive %d", errorCode);
+            CLOG_WARN("problem with receive %zd", errorCode);
         } else {
             NimbleServerResponse response;
             response.transportOut = &transportOut;
@@ -117,7 +116,7 @@ int main(int argc, char* argv[])
 #endif
             errorCode = nimbleServerFeed(&server, 1, buf, size, &response);
             if (errorCode < 0) {
-                CLOG_WARN("nimbleServerFeed: error %d", errorCode);
+                CLOG_WARN("nimbleServerFeed: error %zd", errorCode);
             }
 
             NbsSteps* authoritativeSteps = &server.game.authoritativeSteps;
@@ -128,7 +127,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    imprintDefaultSetupDestroy(&memory);
+    // imprintDefaultSetupDestroy(&memory);
 
-    return 0;
+    // return 0;
 }

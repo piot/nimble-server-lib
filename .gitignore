@@ -3,7 +3,7 @@ CMakeFiles/
 build/
 CMakeCache.txt
 Makefile
-*.cmake
+cmake_install.cmake
 *.a
 .DS_Store
 .vscode/
