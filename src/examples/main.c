@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
         size = UDP_MAX_SIZE;
         ssize_t errorCode = udpServerReceive(&daemon.socket, buf, size, &address);
         if (errorCode < 0) {
-            CLOG_WARN("problem with receive %zd", errorCode);
+            CLOG_WARN("problem with receive %zd", errorCode)
         } else {
             NimbleServerResponse response;
             response.transportOut = &transportOut;
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
 #endif
             errorCode = nimbleServerFeed(&server, 1, buf, size, &response);
             if (errorCode < 0) {
-                CLOG_WARN("nimbleServerFeed: error %zd", errorCode);
+                CLOG_WARN("nimbleServerFeed: error %zd", errorCode)
             }
 
             NbsSteps* authoritativeSteps = &server.game.authoritativeSteps;
