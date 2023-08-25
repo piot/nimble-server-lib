@@ -8,6 +8,7 @@
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/debug.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
@@ -34,6 +35,11 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
     }
 
     return 0;
+}
+
+static bool isAcceptableError(int err)
+{
+    return err == NimbleServerErrSerialize || err == NimbleServerErrSessionFull;
 }
 
 /// Handle an incoming request from a client identified by the connectionIndex
@@ -105,8 +111,12 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     }
 
     if (result < 0) {
-        CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
-        return result;
+        if (!isAcceptableError(result)) {
+            CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
+            return result;
+        } else {
+            CLOG_C_NOTICE(&self->log, "accepting error %d", result)
+        }
     }
 
     if (inStream.pos != inStream.size) {

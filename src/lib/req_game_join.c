@@ -6,6 +6,7 @@
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/server_out.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
@@ -86,7 +87,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         CLOG_SOFT_ERROR("wrong version of nimble protocol version. expected %s, but encountered %s",
                         nimbleSerializeVersionToString(&g_nimbleProtocolVersion, buf, 32),
                         nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
-        return -41;
+        return NimbleServerErrSerializeVersion;
     }
 
     NimbleSerializeVersion clientApplicationVersion;
@@ -101,15 +102,18 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
 
     if (!nimbleSerializeVersionIsEqual(&self->applicationVersion, &clientApplicationVersion)) {
         CLOG_SOFT_ERROR("Wrong application version")
-        return -44;
+        return NimbleServerErrSerializeVersion;
     }
 
+    NimbleSerializeNonce requestJoinNonce;
+    nimbleSerializeInNonce(inStream, &requestJoinNonce);
     NimbleServerParticipantConnection* createdConnection;
     errorCode = nimbleServerReadAndJoinParticipants(&self->connections, &self->game.participants, transportConnection,
                                                     inStream, self->game.authoritativeSteps.expectedWriteId,
                                                     &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
+        nimbleSerializeServerOutGameJoinOutOfParticipantSlotsResponse(outStream, requestJoinNonce);
         return errorCode;
     }
 
@@ -127,8 +131,9 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
     CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
                self->game.authoritativeSteps.expectedWriteId - 1,
                createdConnection->participantReferences.participantReferenceCount)
-    nimbleSerializeServerOutGameJoinResponse(outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, participants,
-                                             createdConnection->participantReferences.participantReferenceCount);
+    nimbleSerializeServerOutGameJoinResponse(
+        outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, participants,
+        createdConnection->participantReferences.participantReferenceCount);
 
     return 0;
 }

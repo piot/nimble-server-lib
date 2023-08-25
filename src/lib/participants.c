@@ -6,6 +6,7 @@
 #include <imprint/allocator.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participants.h>
+#include <nimble-server/errors.h>
 
 /// Creates a new participant using the join information.
 /// @param self participants collection
@@ -18,7 +19,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
 {
     if (self->participantCount + localParticipantCount > self->participantCapacity) {
         CLOG_WARN("couldn't join, session is full")
-        return -2;
+        return NimbleServerErrSessionFull;
     }
     size_t joinIndex = 0;
 
