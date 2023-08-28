@@ -125,8 +125,8 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                                   connection->id, participantId)
                 continue;
             }
-
             fldOutStreamWriteUInt8(&composeStream, participantId);
+            fldOutStreamWriteUInt8(&composeStream, NimbleSerializeParticipantStateNormal);
             fldOutStreamWriteUInt8(&composeStream, localStepOctetCount);
             fldOutStreamWriteOctets(&composeStream, splitStepBuffer, localStepOctetCount);
             // CLOG_C_INFO(&connection->log, "connection %d. Wrote participant ID %d (octetCount %d)", connection->id,
