@@ -8,6 +8,16 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
+static NimbleSerializeParticipantConnectState forcedStateFromConnection(NimbleServerParticipantConnection* connection)
+{
+    NimbleSerializeParticipantConnectState state = NimbleSerializeParticipantConnectStateStepNotProvidedInTime;
+    if (connection->state == NimbleServerParticipantConnectionStateWaitingForReconnect) {
+        state = NimbleSerializeParticipantConnectStateStepWaitingForReconnect;
+    }
+
+    return state;
+}
+
 /// Creates a forced step for a participant connection participants.
 /// Forced steps are used for a participant connection that is too much behind
 /// of other participant connections.
@@ -21,10 +31,13 @@ ssize_t nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connecti
                                      size_t maxCount)
 {
     NimbleStepsOutSerializeLocalParticipants participants;
+
+    NimbleSerializeParticipantConnectState state = forcedStateFromConnection(connection);
     participants.participantCount = connection->participantReferences.participantReferenceCount;
     for (size_t i = 0; i < participants.participantCount; ++i) {
         participants.participants[i]
             .participantId = (uint8_t) connection->participantReferences.participantReferences[i]->id;
+        participants.participants[i].connectState = state;
         participants.participants[i].payload = 0;
         participants.participants[i].payloadCount = 0;
     }

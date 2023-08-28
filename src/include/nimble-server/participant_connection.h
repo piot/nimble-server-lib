@@ -25,6 +25,7 @@ typedef struct NimbleServerParticipantReferences {
 typedef enum NimbleServerParticipantConnectionState {
     NimbleServerParticipantConnectionStateNormal,
     NimbleServerParticipantConnectionStateImpendingDisconnect,
+    NimbleServerParticipantConnectionStateWaitingForReconnect,
     NimbleServerParticipantConnectionStateDisconnected
 } NimbleServerParticipantConnectionState;
 
