@@ -11,6 +11,7 @@ add_library(nimble-server-lib STATIC
   participant_connection.c
   participant_connections.c
   participants.c
+  req_connect.c
   req_game_join.c
   req_game_state.c
   req_game_state_ack.c

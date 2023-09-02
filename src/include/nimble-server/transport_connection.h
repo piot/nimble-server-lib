@@ -24,6 +24,8 @@
 
 typedef enum NimbleServerTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
+    NbTransportConnectionPhaseWaitingForValidConnect,
+    NbTransportConnectionPhaseConnected,
     NbTransportConnectionPhaseInitialStateDetermined,
     NbTransportConnectionPhaseDisconnected
 } NimbleServerTransportConnectionPhase;

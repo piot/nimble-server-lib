@@ -15,6 +15,7 @@
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
+#include <nimble-server/req_connect.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
 
@@ -98,6 +99,9 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     int result;
     switch (cmd) {
+       case NimbleSerializeCmdConnectRequest:
+            result = nimbleServerReqConnect(self, transportConnection, &inStream, &outStream);
+            break;
         case NimbleSerializeCmdGameStep:
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
                                              &self->connections, &inStream, &outStream);
@@ -107,7 +111,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
             result = nimbleServerReqDownloadGameState(transportConnection, self->pageAllocator, &self->game,
-                                                      self->applicationVersion, &inStream, &outStream);
+                                                      &inStream, &outStream);
             break;
         default:
             CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
