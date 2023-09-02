@@ -109,7 +109,8 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
 
     transportConnection->assignedParticipantConnection = createdConnection;
 
-    NimbleSerializeParticipant participants[8];
+    NimbleSerializeGameResponse gameResponse;
+    NimbleSerializeParticipant* participants = gameResponse.participants;
     for (size_t i = 0; i < createdConnection->participantReferences.participantReferenceCount; ++i) {
         const NimbleServerParticipant* sourceParticipant = createdConnection->participantReferences
                                                                .participantReferences[i];
@@ -118,12 +119,14 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         CLOG_VERBOSE("joined localIndex %zu with ID: %zu", sourceParticipant->localIndex, sourceParticipant->id)
     }
 
+    gameResponse.participantConnectionIndex = (NimbleSerializeParticipantConnectionIndex) createdConnection->id;
+    gameResponse.participantConnectionSecret = createdConnection->secret;
+    gameResponse.participantCount = createdConnection->participantReferences.participantReferenceCount;
+
     CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
                self->game.authoritativeSteps.expectedWriteId - 1,
                createdConnection->participantReferences.participantReferenceCount)
-    nimbleSerializeServerOutGameJoinResponse(
-        outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, createdConnection->secret,
-        participants, createdConnection->participantReferences.participantReferenceCount);
+    nimbleSerializeServerOutGameJoinResponse(outStream, &gameResponse);
 
     return 0;
 }
