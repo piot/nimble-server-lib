@@ -27,19 +27,9 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
 
     self->log = log;
     nbsStepsInit(&self->steps, connectionAllocator, combinedStepOctetSize, log);
-    // Expect that the client will add steps for the next authoritative step
-    nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
     self->participantReferences.participantReferenceCount = 0;
-
-    self->allocatorWithNoFree = connectionAllocator;
-    self->transportConnection = transportConnection;
     self->isUsed = false;
-    self->providedStepsInARow = 0;
-    self->forcedStepInRowCounter = 0;
-    self->impedingDisconnectCounter = 0;
-    self->state = NimbleServerParticipantConnectionStateNormal;
-
-    statsIntInit(&self->incomingStepCountInBufferStats, 60);
+    nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
 /// Resets the participant connection
@@ -48,6 +38,25 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
 {
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
+}
+
+
+
+/// Reinitialize the participant connection
+/// @param self participant connection
+/// @param transportConnection the underlying transport connection
+/// @param currentAuthoritativeStepId the authoritative step ID to start from
+void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self, NimbleServerTransportConnection* transportConnection, StepId currentAuthoritativeStepId)
+{
+    self->providedStepsInARow = 0;
+    self->forcedStepInRowCounter = 0;
+    self->impedingDisconnectCounter = 0;
+    self->state = NimbleServerParticipantConnectionStateNormal;
+
+    statsIntInit(&self->incomingStepCountInBufferStats, 60);
+    // Expect that the client will add steps for the next authoritative step
+    nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
+    self->transportConnection = transportConnection;
 }
 
 /// Checks if a participantId is in the participant connection

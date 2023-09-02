@@ -26,12 +26,13 @@ set_tornado(nimble-server-lib)
 target_include_directories(nimble-server-lib PUBLIC ../include)
 
 
-target_link_libraries(nimble-server-lib 
-  PUBLIC discoid
-  PUBLIC nimble-serialize
-  PUBLIC nimble-steps-serialize
-  PUBLIC stats
-  PUBLIC blob-stream
-  PUBLIC datagram-transport
-  PUBLIC ordered-datagram)
+target_link_libraries(nimble-server-lib PUBLIC 
+  discoid
+  nimble-serialize
+  nimble-steps-serialize
+  stats
+  blob-stream
+  datagram-transport
+  ordered-datagram
+  secure-random)
 

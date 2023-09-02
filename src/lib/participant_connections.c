@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+#include <secure-random/secure_random.h>
 #include <clog/clog.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
@@ -72,6 +73,25 @@ nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerPartici
     return 0;
 }
 
+/// Finds the participant connection with the specified secret (and that is waiting for reconnect)
+/// @param self participant connections
+/// @param connectionSecret a previous secret given out by the server
+/// @return pointer to a participant connection, or NULL otherwise
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipantConnections* self,
+                                                           NimbleSerializeParticipantConnectionSecret connectionSecret)
+{
+    for (size_t i = 0; i < self->connectionCount; ++i) {
+        if (self->connections[i].isUsed &&
+            self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect &&
+            self->connections[i].secret == connectionSecret) {
+            return &self->connections[i];
+        }
+    }
+
+    return 0;
+}
+
 /// Creates a participant connection for the specified room.
 /// @note In this version there must be an existing game in the room.
 /// @param self participant connections
@@ -114,6 +134,7 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
         }
         participantConnection->participantReferences.participantReferenceCount = localParticipantCount;
 
+        participantConnection->secret = secureRandomUInt64();
         *outConnection = participantConnection;
         return 0;
     }

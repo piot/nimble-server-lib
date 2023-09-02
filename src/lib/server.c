@@ -74,6 +74,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
         return -54;
     }
 
+    inStream.readDebugInfo = transportConnection->useDebugStreams;
+
     orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
 
     uint8_t cmd;
@@ -85,10 +87,12 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
         return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut);
     }
 
+
 #define UDP_MAX_SIZE (1200)
     static uint8_t buf[UDP_MAX_SIZE];
     FldOutStream outStream;
     fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
+    outStream.writeDebugInfo = transportConnection->useDebugStreams;
 
     orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &outStream);
 

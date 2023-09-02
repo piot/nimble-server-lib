@@ -11,6 +11,7 @@
 #include <clog/clog.h>
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
+#include <nimble-serialize/types.h>
 
 struct NimbleServerParticipantConnection;
 
@@ -40,6 +41,9 @@ nimbleServerParticipantConnectionsFindConnection(NimbleServerParticipantConnecti
 struct NimbleServerParticipantConnection*
 nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerParticipantConnections* self,
                                                              uint32_t transportConnectionId);
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipantConnections* self,
+                                                           NimbleSerializeParticipantConnectionSecret connectionSecret);
 int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
                                              NimbleServerParticipants* gameParticipants,
                                              struct NimbleServerTransportConnection* transportConnection,

@@ -18,12 +18,30 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
                                                      NimbleServerTransportConnection* transportConnection,
                                                      const NimbleServerParticipantJoinInfo* joinInfo,
                                                      StepId latestAuthoritativeStepId, size_t localParticipantCount,
+                                                     NimbleSerializeParticipantConnectionSecret previousSecret,
                                                      struct NimbleServerParticipantConnection** outConnection)
 {
     NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnectionForTransport(
         connections, transportConnection->transportConnectionId);
     if (foundConnection != 0) {
         *outConnection = foundConnection;
+        return 0;
+    }
+
+    NimbleServerParticipantConnection*
+        foundConnectionFromSecret = nimbleServerParticipantConnectionsFindConnectionFromSecret(connections,
+                                                                                               previousSecret);
+    if (foundConnectionFromSecret != 0) {
+        if (foundConnectionFromSecret->participantReferences.participantReferenceCount != localParticipantCount) {
+            CLOG_C_NOTICE(&connections->log, "could not rejoin with secret. wrong number of local participant count")
+        } else {
+            CLOG_C_DEBUG(&connections->log, "rejoining a previous connection %d", foundConnectionFromSecret->id)
+            nimbleServerParticipantConnectionReInit(foundConnectionFromSecret, transportConnection,
+                                                    latestAuthoritativeStepId);
+            foundConnectionFromSecret->state = NimbleServerParticipantConnectionStateNormal;
+            *outConnection = foundConnectionFromSecret;
+            return 0;
+        }
         return 0;
     }
 
@@ -41,6 +59,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
 static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnections* connections,
                                                NimbleServerParticipants* gameParticipants,
                                                NimbleServerTransportConnection* transportConnection,
+                                               NimbleSerializeParticipantConnectionSecret previousSecret,
                                                struct FldInStream* inStream, StepId latestAuthoritativeStepId,
                                                struct NimbleServerParticipantConnection** createdConnection)
 {
@@ -51,9 +70,10 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnection
     for (size_t i = 0; i < localParticipantCount; ++i) {
         fldInStreamReadUInt8(inStream, &joinInfos[i].localIndex);
     }
+
     int errorCode = nimbleServerGameJoinParticipantConnection(connections, gameParticipants, transportConnection,
                                                               joinInfos, latestAuthoritativeStepId,
-                                                              localParticipantCount, createdConnection);
+                                                              localParticipantCount, previousSecret, createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't join game session")
         return errorCode;
@@ -107,10 +127,23 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
 
     NimbleSerializeNonce requestJoinNonce;
     nimbleSerializeInNonce(inStream, &requestJoinNonce);
+
+    uint8_t masks = 0;
+    fldInStreamReadUInt8(inStream, &masks);
+
+    bool secretIsProvided = masks & 0x01;
+
+    NimbleSerializeParticipantConnectionSecret previousSecret;
+    if (secretIsProvided) {
+        nimbleSerializeInConnectionSecret(inStream, &previousSecret);
+    } else {
+        previousSecret = 0;
+    }
+
     NimbleServerParticipantConnection* createdConnection;
     errorCode = nimbleServerReadAndJoinParticipants(&self->connections, &self->game.participants, transportConnection,
-                                                    inStream, self->game.authoritativeSteps.expectedWriteId,
-                                                    &createdConnection);
+                                                    previousSecret, inStream,
+                                                    self->game.authoritativeSteps.expectedWriteId, &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
         nimbleSerializeServerOutGameJoinOutOfParticipantSlotsResponse(outStream, requestJoinNonce);
@@ -132,8 +165,8 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
                self->game.authoritativeSteps.expectedWriteId - 1,
                createdConnection->participantReferences.participantReferenceCount)
     nimbleSerializeServerOutGameJoinResponse(
-        outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, participants,
-        createdConnection->participantReferences.participantReferenceCount);
+        outStream, (NimbleSerializeParticipantConnectionIndex) createdConnection->id, createdConnection->secret,
+        participants, createdConnection->participantReferences.participantReferenceCount);
 
     return 0;
 }

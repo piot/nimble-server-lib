@@ -56,6 +56,8 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         // CLOG_DEBUG("sending state %08X (octet count :%zu)", options.stepId, options.gameStateOctetCount);
 
         fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
+        stream.writeDebugInfo = transportConnection->useDebugStreams;
+
         orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &stream);
 
         nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, "");

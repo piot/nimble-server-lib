@@ -40,10 +40,12 @@ typedef struct NimbleServerParticipantConnection {
 
     StatsInt incomingStepCountInBufferStats;
     struct NimbleServerTransportConnection* transportConnection;
-    ImprintAllocator* allocatorWithNoFree;
     size_t forcedStepInRowCounter;
     size_t providedStepsInARow;
     size_t impedingDisconnectCounter;
+    size_t waitingForReconnectTimer;
+    size_t waitingForReconnectMaxTimer;
+    NimbleSerializeParticipantConnectionSecret secret;
     Clog log;
 } NimbleServerParticipantConnection;
 
@@ -53,7 +55,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
                                   Clog log);
 
 void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self);
-
+void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection, StepId latestAuthoritativeStepId);
 bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
 
 #endif

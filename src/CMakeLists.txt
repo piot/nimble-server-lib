@@ -13,6 +13,7 @@ add_subdirectory(deps/piot/nimble-serialize-c/src/lib)
 add_subdirectory(deps/piot/nimble-steps-c/src/lib)
 add_subdirectory(deps/piot/nimble-steps-serialize-c/src/lib)
 add_subdirectory(deps/piot/ordered-datagram-c/src/lib)
+add_subdirectory(deps/piot/secure-random-c/src/lib)
 add_subdirectory(deps/piot/stats-c/src/lib)
 add_subdirectory(deps/piot/tiny-libc/src/lib)
 
