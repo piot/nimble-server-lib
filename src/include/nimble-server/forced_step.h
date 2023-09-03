@@ -9,9 +9,14 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <nimble-steps-serialize/types.h>
+
 struct NimbleServerParticipantConnection;
 
-int nimbleServerInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection, size_t dropped);
-ssize_t nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection, uint8_t* defaultStepBuffer, size_t maxCount);
+int nimbleServerInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection,
+                                  size_t dropped);
+ssize_t nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection,
+                                     uint8_t* defaultStepBuffer,
+                                     size_t maxCount);
 
 #endif

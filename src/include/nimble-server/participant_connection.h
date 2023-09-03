@@ -19,12 +19,12 @@ struct NimbleServerTransportConnection;
 
 typedef struct NimbleServerParticipantReferences {
     size_t participantReferenceCount;
-    struct NimbleServerParticipant* participantReferences[MAX_LOCAL_PLAYERS];
+    struct NimbleServerParticipant* participantReferences[NIMBLE_SERIALIZE_MAX_LOCAL_PLAYERS];
 } NimbleServerParticipantReferences;
 
 typedef enum NimbleServerParticipantConnectionState {
     NimbleServerParticipantConnectionStateNormal,
-    NimbleServerParticipantConnectionStateImpendingDisconnect,
+    NimbleServerParticipantConnectionStateWaitingForReconnect,
     NimbleServerParticipantConnectionStateDisconnected
 } NimbleServerParticipantConnectionState;
 
@@ -39,10 +39,13 @@ typedef struct NimbleServerParticipantConnection {
 
     StatsInt incomingStepCountInBufferStats;
     struct NimbleServerTransportConnection* transportConnection;
-    ImprintAllocator* allocatorWithNoFree;
     size_t forcedStepInRowCounter;
     size_t providedStepsInARow;
     size_t impedingDisconnectCounter;
+    size_t waitingForReconnectTimer;
+    size_t waitingForReconnectMaxTimer;
+    NimbleSerializeParticipantConnectionSecret secret;
+    bool hasAddedFirstAcceptedSteps;
     Clog log;
 } NimbleServerParticipantConnection;
 
@@ -52,7 +55,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
                                   Clog log);
 
 void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self);
-
+void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection, StepId latestAuthoritativeStepId);
 bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
 
 #endif

@@ -24,6 +24,7 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
     self->noRangesToSendCounter = 0;
     self->phase = NbTransportConnectionPhaseIdle;
     self->blobStreamOutClientRequestId = 0;
+    self->useDebugStreams = true;
 
     statsIntInit(&self->stepsBehindStats, 60);
 }

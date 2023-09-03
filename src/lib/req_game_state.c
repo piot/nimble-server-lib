@@ -12,12 +12,11 @@
 /// @param transportConnection transport connection that request to download the latest game state
 /// @param pageAllocator page allocator
 /// @param game game that the connection wants to download state from
-/// @param applicationVersion application version is used for comparison
 /// @param inStream stream to read the request from
 /// @param outStream out stream to write the response to
 /// @return negative on error
 int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
-                            const NimbleServerGame* game, NimbleSerializeVersion applicationVersion, FldInStream* inStream,
+                            const NimbleServerGame* game, FldInStream* inStream,
                             FldOutStream* outStream)
 {
     const NimbleServerGameState* latestState = &game->latestState;
@@ -27,39 +26,6 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
         return -2;
     }
 
-    NimbleSerializeVersion nimbleProtocolVersion;
-    int errorCode = nimbleSerializeInVersion(inStream, &nimbleProtocolVersion);
-    if (errorCode < 0) {
-        CLOG_SOFT_ERROR("could not read nimble serialize version %d", errorCode)
-        return errorCode;
-    }
-
-    char buf[32];
-    CLOG_C_VERBOSE(&transportConnection->log, "request game state. nimble protocol version %s",
-                   nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
-
-    if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {
-
-        CLOG_SOFT_ERROR("wrong version of nimble protocol version. expected %s, but encountered %s",
-                        nimbleSerializeVersionToString(&g_nimbleProtocolVersion, buf, 32),
-                        nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
-        return -41;
-    }
-
-    NimbleSerializeVersion clientApplicationVersion;
-    errorCode = nimbleSerializeInVersion(inStream, &clientApplicationVersion);
-    if (errorCode < 0) {
-        CLOG_SOFT_ERROR("wrong version %d", errorCode)
-        return errorCode;
-    }
-
-    CLOG_C_VERBOSE(&transportConnection->log, "request game state. application version version %s",
-                   nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
-
-    if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {
-        CLOG_SOFT_ERROR("Wrong application version")
-        return -44;
-    }
 
     uint8_t downloadClientRequestId;
     fldInStreamReadUInt8(inStream, &downloadClientRequestId);

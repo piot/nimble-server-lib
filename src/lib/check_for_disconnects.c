@@ -11,9 +11,69 @@
 static void disconnectConnection(NimbleServerParticipantConnections* connections,
                                  NimbleServerParticipantConnection* connection)
 {
+    CLOG_C_DEBUG(&connection->log, "removed connection due to disconnect")
     connection->transportConnection->isUsed = false;
     connection->state = NimbleServerParticipantConnectionStateDisconnected;
     nimbleServerParticipantConnectionsRemove(connections, connection);
+}
+
+static void setConnectionInWaitingForReconnect(NimbleServerParticipantConnection* connection)
+{
+    connection->state = NimbleServerParticipantConnectionStateWaitingForReconnect;
+    connection->waitingForReconnectTimer = 0;
+}
+
+static void increaseImpendingDisconnectCounter(NimbleServerParticipantConnection* connection)
+{
+    connection->impedingDisconnectCounter++;
+    CLOG_C_DEBUG(&connection->log, "connection unresponsive, increasing counter to %zu",
+                 connection->impedingDisconnectCounter)
+
+    if (connection->impedingDisconnectCounter >= 15) {
+        CLOG_C_DEBUG(&connection->log,
+                     "set connection in 'waiting for reconnect', due to multiple occurrences of not providing steps")
+        setConnectionInWaitingForReconnect(connection);
+    }
+}
+
+static bool hasProvidedStepsInTimeForAtLeastAMinute(NimbleServerParticipantConnection* connection)
+{
+    return connection->providedStepsInARow > 62 * 60U;
+}
+
+static bool isFailingToProvideStepsInTime(NimbleServerParticipantConnection* connection)
+{
+    size_t forcedStepInRowCounterThreshold = 5U;
+    if (!connection->hasAddedFirstAcceptedSteps) {
+        forcedStepInRowCounterThreshold = 280U;
+    }
+
+    return connection->forcedStepInRowCounter > forcedStepInRowCounterThreshold;
+}
+
+static void checkDisconnectInNormal(NimbleServerParticipantConnection* connection)
+{
+    if (hasProvidedStepsInTimeForAtLeastAMinute(connection)) {
+        // The connection seemed to have stabilized, so forgive the previous impeding disconnects
+        connection->impedingDisconnectCounter = 0;
+    }
+
+    if (isFailingToProvideStepsInTime(connection)) {
+        increaseImpendingDisconnectCounter(connection);
+    }
+}
+
+static void checkWaitingForReconnect(NimbleServerParticipantConnections* connections,
+                                     NimbleServerParticipantConnection* connection)
+{
+    connection->waitingForReconnectTimer++;
+    if (connection->waitingForReconnectTimer < connection->waitingForReconnectMaxTimer) {
+        return;
+    }
+
+    CLOG_C_DEBUG(&connection->log, "gave up on reconnect for connection, waited %zu ticks. disconnecting it now", connection->waitingForReconnectTimer)
+
+    disconnectConnection(connections, connection);
 }
 
 /// Check all connections and disconnect those that have low network quality.
@@ -25,31 +85,16 @@ void nimbleServerCheckForDisconnections(NimbleServerParticipantConnections* conn
         if (!connection->isUsed || connection->transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
             continue;
         }
-        size_t forcedStepInRowCounterThreshold = 120U;
-        if (!blobStreamLogicOutIsComplete(&connection->transportConnection->blobStreamLogicOut)) {
-            forcedStepInRowCounterThreshold = 280U;
-        }
 
-        if (connection->forcedStepInRowCounter > forcedStepInRowCounterThreshold) {
-            CLOG_C_DEBUG(&connections->log, "disconnect connection %d due to not providing steps for a long time",
-                         connection->id)
-            disconnectConnection(connections, connection);
-        } else if (connection->forcedStepInRowCounter > 4U) {
-            if (connection->state == NimbleServerParticipantConnectionStateNormal) {
-                connection->state = NimbleServerParticipantConnectionStateImpendingDisconnect;
-                connection->impedingDisconnectCounter++;
-                if (connection->impedingDisconnectCounter >= 3) {
-                    CLOG_C_DEBUG(&connections->log,
-                                 "disconnect connection %d due to multiple occurrences of not providing steps",
-                                 connection->id)
-                    disconnectConnection(connections, connection);
-                }
-            }
-        }
-
-        if (connection->impedingDisconnectCounter > 0 && connection->providedStepsInARow > 62 * 60U) {
-            connection->impedingDisconnectCounter = 0;
-            connection->state = NimbleServerParticipantConnectionStateNormal;
+        switch (connection->state) {
+            case NimbleServerParticipantConnectionStateNormal:
+                checkDisconnectInNormal(connection);
+                break;
+            case NimbleServerParticipantConnectionStateWaitingForReconnect:
+                checkWaitingForReconnect(connections, connection);
+                break;
+            case NimbleServerParticipantConnectionStateDisconnected:
+                break;
         }
     }
 }

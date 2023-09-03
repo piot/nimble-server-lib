@@ -24,6 +24,8 @@
 
 typedef enum NimbleServerTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
+    NbTransportConnectionPhaseWaitingForValidConnect,
+    NbTransportConnectionPhaseConnected,
     NbTransportConnectionPhaseInitialStateDetermined,
     NbTransportConnectionPhaseDisconnected
 } NimbleServerTransportConnectionPhase;
@@ -43,6 +45,7 @@ typedef struct NimbleServerTransportConnection {
     size_t debugCounter;
     Clog log;
     bool isUsed;
+    bool useDebugStreams;
     uint8_t noRangesToSendCounter;
     NimbleServerTransportConnectionPhase phase;
 } NimbleServerTransportConnection;

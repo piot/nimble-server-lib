@@ -9,6 +9,7 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
+#include <nimble-steps-serialize/types.h>
 
 #define NIMBLE_SERVER_LOGGING 1
 
@@ -110,9 +111,18 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
             if (participantId == 0) {
                 CLOG_C_SOFT_ERROR(&connection->log, "participantId zero is reserved")
             }
-            uint8_t localStepOctetCount;
-            fldInStreamReadUInt8(&stepInStream, &localStepOctetCount);
-            fldInStreamReadOctets(&stepInStream, splitStepBuffer, localStepOctetCount);
+            uint8_t localStepOctetCount = 0;
+            NimbleSerializeParticipantConnectState readLocalConnectState = NimbleSerializeParticipantConnectStateNormal;
+            bool hasMask = participantId & 0x80;
+            uint8_t mask = 0;
+            if (hasMask) {
+                fldInStreamReadUInt8(&stepInStream, &readLocalConnectState);
+                participantId = participantId & 0x7f;
+                mask = 0x80;
+            } else {
+                fldInStreamReadUInt8(&stepInStream, &localStepOctetCount);
+                fldInStreamReadOctets(&stepInStream, splitStepBuffer, localStepOctetCount);
+            }
 #if NIMBLE_SERVER_LOGGING && 0
             CLOG_C_INFO(&connection->log, "step %08X connection %d. Read participant ID %d (octetCount %hhu)",
                         lookingFor, connection->id, participantId, localStepOctetCount)
@@ -125,10 +135,13 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                                   connection->id, participantId)
                 continue;
             }
-
-            fldOutStreamWriteUInt8(&composeStream, participantId);
-            fldOutStreamWriteUInt8(&composeStream, localStepOctetCount);
-            fldOutStreamWriteOctets(&composeStream, splitStepBuffer, localStepOctetCount);
+            fldOutStreamWriteUInt8(&composeStream, mask | participantId);
+            if (mask) {
+                fldOutStreamWriteUInt8(&composeStream, readLocalConnectState);
+            } else {
+                fldOutStreamWriteUInt8(&composeStream, localStepOctetCount);
+                fldOutStreamWriteOctets(&composeStream, splitStepBuffer, localStepOctetCount);
+            }
             // CLOG_C_INFO(&connection->log, "connection %d. Wrote participant ID %d (octetCount %d)", connection->id,
             // participantId, localStepOctetCount)
             foundParticipantCount++;
