@@ -112,7 +112,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                 CLOG_C_SOFT_ERROR(&connection->log, "participantId zero is reserved")
             }
             uint8_t localStepOctetCount = 0;
-            NimbleSerializeParticipantConnectState readLocalConnectState = NimbleSerializeParticipantConnectStateNormal;
+            uint8_t readLocalConnectState = NimbleSerializeParticipantConnectStateNormal;
             bool hasMask = participantId & 0x80;
             uint8_t mask = 0;
             if (hasMask) {
