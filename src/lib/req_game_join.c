@@ -61,19 +61,19 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnection
                                                NimbleServerParticipants* gameParticipants,
                                                NimbleServerTransportConnection* transportConnection,
                                                NimbleSerializeParticipantConnectionSecret previousSecret,
-                                               const NimbleSerializeGameJoinOptions* options,
+                                               const NimbleSerializeJoinGameRequest* request,
                                                StepId latestAuthoritativeStepId,
                                                struct NimbleServerParticipantConnection** createdConnection)
 {
-    NimbleServerParticipantJoinInfo serverJoinInfos[8];
+    NimbleServerParticipantJoinInfo serverJoinInfos[NIMBLE_SERIALIZE_MAX_LOCAL_PLAYERS];
 
-    for (size_t i = 0; i < options->playerCount; ++i) {
-        serverJoinInfos[i].localIndex = options->players[i].localIndex;
+    for (size_t i = 0; i < request->playerCount; ++i) {
+        serverJoinInfos[i].localIndex = request->players[i].localIndex;
     }
 
     int errorCode = nimbleServerGameJoinParticipantConnection(connections, gameParticipants, transportConnection,
                                                               serverJoinInfos, latestAuthoritativeStepId,
-                                                              options->playerCount, previousSecret, createdConnection);
+                                                              request->playerCount, previousSecret, createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't join game session")
         return errorCode;
@@ -90,27 +90,27 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnection
 int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
                             FldInStream* inStream, FldOutStream* outStream)
 {
-    NimbleSerializeGameJoinOptions options;
+    NimbleSerializeJoinGameRequest request;
 
-    int err = nimbleSerializeServerInGameJoin(inStream, &options);
+    int err = nimbleSerializeServerInJoinGameRequest(inStream, &request);
     if (err < 0) {
         return err;
     }
 
     NimbleServerParticipantConnection* createdConnection;
     int errorCode = nimbleServerReadAndJoinParticipants(
-        &self->connections, &self->game.participants, transportConnection, options.connectionSecret, &options,
+        &self->connections, &self->game.participants, transportConnection, request.connectionSecret, &request,
         self->game.authoritativeSteps.expectedWriteId, &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
-        nimbleSerializeServerOutGameJoinOutOfParticipantSlotsResponse(outStream, options.nonce);
+        nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce);
         return errorCode;
     }
 
     transportConnection->assignedParticipantConnection = createdConnection;
 
-    NimbleSerializeGameResponse gameResponse;
-    NimbleSerializeParticipant* participants = gameResponse.participants;
+    NimbleSerializeJoinGameResponse gameResponse;
+    NimbleSerializeJoinGameResponseParticipant* participants = gameResponse.participants;
     for (size_t i = 0; i < createdConnection->participantReferences.participantReferenceCount; ++i) {
         const NimbleServerParticipant* sourceParticipant = createdConnection->participantReferences
                                                                .participantReferences[i];
@@ -126,7 +126,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
     CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
                self->game.authoritativeSteps.expectedWriteId - 1,
                createdConnection->participantReferences.participantReferenceCount)
-    nimbleSerializeServerOutGameJoinResponse(outStream, &gameResponse);
+    nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse);
 
     return 0;
 }
