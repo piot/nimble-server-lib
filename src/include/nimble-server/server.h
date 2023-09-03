@@ -39,6 +39,7 @@ typedef struct NimbleServerSetup {
     size_t maxParticipantCount;
     size_t maxSingleParticipantStepOctetCount;
     size_t maxParticipantCountForEachConnection;
+    size_t maxWaitingForReconnectTicks;
     size_t maxGameStateOctetCount;
     const uint8_t* zeroInputOctets;
     size_t zeroInputOctetCount;

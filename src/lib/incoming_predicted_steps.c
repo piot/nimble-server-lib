@@ -82,5 +82,9 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
         return addedStepsCount;
     }
 
+    if (addedStepsCount > 0) {
+        foundParticipantConnection->hasAddedFirstAcceptedSteps = true;
+    }
+
     return addedStepsCount;
 }

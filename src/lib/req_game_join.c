@@ -107,6 +107,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce);
         return errorCode;
     }
+    createdConnection->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
 
     transportConnection->assignedParticipantConnection = createdConnection;
 

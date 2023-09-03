@@ -28,6 +28,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     self->log = log;
     nbsStepsInit(&self->steps, connectionAllocator, combinedStepOctetSize, log);
     self->participantReferences.participantReferenceCount = 0;
+    self->waitingForReconnectMaxTimer = 62 * 20;
     self->isUsed = false;
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
