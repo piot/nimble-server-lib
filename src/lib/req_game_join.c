@@ -13,6 +13,7 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/server.h>
+#include <inttypes.h>
 
 static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConnections* connections,
                                                      NimbleServerParticipants* gameParticipants,
@@ -123,9 +124,9 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
     gameResponse.participantConnectionSecret = createdConnection->secret;
     gameResponse.participantCount = createdConnection->participantReferences.participantReferenceCount;
 
-    CLOG_DEBUG("client joined game with connection %u stateID: %04X participant count: %zu", createdConnection->id,
+    CLOG_C_DEBUG(&self->log, "client joined game with participant connection %u stateID: %04X participant count: %zu secret: %" PRIX64 , createdConnection->id,
                self->game.authoritativeSteps.expectedWriteId - 1,
-               createdConnection->participantReferences.participantReferenceCount)
+               createdConnection->participantReferences.participantReferenceCount, createdConnection->secret)
     nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse);
 
     return 0;
