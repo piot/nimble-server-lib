@@ -14,43 +14,6 @@
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>
 
-/*
-    NimbleSerializeVersion nimbleProtocolVersion;
-    int errorCode = nimbleSerializeInVersion(inStream, &nimbleProtocolVersion);
-    if (errorCode < 0) {
-        CLOG_SOFT_ERROR("could not read nimble serialize version %d", errorCode)
-        return errorCode;
-    }
-
-    char buf[32];
-    CLOG_C_VERBOSE(&transportConnection->log, "request game state. nimble protocol version %s",
-                   nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
-
-    if (!nimbleSerializeVersionIsEqual(&nimbleProtocolVersion, &g_nimbleProtocolVersion)) {
-
-        CLOG_SOFT_ERROR("wrong version of nimble protocol version. expected %s, but encountered %s",
-                        nimbleSerializeVersionToString(&g_nimbleProtocolVersion, buf, 32),
-                        nimbleSerializeVersionToString(&nimbleProtocolVersion, buf, 32))
-        return -41;
-    }
-
-    NimbleSerializeVersion clientApplicationVersion;
-    errorCode = nimbleSerializeInVersion(inStream, &clientApplicationVersion);
-    if (errorCode < 0) {
-        CLOG_SOFT_ERROR("wrong version %d", errorCode)
-        return errorCode;
-    }
-
-    CLOG_C_VERBOSE(&transportConnection->log, "request game state. application version version %s",
-                   nimbleSerializeVersionToString(&clientApplicationVersion, buf, 32))
-
-    if (!nimbleSerializeVersionIsEqual(&applicationVersion, &clientApplicationVersion)) {
-        CLOG_SOFT_ERROR("Wrong application version")
-        return -44;
-    }
-
-*/
-
 int nimbleServerReqConnect(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
                            FldInStream* inStream, FldOutStream* outStream)
 {
