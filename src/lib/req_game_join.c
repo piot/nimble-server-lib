@@ -41,6 +41,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
             nimbleServerParticipantConnectionReInit(foundConnectionFromSecret, transportConnection,
                                                     latestAuthoritativeStepId);
             foundConnectionFromSecret->state = NimbleServerParticipantConnectionStateNormal;
+            foundConnectionFromSecret->waitingForReconnectTimer = 0;
             *outConnection = foundConnectionFromSecret;
             return 0;
         }

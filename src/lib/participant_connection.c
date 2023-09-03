@@ -53,6 +53,7 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
     self->forcedStepInRowCounter = 0;
     self->impedingDisconnectCounter = 0;
     self->state = NimbleServerParticipantConnectionStateNormal;
+    self->hasAddedFirstAcceptedSteps = false;
 
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
     // Expect that the client will add steps for the next authoritative step

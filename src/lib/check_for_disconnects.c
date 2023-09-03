@@ -29,7 +29,7 @@ static void increaseImpendingDisconnectCounter(NimbleServerParticipantConnection
     CLOG_C_DEBUG(&connection->log, "connection unresponsive, increasing counter to %zu",
                  connection->impedingDisconnectCounter)
 
-    if (connection->impedingDisconnectCounter >= 5) {
+    if (connection->impedingDisconnectCounter >= 15) {
         CLOG_C_DEBUG(&connection->log,
                      "set connection in 'waiting for reconnect', due to multiple occurrences of not providing steps")
         setConnectionInWaitingForReconnect(connection);
