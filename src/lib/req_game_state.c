@@ -60,5 +60,5 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
 
     return nimbleSerializeServerOutGameStateResponse(outStream, outGameState,
                                                      transportConnection->blobStreamOutClientRequestId,
-                                                     transportConnection->blobStreamOutChannel);
+                                                     transportConnection->blobStreamOutChannel, &transportConnection->log);
 }

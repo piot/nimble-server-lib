@@ -60,7 +60,7 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
 
         orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &stream);
 
-        nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, "");
+        nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, &transportConnection->log);
         nimbleSerializeOutBlobStreamChannelId(&stream, channelId);
         blobStreamLogicOutSendEntry(&stream, entry);
         orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);

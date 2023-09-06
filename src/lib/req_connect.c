@@ -37,5 +37,5 @@ int nimbleServerReqConnect(NimbleServer* self, NimbleServerTransportConnection* 
     NimbleSerializeConnectResponse connectResponse;
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
 
-    return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse);
+    return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }

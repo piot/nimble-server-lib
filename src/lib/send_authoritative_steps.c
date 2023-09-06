@@ -98,7 +98,7 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
     }
 
     nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
-                                       (int8_t) authoritativeBufferDelta, receivedTimeFromClient);
+                                       (int8_t) authoritativeBufferDelta, receivedTimeFromClient, &transportConnection->log);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);

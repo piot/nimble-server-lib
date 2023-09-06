@@ -5,6 +5,7 @@
 #include <clog/clog.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
+#include <inttypes.h>
 #include <nimble-serialize/server_in.h>
 #include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
@@ -13,7 +14,6 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/server.h>
-#include <inttypes.h>
 
 static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConnections* connections,
                                                      NimbleServerParticipants* gameParticipants,
@@ -26,6 +26,10 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
     NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnectionForTransport(
         connections, transportConnection->transportConnectionId);
     if (foundConnection != 0) {
+        CLOG_C_DEBUG(
+            &connections->log,
+            "found an existing participant connection %d for this transport connection (%hhu). ignoring join request",
+            foundConnection->id, transportConnection->transportConnectionId)
         *outConnection = foundConnection;
         return 0;
     }
@@ -37,7 +41,8 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
         if (foundConnectionFromSecret->participantReferences.participantReferenceCount != localParticipantCount) {
             CLOG_C_NOTICE(&connections->log, "could not rejoin with secret. wrong number of local participant count")
         } else {
-            CLOG_C_DEBUG(&connections->log, "rejoining a previous connection %d", foundConnectionFromSecret->id)
+            CLOG_C_DEBUG(&connections->log, "rejoining, using a secret, to a previous connection %d",
+                         foundConnectionFromSecret->id)
             nimbleServerParticipantConnectionReInit(foundConnectionFromSecret, transportConnection,
                                                     latestAuthoritativeStepId);
             foundConnectionFromSecret->state = NimbleServerParticipantConnectionStateNormal;
@@ -77,7 +82,7 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnection
                                                               serverJoinInfos, latestAuthoritativeStepId,
                                                               request->playerCount, previousSecret, createdConnection);
     if (errorCode < 0) {
-        CLOG_WARN("couldn't join game session")
+        CLOG_WARN("nimbleServerReadAndJoinParticipants: couldn't join game session")
         return errorCode;
     }
     return 0;
@@ -105,7 +110,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         self->game.authoritativeSteps.expectedWriteId, &createdConnection);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
-        nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce);
+        nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce, &self->log);
         return errorCode;
     }
     createdConnection->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
@@ -126,10 +131,12 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
     gameResponse.participantConnectionSecret = createdConnection->secret;
     gameResponse.participantCount = createdConnection->participantReferences.participantReferenceCount;
 
-    CLOG_C_DEBUG(&self->log, "client joined game with participant connection %u stateID: %04X participant count: %zu secret: %" PRIX64 , createdConnection->id,
-               self->game.authoritativeSteps.expectedWriteId - 1,
-               createdConnection->participantReferences.participantReferenceCount, createdConnection->secret)
-    nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse);
+    CLOG_C_DEBUG(
+        &self->log,
+        "client joined game with participant connection %u stateID: %04X participant count: %zu secret: %" PRIX64,
+        createdConnection->id, self->game.authoritativeSteps.expectedWriteId - 1,
+        createdConnection->participantReferences.participantReferenceCount, createdConnection->secret)
+    nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse, &self->log);
 
     return 0;
 }

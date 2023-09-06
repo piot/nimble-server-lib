@@ -2,11 +2,11 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-#include <secure-random/secure_random.h>
 #include <clog/clog.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
+#include <secure-random/secure_random.h>
 
 void nimbleServerParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
                                             ImprintAllocator* connectionAllocator,
@@ -114,6 +114,10 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
         if (participantConnection->isUsed) {
             continue;
         }
+
+        CLOG_C_DEBUG(&self->log, "found free participant connection at #%zu. capacity before allocating: (%zu/%zu)", i,
+                     self->connectionCount, self->capacityCount)
+
         struct NimbleServerParticipant* createdParticipants[16];
         int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
                                                      createdParticipants);
@@ -135,9 +139,15 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
         participantConnection->participantReferences.participantReferenceCount = localParticipantCount;
 
         participantConnection->secret = secureRandomUInt64();
+
+        CLOG_C_DEBUG(&self->log, "participant connection is ready. All participants have joined")
+
         *outConnection = participantConnection;
+
         return 0;
     }
+
+    CLOG_C_DEBUG(&self->log, "out of participant connections. %zu/%zu", self->connectionCount, self->capacityCount)
 
     *outConnection = 0;
 

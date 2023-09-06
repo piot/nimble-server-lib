@@ -18,9 +18,12 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
                         NimbleServerParticipant** results)
 {
     if (self->participantCount + localParticipantCount > self->participantCapacity) {
-        CLOG_WARN("couldn't join, session is full")
+        CLOG_C_WARN(&self->log, "couldn't join, session is full capacity: %zu", self->participantCapacity)
         return NimbleServerErrSessionFull;
     }
+
+    CLOG_C_DEBUG(&self->log, "the %zu participant(s) can join, the room is at %zu/%zu", localParticipantCount, self->participantCount, self->participantCapacity)
+
     size_t joinIndex = 0;
 
     for (size_t i = 0; i < self->participantCapacity; ++i) {
@@ -30,16 +33,24 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
             participant->localIndex = joiner->localIndex;
             participant->isUsed = true;
             participant->id = ++self->lastUniqueId;
-            results[joinIndex] = participant;
-            joinIndex++;
+
+            CLOG_C_DEBUG(&self->log, "allocating participant %zu at index: %zu with unique id: %zu", joinIndex, i, participant->id)
+
+            results[joinIndex++] = participant;
+            self->participantCount++;
+
             if (joinIndex == localParticipantCount) {
+                 CLOG_C_DEBUG(&self->log, "all are allocated, so breaking out of loop. i:%zu, joinIndex:%zu, count:%zu", i, joinIndex, localParticipantCount)
                 break;
             }
+        } else {
+            CLOG_C_DEBUG(&self->log, "participant at %zu is already used. allocated %zu count", i, joinIndex)
         }
     }
 
     if (joinIndex != localParticipantCount) {
-        return -2;
+        CLOG_ERROR("internal error %zu vs %zu", joinIndex, localParticipantCount);
+        //return -2;
     }
 
     return 0;
@@ -49,10 +60,16 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
 /// @param self participants collection
 /// @param allocator allocator to pre-alloc the collection
 /// @param maxCount maximum number of participants to pre-alloc
-void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount)
+void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount, Clog* log)
 {
+    CLOG_ASSERT(maxCount > 0, "must allocate at least one participant")
+    self->log = *log;
+    self->log.constantPrefix = "server/participants";
     self->participantCapacity = maxCount;
     self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NimbleServerParticipant, maxCount);
     self->participantCount = 0;
     self->lastUniqueId = 0;
+
+    CLOG_C_DEBUG(&self->log, "allocating %zu server participants as capacity", maxCount)
+    CLOG_ASSERT(self->participants[0].isUsed == false, "CALLOC did not work")
 }

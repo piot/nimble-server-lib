@@ -17,13 +17,14 @@ typedef struct NimbleServerParticipants {
     size_t participantCapacity;
     size_t participantCount;
     uint8_t lastUniqueId;
+    Clog log;
 } NimbleServerParticipants;
 
 typedef struct NimbleServerParticipantJoinInfo {
     uint8_t localIndex;
 } NimbleServerParticipantJoinInfo;
 
-void nimbleServerParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount);
+void nimbleServerParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount, Clog* log);
 int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         struct NimbleServerParticipant** results);
 
