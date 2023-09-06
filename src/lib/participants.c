@@ -49,7 +49,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
     }
 
     if (joinIndex != localParticipantCount) {
-        CLOG_ERROR("internal error %zu vs %zu", joinIndex, localParticipantCount);
+        CLOG_ERROR("internal error %zu vs %zu", joinIndex, localParticipantCount)
         //return -2;
     }
 
