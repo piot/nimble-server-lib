@@ -25,7 +25,7 @@ void nimbleServerGameStateInit(NimbleServerGameState* self, ImprintAllocator* al
 /// @param log target log
 /// @return negative on error
 int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const uint8_t* gameState,
-                                 size_t gameStateOctetCount, Clog* log)
+                             size_t gameStateOctetCount, Clog* log)
 {
     (void) log;
 
@@ -54,3 +54,12 @@ int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const 
     return 1;
 }
 
+/// Copy game state
+/// @param state game state
+/// @param copyFrom application specific game state to copy from
+/// @param log target log
+/// @return negative on error
+int nimbleServerGameStateCopy(NimbleServerGameState* state, const NimbleServerGameState* copyFrom, Clog* log)
+{
+    return nimbleServerGameStateSet(state, copyFrom->stepId, copyFrom->state, copyFrom->octetCount, log);
+}

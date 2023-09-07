@@ -148,6 +148,11 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 {
     self->log = setup.log;
+
+    CLOG_ASSERT(setup.memory != 0, "must provide memory to server setup")
+    CLOG_ASSERT(setup.blobAllocator != 0, "must provide blobAllocator to server setup")
+
+
     self->multiTransport = setup.multiTransport;
     if (setup.maxConnectionCount > NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_C_ERROR(&self->log, "illegal number of connections. %zu but max %d is supported", setup.maxConnectionCount,
@@ -222,7 +227,7 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
     CLOG_C_DEBUG(&self->log, "connection %d connected", connectionIndex)
 
     transportConnection->isUsed = true;
-    transportConnectionInit(transportConnection, self->blobAllocator, self->log);
+    transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
 
     return 0;
 }

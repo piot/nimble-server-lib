@@ -11,6 +11,7 @@
 #include <flood/in_stream.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_step.h>
+#include <inttypes.h>
 
 static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundGame)
 {
@@ -19,10 +20,14 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundG
 
     if (authoritativeStepCount > maxCapacity) {
         size_t authoritativeToDrop = authoritativeStepCount - maxCapacity;
+        CLOG_C_VERBOSE(&foundGame->log, "discarding %zu old authoritative steps due to buffer getting full",
+                      authoritativeToDrop)
         int err = nbsStepsDiscardCount(&foundGame->authoritativeSteps, authoritativeToDrop);
         if (err < 0) {
             return err;
         }
+        CLOG_C_VERBOSE(&foundGame->log, "oldest step after discard is %04X with count %zu",
+                      foundGame->authoritativeSteps.expectedReadId, foundGame->authoritativeSteps.stepsCount)
     }
 
     return 0;

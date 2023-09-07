@@ -9,18 +9,20 @@
 /// @param self transport connection
 /// @param blobStreamAllocator allocator for the blob stream
 /// @param log target logging
-void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
+void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, size_t maxGameStateOctetSize,
                              Clog log)
 {
+    self->log = log;
+
     orderedDatagramOutLogicInit(&self->orderedDatagramOutLogic);
     orderedDatagramInLogicInit(&self->orderedDatagramInLogic);
+    CLOG_C_DEBUG(&self->log, "transport connection allocating for maxGameState: %zu", maxGameStateOctetSize)
+    nimbleServerGameStateInit(&self->gameState, &blobStreamAllocator->allocator, maxGameStateOctetSize);
 
     self->nextBlobStreamOutChannel = 127;
     self->blobStreamOutAllocator = blobStreamAllocator;
-    self->log = self->log;
     self->debugCounter = 0;
     self->isUsed = true;
-    self->log = log;
     self->noRangesToSendCounter = 0;
     self->phase = NbTransportConnectionPhaseIdle;
     self->blobStreamOutClientRequestId = 0;

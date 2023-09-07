@@ -19,13 +19,16 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
                             const NimbleServerGame* game, FldInStream* inStream,
                             FldOutStream* outStream)
 {
-    const NimbleServerGameState* latestState = &game->latestState;
-    if (latestState->octetCount == 0) {
+    const NimbleServerGameState* _latestState = &game->latestState;
+    if (_latestState->octetCount == 0) {
         CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u",
                     transportConnection->transportConnectionId)
         return -2;
     }
 
+    nimbleServerGameStateCopy(&transportConnection->gameState, _latestState, &transportConnection->log);
+
+    const NimbleServerGameState* latestState = &transportConnection->gameState;
 
     uint8_t downloadClientRequestId;
     fldInStreamReadUInt8(inStream, &downloadClientRequestId);

@@ -23,5 +23,6 @@ void nimbleServerGameStateInit(NimbleServerGameState* self, struct ImprintAlloca
                                size_t octetCount);
 int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const uint8_t* gameState,
                              size_t gameStateOctetCount, Clog* log);
+int nimbleServerGameStateCopy(NimbleServerGameState* state, const NimbleServerGameState* copyFrom, Clog* log);
 
 #endif

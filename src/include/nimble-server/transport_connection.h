@@ -48,9 +48,11 @@ typedef struct NimbleServerTransportConnection {
     bool useDebugStreams;
     uint8_t noRangesToSendCounter;
     NimbleServerTransportConnectionPhase phase;
+    NimbleServerGameState gameState;
 } NimbleServerTransportConnection;
 
-void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator, Clog log);
+void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
+                             size_t maxGameOctetSize, Clog log);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
 
 #endif
