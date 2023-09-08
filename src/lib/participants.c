@@ -18,11 +18,11 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
                         NimbleServerParticipant** results)
 {
     if (self->participantCount + localParticipantCount > self->participantCapacity) {
-        CLOG_C_WARN(&self->log, "couldn't join, session is full capacity: %zu", self->participantCapacity)
+        CLOG_C_WARN(&self->log, "couldn't join, game participants are at full capacity: %zu", self->participantCapacity)
         return NimbleServerErrSessionFull;
     }
 
-    CLOG_C_DEBUG(&self->log, "the %zu participant(s) can join, the room is at %zu/%zu", localParticipantCount, self->participantCount, self->participantCapacity)
+    CLOG_C_DEBUG(&self->log, "the %zu participant(s) can join, the game participant pool is at %zu/%zu", localParticipantCount, self->participantCount, self->participantCapacity)
 
     size_t joinIndex = 0;
 
@@ -44,7 +44,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
                 break;
             }
         } else {
-            CLOG_C_DEBUG(&self->log, "participant at %zu is already used. allocated %zu count", i, joinIndex)
+            CLOG_C_DEBUG(&self->log, "participant at %zu is already used. allocated %zu count so far", i, joinIndex)
         }
     }
 

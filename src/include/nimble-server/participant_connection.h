@@ -20,6 +20,7 @@ struct NimbleServerTransportConnection;
 typedef struct NimbleServerParticipantReferences {
     size_t participantReferenceCount;
     struct NimbleServerParticipant* participantReferences[NIMBLE_SERIALIZE_MAX_LOCAL_PLAYERS];
+    struct NimbleServerParticipants* gameParticipants;
 } NimbleServerParticipantReferences;
 
 typedef enum NimbleServerParticipantConnectionState {

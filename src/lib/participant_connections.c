@@ -92,6 +92,52 @@ nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipa
     return 0;
 }
 
+static NimbleServerParticipantConnection* findFreeConnectionButDoNotReserveYet(NimbleServerParticipantConnections* self)
+{
+    for (size_t i = 0; i < self->capacityCount; ++i) {
+        NimbleServerParticipantConnection* participantConnection = &self->connections[i];
+        if (participantConnection->isUsed) {
+            continue;
+        }
+        participantConnection->id = (uint32_t) i;
+        CLOG_C_DEBUG(&self->log,
+                     "found free participant connection to use at #%zu. capacity before allocating: (%zu/%zu)", i,
+                     self->connectionCount, self->capacityCount)
+
+        return participantConnection;
+    }
+
+    CLOG_C_NOTICE(&self->log, "out of participant connections from the pre-allocated pool")
+
+    return 0;
+}
+
+static void addParticipantConnection(NimbleServerParticipantConnections* self,
+                              NimbleServerParticipantConnection* participantConnection,
+                                          struct NimbleServerTransportConnection* transportConnection,
+                                          StepId latestAuthoritativeStepId,
+                                          NimbleServerParticipants* gameParticipants,
+                              struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
+{
+    nimbleServerParticipantConnectionInit(participantConnection, transportConnection, self->allocator,
+                                          latestAuthoritativeStepId, self->maxParticipantCountForConnection,
+                                          self->maxSingleParticipantStepOctetCount, self->log);
+    self->connectionCount++;
+    participantConnection->isUsed = true;
+
+    participantConnection->participantReferences.gameParticipants = gameParticipants;
+    for (size_t participantIndex = 0; participantIndex < localParticipantCount; ++participantIndex) {
+        participantConnection->participantReferences
+            .participantReferences[participantIndex] = createdParticipants[participantIndex];
+    }
+
+    participantConnection->participantReferences.participantReferenceCount = localParticipantCount;
+
+    participantConnection->secret = secureRandomUInt64();
+
+    CLOG_C_DEBUG(&participantConnection->log, "participant connection is ready. All participants have joined")
+}
+
 /// Creates a participant connection for the specified room.
 /// @note In this version there must be an existing game in the room.
 /// @param self participant connections
@@ -109,50 +155,38 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
                                              StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                              NimbleServerParticipantConnection** outConnection)
 {
-    for (size_t i = 0; i < self->capacityCount; ++i) {
-        NimbleServerParticipantConnection* participantConnection = &self->connections[i];
-        if (participantConnection->isUsed) {
-            continue;
-        }
-
-        CLOG_C_DEBUG(&self->log, "found free participant connection at #%zu. capacity before allocating: (%zu/%zu)", i,
-                     self->connectionCount, self->capacityCount)
-
-        struct NimbleServerParticipant* createdParticipants[16];
-        int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
-                                                     createdParticipants);
-        if (errorCode < 0) {
-            *outConnection = 0;
-            return errorCode;
-        }
-
-        participantConnection->id = (uint32_t) i;
-        nimbleServerParticipantConnectionInit(participantConnection, transportConnection, self->allocator,
-                                              latestAuthoritativeStepId, self->maxParticipantCountForConnection,
-                                              self->maxSingleParticipantStepOctetCount, self->log);
-        self->connectionCount++;
-        participantConnection->isUsed = true;
-        for (size_t participantIndex = 0; participantIndex < localParticipantCount; ++participantIndex) {
-            participantConnection->participantReferences
-                .participantReferences[participantIndex] = createdParticipants[participantIndex];
-        }
-        participantConnection->participantReferences.participantReferenceCount = localParticipantCount;
-
-        participantConnection->secret = secureRandomUInt64();
-
-        CLOG_C_DEBUG(&self->log, "participant connection is ready. All participants have joined")
-
-        *outConnection = participantConnection;
-
-        return 0;
+    NimbleServerParticipantConnection* participantConnection = findFreeConnectionButDoNotReserveYet(self);
+    if (!participantConnection) {
+        CLOG_C_NOTICE(&self->log, "could not join, because out of participant connection memory")
+        return -1;
     }
 
-    CLOG_C_DEBUG(&self->log, "out of participant connections. %zu/%zu", self->connectionCount, self->capacityCount)
+    struct NimbleServerParticipant* createdParticipants[16];
 
-    *outConnection = 0;
+    int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
+                                                 createdParticipants);
+    if (errorCode < 0) {
+        *outConnection = 0;
+        return errorCode;
+    }
 
-    return -1;
+    addParticipantConnection(self, participantConnection, transportConnection, latestAuthoritativeStepId, gameParticipants, createdParticipants, localParticipantCount);
+
+    *outConnection = participantConnection;
+
+    return 0;
 }
+
+/*
+
+CLOG_C_DEBUG(&self->log, "out of participant connections. %zu/%zu", self->connectionCount, self->capacityCount)
+
+*outConnection = 0;
+
+return -1;
+}
+
+*/
 
 /// Remove participant connection from participant connections collection
 /// @param self participant connections
@@ -161,6 +195,9 @@ void nimbleServerParticipantConnectionsRemove(NimbleServerParticipantConnections
                                               struct NimbleServerParticipantConnection* connection)
 {
     (void) self;
+
+    CLOG_ASSERT(connection->isUsed, "connection must be in use to be removed")
+
     CLOG_C_DEBUG(&self->log, "disconnecting connection %u forcedSteps:%zu impendingDisconnect:%zu", connection->id,
                  connection->forcedStepInRowCounter, connection->impedingDisconnectCounter)
 
