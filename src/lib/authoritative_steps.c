@@ -60,12 +60,10 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                     return (int) createdForcedStepOctetCount;
                 }
                 stepOctetCount = (size_t) createdForcedStepOctetCount;
-                connection->forcedStepInRowCounter++;
 
-                connection->providedStepsInARow = 0;
+                nimbleServerConnectionQualityAddedForcedSteps(&connection->quality, 1);
             } else {
-                connection->forcedStepInRowCounter = 0;
-                connection->providedStepsInARow++;
+                nimbleServerConnectionQualityProvidedUsableStep(&connection->quality);
             }
         } else {
             ssize_t createdForcedStepOctetCount = nimbleServerCreateForcedStep(connection, stepReadBuffer, 1024);
@@ -74,8 +72,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                 return (int) createdForcedStepOctetCount;
             }
             stepOctetCount = (size_t) createdForcedStepOctetCount;
-            connection->forcedStepInRowCounter++;
-            connection->providedStepsInARow = 0;
+            nimbleServerConnectionQualityAddedForcedSteps(&connection->quality, 1);
             CLOG_C_VERBOSE(&connection->log,
                            "no steps stored in connection %zu (%u). server is looking for %08X. inserting forced step",
                            i, connection->id, lookingFor)

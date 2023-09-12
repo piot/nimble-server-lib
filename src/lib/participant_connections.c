@@ -198,8 +198,7 @@ void nimbleServerParticipantConnectionsRemove(NimbleServerParticipantConnections
 
     CLOG_ASSERT(connection->isUsed, "connection must be in use to be removed")
 
-    CLOG_C_DEBUG(&self->log, "disconnecting connection %u forcedSteps:%zu impendingDisconnect:%zu", connection->id,
-                 connection->forcedStepInRowCounter, connection->impedingDisconnectCounter)
+    CLOG_C_DEBUG(&self->log, "disconnecting connection %u ", connection->id)
 
     CLOG_ASSERT(self->connectionCount != 0, "Connection count is wrong %zu", self->connectionCount)
 

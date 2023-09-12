@@ -10,6 +10,7 @@
 #include <imprint/tagged_allocator.h>
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/participants.h>
+#include <nimble-server/connection_quality.h>
 #include <nimble-steps/steps.h>
 #include <stats/stats.h>
 #include <stdbool.h>
@@ -40,13 +41,12 @@ typedef struct NimbleServerParticipantConnection {
 
     StatsInt incomingStepCountInBufferStats;
     struct NimbleServerTransportConnection* transportConnection;
-    size_t forcedStepInRowCounter;
-    size_t providedStepsInARow;
-    size_t impedingDisconnectCounter;
     size_t waitingForReconnectTimer;
     size_t waitingForReconnectMaxTimer;
     NimbleSerializeParticipantConnectionSecret secret;
-    bool hasAddedFirstAcceptedSteps;
+
+    NimbleServerConnectionQuality quality;
+
     Clog log;
 } NimbleServerParticipantConnection;
 

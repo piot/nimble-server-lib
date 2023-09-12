@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <clog/clog.h>
 
 struct NimbleServerParticipant;
 struct ImprintAllocator;

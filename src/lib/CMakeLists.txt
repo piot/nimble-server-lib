@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.16.3)
 add_library(nimble-server-lib STATIC 
   authoritative_steps.c
   check_for_disconnects.c
+  connection_quality.c
   forced_step.c
   game.c
   game_state.c
