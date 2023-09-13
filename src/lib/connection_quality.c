@@ -121,17 +121,21 @@ bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnection
     if (reason != NimbleServerConnectionQualityDisconnectReasonKeep) {
         self->impedingDisconnectCounter++;
         if (self->impedingDisconnectCounter > 120) {
+#if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
             CLOG_C_NOTICE(&self->log, "giving up on connection %zu, disconnecting %s", self->participantConnectionId,
                           nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
+#endif
             self->reason = reason;
             return true;
         }
 
         if ((self->impedingDisconnectCounter % 20) == 0) {
+#if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
             CLOG_C_NOTICE(&self->log, "quality is really bad for connection %zu, considering disconnecting %s",
                           self->participantConnectionId, nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
+#endif
         }
     } else {
         if (self->impedingDisconnectCounter > 0) {
