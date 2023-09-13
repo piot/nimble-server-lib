@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved.
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 #include <nimble-server/connection_quality.h>
 
 void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, size_t participantConnectionId, Clog log)
