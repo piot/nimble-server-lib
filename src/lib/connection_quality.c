@@ -110,7 +110,9 @@ const char* nimbleServerConnectionQualityDescribe(NimbleServerConnectionQuality*
     return buf;
 }
 
+#if defined CLOG_LOG_ENABLED
 #define BUF_SIZE (128)
+#endif
 
 /// checks if the connection has been decided to be disconnected
 /// @param self connection quality
