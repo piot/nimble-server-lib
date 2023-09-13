@@ -83,10 +83,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     }
 
     if (addedStepsCount > 0) {
-        if (!foundParticipantConnection->hasAddedFirstAcceptedSteps) {
-            foundParticipantConnection->hasAddedFirstAcceptedSteps = true;
-            foundParticipantConnection->forcedStepInRowCounter = 0;
-        }
+        nimbleServerConnectionQualityAddedStepsToBuffer(&foundParticipantConnection->quality, (size_t)addedStepsCount);
     }
 
     return addedStepsCount;
