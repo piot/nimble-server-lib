@@ -15,7 +15,6 @@ struct FldOutStream;
 
 int nimbleServerSendStepRanges(struct FldOutStream* outStream,
                                struct NimbleServerTransportConnection* transportConnection,
-                               struct NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask,
-                               uint16_t receivedTimeFromClient);
+                               struct NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask);
 
 #endif

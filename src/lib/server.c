@@ -54,7 +54,7 @@ static bool isAcceptableError(int err)
 int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
-    CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[2]), len)
+    //CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[5]), len)
 
     if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
@@ -63,6 +63,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     FldInStream inStream;
     fldInStreamInit(&inStream, data, len);
+    inStream.readDebugInfo = true;
 
     if (connectionIndex > 64) {
         CLOG_SOFT_ERROR("can only support up to 64 connections")
@@ -75,17 +76,17 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
         return -54;
     }
 
-    inStream.readDebugInfo = transportConnection->useDebugStreams;
-
     orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
+    uint16_t clientTime;
+    fldInStreamReadUInt16(&inStream, &clientTime);
 
     uint8_t cmd;
-
     fldInStreamReadUInt8(&inStream, &cmd);
+
 
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
-        return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut);
+        return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut, clientTime);
     }
 
 
@@ -93,9 +94,12 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     static uint8_t buf[UDP_MAX_SIZE];
     FldOutStream outStream;
     fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
-    outStream.writeDebugInfo = transportConnection->useDebugStreams;
+    outStream.writeDebugInfo = true; //transportConnection->useDebugStreams;
 
-    orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &outStream);
+    int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime);
+    if (err < 0) {
+        return err;
+    }
 
     int result;
     switch (cmd) {
@@ -131,7 +135,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
         CLOG_C_ERROR(&self->log, "not read everything from buffer %zu of %zu", inStream.pos, inStream.size)
     }
 
-    if (outStream.pos <= 2) {
+    if (outStream.pos <= 4) {
         CLOG_C_ERROR(&self->log, "no reply to send")
         // return 0;
     }

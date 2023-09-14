@@ -16,12 +16,9 @@
 /// @param foundGame the game to send steps from
 /// @param clientWaitingForStepId client is waiting for this StepId
 /// @param receiveMask receive status for steps that has been received prior to clientWaitingForStepId
-/// @param receivedTimeFromClient timestamp received from client. Server just sends this back so the client can figure
-/// out the latency.
 /// @return negative on error
 int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
-                               NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask,
-                               uint16_t receivedTimeFromClient)
+                               NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
 {
 #define MAX_RANGES_COUNT (3)
     const int maxStepsCount = 8;
@@ -98,7 +95,7 @@ int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportCon
     }
 
     nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
-                                       (int8_t) authoritativeBufferDelta, receivedTimeFromClient, &transportConnection->log);
+                                       (int8_t) authoritativeBufferDelta,  &transportConnection->log);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);

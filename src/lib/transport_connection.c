@@ -37,3 +37,10 @@ void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self
 {
     self->phase = NbTransportConnectionPhaseInitialStateDetermined;
 }
+
+int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, FldOutStream* outStream, uint16_t clientTime)
+{
+    orderedDatagramOutLogicPrepare(&self->orderedDatagramOutLogic, outStream);
+    fldOutStreamWriteMarker(outStream, 0xdd);
+    return fldOutStreamWriteUInt16(outStream, clientTime);
+}

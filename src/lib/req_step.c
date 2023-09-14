@@ -36,16 +36,15 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundG
 static int readIncomingStepsAndCreateAuthoritativeSteps(
     NimbleServerGame* foundGame, NimbleServerParticipantConnections* connections, FldInStream* inStream,
     NimbleServerTransportConnection* transportConnection, StatsIntPerSecond* authoritativeStepsPerSecondStat,
-    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask, uint16_t* receivedTimeFromClient)
+    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
 {
-
     int discardErr = discardAuthoritativeStepsIfBufferGettingFull(foundGame);
     if (discardErr < 0) {
         return discardErr;
     }
 
     int receivedCount = nimbleServerHandleIncomingSteps(
-        foundGame, inStream, transportConnection, outClientWaitingForStepId, outReceiveMask, receivedTimeFromClient);
+        foundGame, inStream, transportConnection, outClientWaitingForStepId, outReceiveMask);
     if (receivedCount < 0) {
         return receivedCount;
     }
@@ -78,11 +77,10 @@ int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportCo
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
-    uint16_t receivedTimeFromClient;
 
     int errorCode = readIncomingStepsAndCreateAuthoritativeSteps(
         foundGame, connections, inStream, transportConnection, authoritativeStepsPerSecondStat, &clientWaitingForStepId,
-        &receiveMask, &receivedTimeFromClient);
+        &receiveMask);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode)
         return errorCode;
@@ -90,6 +88,5 @@ int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportCo
 
     nimbleServerTransportConnectionUpdateStats(transportConnection, foundGame, clientWaitingForStepId);
 
-    return nimbleServerSendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask,
-                                      receivedTimeFromClient);
+    return nimbleServerSendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask);
 }

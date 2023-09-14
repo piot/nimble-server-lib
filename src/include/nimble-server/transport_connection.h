@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+struct FldOutStream;
+
 typedef enum NimbleServerTransportConnectionPhase {
     NbTransportConnectionPhaseIdle,
     NbTransportConnectionPhaseWaitingForValidConnect,
@@ -54,5 +56,6 @@ typedef struct NimbleServerTransportConnection {
 void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
                              size_t maxGameOctetSize, Clog log);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
+int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime);
 
 #endif

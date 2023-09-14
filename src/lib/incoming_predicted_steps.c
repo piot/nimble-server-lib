@@ -17,20 +17,17 @@
 /// @param transportConnection stream comes from this transport connection
 /// @param[out] outClientWaitingForStepId transport connection is waiting for this StepID
 /// @param[out] outReceiveMask transport connection reported this receive mask
-/// @param[out] receivedTimeFromClient latest local time on client
 /// @return negative on error
 int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* inStream,
                                     NimbleServerTransportConnection* transportConnection,
-                                    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask,
-                                    uint16_t* receivedTimeFromClient)
+                                    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
     (void) foundGame;
 
-    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask,
-                                                     receivedTimeFromClient);
+    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;

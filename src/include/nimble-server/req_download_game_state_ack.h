@@ -14,6 +14,6 @@ struct DatagramTransportOut;
 struct FldInStream;
 
 int nimbleServerReqDownloadGameStateAck(struct NimbleServerTransportConnection* transportConnection, struct FldInStream* inStream,
-                               struct DatagramTransportOut* transportOut);
+                               struct DatagramTransportOut* transportOut, uint16_t clientTime);
 
 #endif

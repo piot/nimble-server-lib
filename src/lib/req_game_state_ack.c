@@ -19,7 +19,7 @@
 /// @param transportOut the transport to send reply to
 /// @return negative on error
 int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
-                               DatagramTransportOut* transportOut)
+                               DatagramTransportOut* transportOut, uint16_t clientTime)
 {
     NimbleSerializeBlobStreamChannelId channelId;
     int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);
@@ -56,9 +56,9 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         // CLOG_DEBUG("sending state %08X (octet count :%zu)", options.stepId, options.gameStateOctetCount);
 
         fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
-        stream.writeDebugInfo = transportConnection->useDebugStreams;
+        stream.writeDebugInfo = true; //transportConnection->useDebugStreams;
 
-        orderedDatagramOutLogicPrepare(&transportConnection->orderedDatagramOutLogic, &stream);
+        transportConnectionPrepareHeader(transportConnection, &stream, clientTime);
 
         nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, &transportConnection->log);
         nimbleSerializeOutBlobStreamChannelId(&stream, channelId);
