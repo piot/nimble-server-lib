@@ -7,6 +7,7 @@
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
 #include <secure-random/secure_random.h>
+#include <nimble-server/errors.h>
 
 void nimbleServerParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
                                             ImprintAllocator* connectionAllocator,
@@ -158,7 +159,7 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
     NimbleServerParticipantConnection* participantConnection = findFreeConnectionButDoNotReserveYet(self);
     if (!participantConnection) {
         CLOG_C_NOTICE(&self->log, "could not join, because out of participant connection memory")
-        return -1;
+        return NimbleServerErrOutOfParticipantMemory;
     }
 
     struct NimbleServerParticipant* createdParticipants[16];

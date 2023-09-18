@@ -8,6 +8,8 @@
 const static int NimbleServerErrSerialize = -41;
 const static int NimbleServerErrSerializeVersion = -44;
 const static int NimbleServerErrSessionFull = -54;
+const static int NimbleServerErrDatagramFromDisconnectedConnection = -42;
+const static int NimbleServerErrOutOfParticipantMemory = -43;
 
 #endif
 

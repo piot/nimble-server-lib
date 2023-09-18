@@ -12,10 +12,10 @@
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/req_connect.h>
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
-#include <nimble-server/req_connect.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
 
@@ -40,7 +40,8 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 
 static bool isAcceptableError(int err)
 {
-    return err == NimbleServerErrSerialize || err == NimbleServerErrSessionFull;
+    return err == NimbleServerErrSerialize || err == NimbleServerErrSessionFull ||
+           err == NimbleServerErrDatagramFromDisconnectedConnection || err == NimbleServerErrOutOfParticipantMemory;
 }
 
 /// Handle an incoming request from a client identified by the connectionIndex
@@ -54,7 +55,7 @@ static bool isAcceptableError(int err)
 int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
-    //CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[5]), len)
+    // CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[5]), len)
 
     if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
         CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
@@ -83,18 +84,16 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     uint8_t cmd;
     fldInStreamReadUInt8(&inStream, &cmd);
 
-
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
         return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut, clientTime);
     }
 
-
 #define UDP_MAX_SIZE (1200)
     static uint8_t buf[UDP_MAX_SIZE];
     FldOutStream outStream;
     fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
-    outStream.writeDebugInfo = true; //transportConnection->useDebugStreams;
+    outStream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
     int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime);
     if (err < 0) {
@@ -103,7 +102,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     int result;
     switch (cmd) {
-       case NimbleSerializeCmdConnectRequest:
+        case NimbleSerializeCmdConnectRequest:
             result = nimbleServerReqConnect(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdGameStep:
@@ -114,8 +113,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
             result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nimbleServerReqDownloadGameState(transportConnection, self->pageAllocator, &self->game,
-                                                      &inStream, &outStream);
+            result = nimbleServerReqDownloadGameState(transportConnection, self->pageAllocator, &self->game, &inStream,
+                                                      &outStream);
             break;
         default:
             CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
@@ -155,7 +154,6 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 
     CLOG_ASSERT(setup.memory != 0, "must provide memory to server setup")
     CLOG_ASSERT(setup.blobAllocator != 0, "must provide blobAllocator to server setup")
-
 
     self->multiTransport = setup.multiTransport;
     if (setup.maxConnectionCount > NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {

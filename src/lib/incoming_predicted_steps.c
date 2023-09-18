@@ -4,12 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 #include "incoming_predicted_steps.h"
 #include <flood/in_stream.h>
+#include <inttypes.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/forced_step.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/pending_in_serialize.h>
-#include <inttypes.h>
 
 /// Read pending steps from an inStream and move over ready steps to the incoming step buffer
 /// @param foundGame game
@@ -36,7 +37,8 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outClientWaitingForStepId = clientWaitingForStepId;
     *outReceiveMask = receiveMask;
 
-    CLOG_C_VERBOSE(&transportConnection->log, "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
+    CLOG_C_VERBOSE(&transportConnection->log,
+                   "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
                    transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
 
     size_t stepsThatFollow;
@@ -54,7 +56,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
         CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %u that is disconnected",
                       foundParticipantConnection->id)
-        return -2;
+        return NimbleServerErrDatagramFromDisconnectedConnection;
     }
 
     CLOG_C_VERBOSE(&foundParticipantConnection->log,
@@ -80,7 +82,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     }
 
     if (addedStepsCount > 0) {
-        nimbleServerConnectionQualityAddedStepsToBuffer(&foundParticipantConnection->quality, (size_t)addedStepsCount);
+        nimbleServerConnectionQualityAddedStepsToBuffer(&foundParticipantConnection->quality, (size_t) addedStepsCount);
     }
 
     return addedStepsCount;
