@@ -20,7 +20,8 @@ add_library(nimble-server-lib STATIC
   send_authoritative_steps.c
   server.c
   transport_connection.c
-  transport_connection_stats.c)
+  transport_connection_stats.c
+  update_quality.c)
 
 include(Tornado.cmake)
 set_tornado(nimble-server-lib)

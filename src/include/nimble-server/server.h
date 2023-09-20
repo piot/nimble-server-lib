@@ -5,25 +5,25 @@
 #ifndef NIMBLE_SERVER_SERVER_H
 #define NIMBLE_SERVER_SERVER_H
 
-#include <clog/clog.h>
-#include <nimble-serialize/version.h>
-#include <nimble-server/game.h>
-#include <nimble-server/participant_connections.h>
-#include <ordered-datagram/in_logic.h>
-#include <ordered-datagram/out_logic.h>
-#include <stdarg.h>
-#include <stdint.h>
-
 #include <blob-stream/blob_stream_logic_in.h>
 #include <blob-stream/blob_stream_logic_out.h>
+#include <clog/clog.h>
 #include <datagram-transport/multi.h>
 #include <imprint/tagged_allocator.h>
 #include <nimble-serialize/serialize.h>
+#include <nimble-serialize/version.h>
+#include <nimble-server/game.h>
+#include <nimble-server/participant_connections.h>
 #include <nimble-server/participants.h>
 #include <nimble-server/transport_connection.h>
+#include <nimble-server/update_quality.h>
 #include <nimble-steps/steps.h>
+#include <ordered-datagram/in_logic.h>
+#include <ordered-datagram/out_logic.h>
 #include <stats/stats_per_second.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct ImprintAllocatorWithFree;
 struct ImprintAllocator;
@@ -45,6 +45,7 @@ typedef struct NimbleServerSetup {
     size_t zeroInputOctetCount;
     DatagramTransportMulti multiTransport;
     MonotonicTimeMs now;
+    size_t targetTickTimeMs;
     Clog log;
 } NimbleServerSetup;
 
@@ -64,6 +65,7 @@ typedef struct NimbleServer {
     NimbleServerSetup setup;
     uint16_t statsCounter;
     StatsIntPerSecond authoritativeStepsPerSecondStat;
+    NimbleServerUpdateQuality updateQuality;
 } NimbleServer;
 
 typedef struct NimbleServerResponse {

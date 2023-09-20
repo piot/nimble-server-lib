@@ -26,6 +26,11 @@
 /// @return negative one error
 int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 {
+    int qualityError = nimbleServerUpdateQualityTick(&self->updateQuality);
+    if (qualityError < 0) {
+        return qualityError;
+    }
+
     nimbleServerReadFromMultiTransport(self);
 
     statsIntPerSecondUpdate(&self->authoritativeStepsPerSecondStat, now);
@@ -182,6 +187,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->pageAllocator = setup.memory;
     self->blobAllocator = setup.blobAllocator;
     self->applicationVersion = setup.applicationVersion;
+    setup.targetTickTimeMs = 16; // TODO: remove this later
     self->setup = setup;
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
@@ -190,6 +196,8 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     }
 
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, setup.now, 1000);
+
+    nimbleServerUpdateQualityInit(&self->updateQuality, self->setup.targetTickTimeMs);
 
     return 0;
 }
@@ -210,6 +218,7 @@ int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, siz
     nbsStepsReInit(&self->game.authoritativeSteps, stepId);
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, now, 1000);
     nimbleServerParticipantConnectionsReset(&self->connections);
+    nimbleServerUpdateQualityReInit(&self->updateQuality);
     self->statsCounter = 0;
     return 0;
 }
@@ -315,10 +324,15 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 
     DatagramTransportOut responseTransport;
 
-    for (size_t i = 0; i < 32; ++i) {
+    const int maximumNumberOfConnections = 64;
+
+    for (size_t i = 0; i < maximumNumberOfConnections; ++i) {
         ssize_t octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId,
                                                                       datagram, 1200);
         if (octetCountReceived == 0) {
+            if (i > 10) {
+                CLOG_C_NOTICE(&self->log, "high number of datagrams in one tick: %zu", i)
+            }
             return 0;
         }
 
