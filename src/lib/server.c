@@ -167,10 +167,9 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
         // return -1;
     }
 
-    const size_t maximumSingleStepCountAllowed = 24;
-    if (setup.maxSingleParticipantStepOctetCount > maximumSingleStepCountAllowed) {
+    if (setup.maxSingleParticipantStepOctetCount > NimbleStepMaxSingleStepOctetCount) {
         CLOG_C_ERROR(&self->log, "nimbleServerInit. Single step octet count is not allowed %zu of %zu",
-                     setup.maxSingleParticipantStepOctetCount, maximumSingleStepCountAllowed)
+                     setup.maxSingleParticipantStepOctetCount, NimbleStepMaxSingleStepOctetCount)
         // return -1;
     }
 
