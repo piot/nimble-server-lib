@@ -3,15 +3,17 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <blob-stream/blob_stream_logic_out.h>
+#include <datagram-transport/transport.h>
+#include <datagram-transport/types.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/serialize.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/server.h>
-#include <datagram-transport/transport.h>
 
 /// Handles a download state progress ack from the client
 /// @param transportConnection transportConnection
@@ -19,7 +21,7 @@
 /// @param transportOut the transport to send reply to
 /// @return negative on error
 int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
-                               DatagramTransportOut* transportOut, uint16_t clientTime)
+                                        DatagramTransportOut* transportOut, uint16_t clientTime)
 {
     NimbleSerializeBlobStreamChannelId channelId;
     int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);
@@ -28,7 +30,8 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         return errorCode;
     }
 
-    // CLOG_INFO("nimbleServerReqJoinGameStateAck %04X vs %04X", channelId, foundParticipantConnection->blobStreamOutChannel)
+    // CLOG_INFO("nimbleServerReqJoinGameStateAck %04X vs %04X", channelId,
+    // foundParticipantConnection->blobStreamOutChannel)
 
     // if (channelId != foundParticipantConnection->blobStreamOutChannel) {
     //  CLOG_SOFT_ERROR("we have ack for wrong channel %04X vs %04X", channelId,
@@ -56,7 +59,7 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         // CLOG_DEBUG("sending state %08X (octet count :%zu)", options.stepId, options.gameStateOctetCount);
 
         fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
-        stream.writeDebugInfo = true; //transportConnection->useDebugStreams;
+        stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
         transportConnectionPrepareHeader(transportConnection, &stream, clientTime);
 
@@ -64,6 +67,15 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         nimbleSerializeOutBlobStreamChannelId(&stream, channelId);
         blobStreamLogicOutSendEntry(&stream, entry);
         orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
+
+        if (stream.pos > datagramTransportMaxSize) {
+            CLOG_C_SOFT_ERROR(
+                &transportConnection->log,
+                "trying to send game state part datagram that has too many octets: %zu out of %zu. Discarding it",
+                stream.pos, datagramTransportMaxSize)
+            return NimbleServerErrSerialize;
+        }
+
         transportOut->send(transportOut->self, stream.octets, stream.pos);
     }
 

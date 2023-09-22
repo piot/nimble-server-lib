@@ -18,6 +18,7 @@
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
+#include <datagram-transport/types.h>
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
@@ -146,6 +147,11 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
 
+    if (outStream.pos > datagramTransportMaxSize) {
+        CLOG_C_SOFT_ERROR(&self->log, "trying to send datagram that has too many octets: %zu out of %zu. Discarding it", outStream.pos, datagramTransportMaxSize)
+        return NimbleServerErrSerialize;
+    }
+
     return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
 }
 
@@ -267,7 +273,7 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
     return 0;
 }
 
-const static size_t NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 80;
+const static size_t NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 10;
 
 /// Indicates if a serialized game state must be provided this tick
 /// @param self server
