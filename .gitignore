@@ -14,3 +14,4 @@ html/
 latex/
 src/examples/nimble_server
 src/temp.zip
+src/lib/CTestTestfile.cmake
