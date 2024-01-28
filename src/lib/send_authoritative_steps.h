@@ -13,7 +13,7 @@ struct NimbleServerGame;
 struct NimbleServerTransportConnection;
 struct FldOutStream;
 
-int nimbleServerSendStepRanges(struct FldOutStream* outStream,
+ssize_t nimbleServerSendStepRanges(struct FldOutStream* outStream,
                                struct NimbleServerTransportConnection* transportConnection,
                                struct NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask);
 

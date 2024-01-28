@@ -16,8 +16,8 @@
 /// @param foundGame the game to send steps from
 /// @param clientWaitingForStepId client is waiting for this StepId
 /// @param receiveMask receive status for steps that has been received prior to clientWaitingForStepId
-/// @return negative on error
-int nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
+/// @return negative on error, otherwise number of ranges sent
+ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
                                NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
 {
 #define MAX_RANGES_COUNT (3)

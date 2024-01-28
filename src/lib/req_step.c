@@ -88,5 +88,5 @@ int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportCo
 
     nimbleServerTransportConnectionUpdateStats(transportConnection, foundGame, clientWaitingForStepId);
 
-    return nimbleServerSendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask);
+    return (int)nimbleServerSendStepRanges(outStream, transportConnection, foundGame, clientWaitingForStepId, receiveMask);
 }

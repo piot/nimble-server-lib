@@ -8,8 +8,6 @@
 #include <nimble-serialize/server_in.h>
 #include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/game.h>
-#include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>

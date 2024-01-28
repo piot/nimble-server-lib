@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
 #include <datagram-transport/transport.h>
+#include <datagram-transport/types.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
@@ -18,7 +19,6 @@
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
-#include <datagram-transport/types.h>
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
@@ -119,8 +119,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
             result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nimbleServerReqDownloadGameState(transportConnection, self->pageAllocator, &self->game, &inStream,
-                                                      &outStream);
+            result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, &outStream);
             break;
         default:
             CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
@@ -148,7 +147,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
 
     if (outStream.pos > datagramTransportMaxSize) {
-        CLOG_C_SOFT_ERROR(&self->log, "trying to send datagram that has too many octets: %zu out of %zu. Discarding it", outStream.pos, datagramTransportMaxSize)
+        CLOG_C_SOFT_ERROR(&self->log, "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
+                          outStream.pos, datagramTransportMaxSize)
         return NimbleServerErrSerialize;
     }
 
@@ -192,6 +192,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->pageAllocator = setup.memory;
     self->blobAllocator = setup.blobAllocator;
     self->applicationVersion = setup.applicationVersion;
+    self->callbackObject = setup.callbackObject;
     setup.targetTickTimeMs = 16; // TODO: remove this later
     self->setup = setup;
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
@@ -210,15 +211,12 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 /// Reinitialize (reuse the memory) and set a new game state.
 /// The gameState must be present for the first client that connects to the game.
 /// @param self server
-/// @param gameState game state to reinitialize with
-/// @param gameStateOctetCount maximum of 64K supported
 /// @return negative on error
-int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
+int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
                                MonotonicTimeMs now)
 {
     nimbleServerGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
-                         self->setup.maxGameStateOctetCount, self->setup.maxParticipantCount, self->log);
-    nimbleServerGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount, &self->log);
+                         self->setup.maxParticipantCount, self->log);
 
     nbsStepsReInit(&self->game.authoritativeSteps, stepId);
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, now, 1000);
@@ -271,30 +269,6 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
     transportConnection->orderedDatagramInLogic.hasReceivedInitialDatagram = false;
 
     return 0;
-}
-
-const static size_t NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS = 10;
-
-/// Indicates if a serialized game state must be provided this tick
-/// @param self server
-/// @return true if game state must be provided
-bool nimbleServerMustProvideGameState(const NimbleServer* self)
-{
-    int deltaTickCountSinceLastGameState = (int) self->game.authoritativeSteps.expectedWriteId -
-                                           (int) self->game.latestState.stepId;
-    return deltaTickCountSinceLastGameState > (int) NIMBLE_SERVER_REASONABLE_NUMBER_OF_STEPS_TO_CATCHUP_FOR_JOINERS;
-}
-
-/// Sets the game state
-/// Should only be called if nimbleServerMustProvideGameState() returns true.
-/// @param self server
-/// @param gameState game state to set
-/// @param gameStateOctetCount number of octets in gameState
-/// @param stepId stepID for the game state
-void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId)
-{
-    CLOG_C_DEBUG(&self->log, "game state was set locally for stepId %08X (%zu octetCount)", stepId, gameStateOctetCount)
-    nimbleServerGameSetGameState(&self->game, stepId, gameState, gameStateOctetCount, &self->log);
 }
 
 /// Resets the server

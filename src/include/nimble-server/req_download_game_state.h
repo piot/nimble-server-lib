@@ -5,7 +5,7 @@
 #ifndef NIMBLE_SERVER_REQ_DOWNLOAD_GAME_STATE_H
 #define NIMBLE_SERVER_REQ_DOWNLOAD_GAME_STATE_H
 
-#include <nimble-serialize/version.h>
+#include "server.h"
 
 struct NimbleServerTransportConnection;
 struct ImprintAllocator;
@@ -13,8 +13,7 @@ struct NimbleServerGame;
 struct FldOutStream;
 struct FldInStream;
 
-int nimbleServerReqDownloadGameState(struct NimbleServerTransportConnection* transportConnection, struct ImprintAllocator* pageAllocator,
-                            const struct NimbleServerGame* game,
-                            struct FldInStream* inStream, struct FldOutStream* outStream);
+int nimbleServerReqDownloadGameState(NimbleServer* self, struct NimbleServerTransportConnection* transportConnection,
+                                     struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

@@ -10,23 +10,18 @@
 
 /// Handles a request from the client to download the latest game state.
 /// @param transportConnection transport connection that request to download the latest game state
-/// @param pageAllocator page allocator
-/// @param game game that the connection wants to download state from
 /// @param inStream stream to read the request from
 /// @param outStream out stream to write the response to
 /// @return negative on error
-int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportConnection, ImprintAllocator* pageAllocator,
-                            const NimbleServerGame* game, FldInStream* inStream,
-                            FldOutStream* outStream)
+int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
+                                     FldInStream* inStream, FldOutStream* outStream)
 {
-    const NimbleServerGameState* _latestState = &game->latestState;
-    if (_latestState->octetCount == 0) {
-        CLOG_NOTICE("Can not join room, game octet count in state is zero in room: %u",
-                    transportConnection->transportConnectionId)
-        return -2;
-    }
+    NimbleServerSerializedGameState serializedGameState;
 
-    nimbleServerGameStateCopy(&transportConnection->gameState, _latestState, &transportConnection->log);
+    self->callbackObject.vtbl->authoritativeStateSerializeFn(self->callbackObject.self, &serializedGameState);
+
+    nimbleServerGameStateSet(&transportConnection->gameState, serializedGameState.stepId, serializedGameState.gameState,
+                             serializedGameState.gameStateOctetCount, &transportConnection->log);
 
     const NimbleServerGameState* latestState = &transportConnection->gameState;
 
@@ -39,7 +34,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
     outGameState.gameState = latestState->state;
 
     if (transportConnection->blobStreamOutClientRequestId != downloadClientRequestId) {
-        blobStreamOutInit(&transportConnection->blobStreamOut, pageAllocator,
+        blobStreamOutInit(&transportConnection->blobStreamOut, self->pageAllocator,
                           transportConnection->blobStreamOutAllocator, outGameState.gameState,
                           outGameState.gameStateOctetCount, BLOB_STREAM_CHUNK_SIZE, transportConnection->log);
         blobStreamLogicOutInit(&transportConnection->blobStreamLogicOut, &transportConnection->blobStreamOut);
@@ -61,7 +56,7 @@ int nimbleServerReqDownloadGameState(NimbleServerTransportConnection* transportC
             transportConnection->blobStreamOutChannel, outGameState.gameStateOctetCount)
     }
 
-    return nimbleSerializeServerOutGameStateResponse(outStream, outGameState,
-                                                     transportConnection->blobStreamOutClientRequestId,
-                                                     transportConnection->blobStreamOutChannel, &transportConnection->log);
+    return nimbleSerializeServerOutGameStateResponse(
+        outStream, outGameState, transportConnection->blobStreamOutClientRequestId,
+        transportConnection->blobStreamOutChannel, &transportConnection->log);
 }

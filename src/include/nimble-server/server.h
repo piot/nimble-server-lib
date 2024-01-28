@@ -5,23 +5,16 @@
 #ifndef NIMBLE_SERVER_SERVER_H
 #define NIMBLE_SERVER_SERVER_H
 
-#include <blob-stream/blob_stream_logic_in.h>
-#include <blob-stream/blob_stream_logic_out.h>
 #include <clog/clog.h>
 #include <datagram-transport/multi.h>
-#include <imprint/tagged_allocator.h>
-#include <nimble-serialize/serialize.h>
 #include <nimble-serialize/version.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant_connections.h>
-#include <nimble-server/participants.h>
+#include <nimble-server/serialized_game_state.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-server/update_quality.h>
 #include <nimble-steps/steps.h>
-#include <ordered-datagram/in_logic.h>
-#include <ordered-datagram/out_logic.h>
 #include <stats/stats_per_second.h>
-#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -30,6 +23,17 @@ struct ImprintAllocator;
 struct NimbleServerParticipant;
 
 #define NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS 64
+
+typedef void (*NimbleServerSerializeStateFn)(void* self, NimbleServerSerializedGameState* state);
+
+typedef struct NimbleServerCallbackObjectVtbl {
+    NimbleServerSerializeStateFn authoritativeStateSerializeFn;
+} NimbleServerCallbackObjectVtbl;
+
+typedef struct NimbleServerCallbackObject {
+    NimbleServerCallbackObjectVtbl* vtbl;
+    void* self;
+} NimbleServerCallbackObject;
 
 typedef struct NimbleServerSetup {
     NimbleSerializeVersion applicationVersion;
@@ -41,8 +45,7 @@ typedef struct NimbleServerSetup {
     size_t maxParticipantCountForEachConnection;
     size_t maxWaitingForReconnectTicks;
     size_t maxGameStateOctetCount;
-    const uint8_t* zeroInputOctets;
-    size_t zeroInputOctetCount;
+    NimbleServerCallbackObject callbackObject;
     DatagramTransportMulti multiTransport;
     MonotonicTimeMs now;
     size_t targetTickTimeMs;
@@ -66,6 +69,7 @@ typedef struct NimbleServer {
     uint16_t statsCounter;
     StatsIntPerSecond authoritativeStepsPerSecondStat;
     NimbleServerUpdateQuality updateQuality;
+    NimbleServerCallbackObject callbackObject;
 } NimbleServer;
 
 typedef struct NimbleServerResponse {
@@ -73,7 +77,7 @@ typedef struct NimbleServerResponse {
 } NimbleServerResponse;
 
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup);
-int nimbleServerReInitWithGame(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId,
+int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
                                MonotonicTimeMs now);
 void nimbleServerReset(NimbleServer* self);
 int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,

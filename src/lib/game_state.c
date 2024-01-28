@@ -17,7 +17,7 @@ void nimbleServerGameStateInit(NimbleServerGameState* self, ImprintAllocator* al
     self->octetCount = 0;
 }
 
-/// Should be set at given intervals to ensure the possibility of late-joining.
+/// Copies a serialized game state
 /// @param state game state
 /// @param stepId stepID for the received game state
 /// @param gameState application specific game state
@@ -49,7 +49,7 @@ int nimbleServerGameStateSet(NimbleServerGameState* state, StepId stepId, const 
     state->octetCount = gameStateOctetCount;
     state->stepId = stepId;
 
-    CLOG_C_DEBUG(log, "Server now has a new state for stepId:%08X and octetCount:%zu", stepId, gameStateOctetCount)
+    CLOG_C_DEBUG(log, "A GameState set to stepId:%08X and octetCount:%zu", stepId, gameStateOctetCount)
 
     return 1;
 }

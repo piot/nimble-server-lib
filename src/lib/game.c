@@ -11,19 +11,16 @@
 /// @param self game
 /// @param allocator allocator
 /// @param maxSingleParticipantStepOctetCount maximum octet count for a single participant
-/// @param maxGameStateOctetSize maximum application specific complete game state
 /// @param maxParticipantCount maximum number of participants in a game
 /// @param log target log
 void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
-                          size_t maxSingleParticipantStepOctetCount, size_t maxGameStateOctetSize,
-                          size_t maxParticipantCount, Clog log)
+                          size_t maxSingleParticipantStepOctetCount, size_t maxParticipantCount, Clog log)
 {
     self->log = log;
     size_t combinedStepOctetCount = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCount,
                                                                               maxSingleParticipantStepOctetCount);
     nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
     nbsStepsReInit(&self->authoritativeSteps, 0);
-    nimbleServerGameStateInit(&self->latestState, allocator, maxGameStateOctetSize);
     nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount, &self->log);
 }
 
@@ -49,10 +46,3 @@ static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerParti
     CLOG_C_INFO(&game->log, "Authoritative: -----")
 }
 #endif
-
-
-int nimbleServerGameSetGameState(NimbleServerGame* game, StepId stepId, const uint8_t* gameState,
-                                 size_t gameStateOctetCount, Clog* log)
-{
-    return nimbleServerGameStateSet(&game->latestState, stepId, gameState, gameStateOctetCount, log);
-}
