@@ -50,7 +50,7 @@ int nimbleServerUpdateQualityTick(NimbleServerUpdateQuality* self)
         }
     }
 
-    const size_t FailedTickThreshold = 30;
+    const size_t FailedTickThreshold = 60;
     const size_t AverageThreshold = 50;
 
     if (self->deltaTickTimeFailedInARow > FailedTickThreshold) {

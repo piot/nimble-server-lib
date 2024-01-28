@@ -29,6 +29,7 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
 {
     int qualityError = nimbleServerUpdateQualityTick(&self->updateQuality);
     if (qualityError < 0) {
+        CLOG_C_SOFT_ERROR(&self->log, "quality error %d", qualityError)
         return qualityError;
     }
 
@@ -193,7 +194,6 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->blobAllocator = setup.blobAllocator;
     self->applicationVersion = setup.applicationVersion;
     self->callbackObject = setup.callbackObject;
-    setup.targetTickTimeMs = 16; // TODO: remove this later
     self->setup = setup;
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
@@ -297,7 +297,7 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
     uint8_t datagram[1200];
-
+    CLOG_C_VERBOSE(&self->log, "read all from transport")
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
 
