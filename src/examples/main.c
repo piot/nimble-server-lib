@@ -71,9 +71,6 @@ int main(int argc, char* argv[])
     setup.blobAllocator = &memory.slabAllocator.info;
     setup.log = serverLog;
     setup.maxConnectionCount = 8;
-    setup.maxGameStateOctetCount = 120;
-    setup.zeroInputOctets = 0;
-    setup.zeroInputOctetCount = 0;
     setup.maxParticipantCount = 8;
     setup.maxParticipantCountForEachConnection = 2;
     setup.maxSingleParticipantStepOctetCount = 8;
