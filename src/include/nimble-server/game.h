@@ -8,6 +8,7 @@
 #include <nimble-server/game_state.h>
 #include <nimble-server/participant_connections.h>
 #include <nimble-steps/steps.h>
+#include <stdbool.h>
 
 struct ImprintAllocator;
 
@@ -15,6 +16,7 @@ struct ImprintAllocator;
 typedef struct NimbleServerGame {
     NbsSteps authoritativeSteps;
     NimbleServerParticipants participants;
+    bool debugIsFrozen;
     Clog log;
 } NimbleServerGame;
 

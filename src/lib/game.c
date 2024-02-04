@@ -17,6 +17,7 @@ void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
                           size_t maxSingleParticipantStepOctetCount, size_t maxParticipantCount, Clog log)
 {
     self->log = log;
+    self->debugIsFrozen = false;
     size_t combinedStepOctetCount = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCount,
                                                                               maxSingleParticipantStepOctetCount);
     nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
