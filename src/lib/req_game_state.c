@@ -35,7 +35,7 @@ int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportCo
 
             self->callbackObject.vtbl->authoritativeStateSerializeFn(self->callbackObject.self, &serializedGameState);
 
-            CLOG_C_INFO(&self->log, "download game state request stepId:%04X octetSize:%zu, hash:%08" PRIX64,
+            CLOG_C_VERBOSE(&self->log, "download game state request stepId:%04X octetSize:%zu, hash:%08" PRIX64,
                         serializedGameState.stepId, serializedGameState.gameStateOctetCount, serializedGameState.hash)
 
             nimbleServerGameStateSet(&transportConnection->gameState, serializedGameState.stepId,
