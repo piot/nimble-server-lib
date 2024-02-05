@@ -13,6 +13,7 @@ typedef struct NimbleServerSerializedGameState {
     const uint8_t* gameState;
     size_t gameStateOctetCount;
     StepId stepId;
+    uint64_t hash;
 } NimbleServerSerializedGameState;
 
 #endif
