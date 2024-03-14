@@ -131,9 +131,9 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
         if (!isAcceptableError(result)) {
             CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
             return result;
-        } else {
-            CLOG_C_NOTICE(&self->log, "accepting error %d", result)
         }
+        CLOG_C_NOTICE(&self->log, "accepting error %d", result)
+        return result;
     }
 
     if (inStream.pos != inStream.size) {
@@ -212,8 +212,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 /// The gameState must be present for the first client that connects to the game.
 /// @param self server
 /// @return negative on error
-int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
-                               MonotonicTimeMs now)
+int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId, MonotonicTimeMs now)
 {
     nimbleServerGameInit(&self->game, self->pageAllocator, self->setup.maxSingleParticipantStepOctetCount,
                          self->setup.maxParticipantCount, self->log);
