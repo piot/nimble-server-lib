@@ -6,7 +6,6 @@
 #define NIMBLE_SERVER_GAME_PARTICIPANT_H
 
 #include <blob-stream/blob_stream_logic_in.h>
-#include <blob-stream/blob_stream_logic_out.h>
 #include <imprint/tagged_allocator.h>
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/participants.h>
@@ -46,7 +45,7 @@ typedef struct NimbleServerParticipantConnection {
     NimbleSerializeParticipantConnectionSecret secret;
 
     NimbleServerConnectionQuality quality;
-
+    uint32_t warningCount;
     Clog log;
 } NimbleServerParticipantConnection;
 

@@ -11,7 +11,6 @@
 #include <nimble-serialize/debug.h>
 #include <nimble-server/errors.h>
 #include <nimble-server/game.h>
-#include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/req_download_game_state.h>
@@ -45,7 +44,13 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
     return 0;
 }
 
-static bool isAcceptableError(int err)
+/// Determines whether a server error is considered an external error.
+/// This function assesses if a given error code matches a predefined set of error conditions classified
+/// as external errors. External errors are those that arise from circumstances beyond the direct control,
+/// such as serialization issues, sessions being full, receipt of datagrams from disconnected connections, etc
+/// @param err The error code to evaluate.
+/// @return true if the error is classified as an external error; false otherwise.
+bool nimbleServerIsErrorExternal(int err)
 {
     return err == NimbleServerErrSerialize || err == NimbleServerErrSessionFull ||
            err == NimbleServerErrDatagramFromDisconnectedConnection || err == NimbleServerErrOutOfParticipantMemory;
@@ -128,11 +133,11 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
     }
 
     if (result < 0) {
-        if (!isAcceptableError(result)) {
+        if (!nimbleServerIsErrorExternal(result)) {
             CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
             return result;
         }
-        CLOG_C_NOTICE(&self->log, "accepting error %d", result)
+        // CLOG_C_NOTICE(&self->log, "accepting error %d", result)
         return result;
     }
 
@@ -338,7 +343,9 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
         int errorCode = nimbleServerFeed(self, (uint8_t) connectionId, datagram, (size_t) octetCountReceived,
                                          &response);
         if (errorCode < 0) {
-            CLOG_C_SOFT_ERROR(&self->log, "error on feed %d", errorCode)
+            if (!nimbleServerIsErrorExternal(errorCode)) {
+                CLOG_C_SOFT_ERROR(&self->log, "error on feed %d", errorCode)
+            }
             return errorCode;
         }
     }

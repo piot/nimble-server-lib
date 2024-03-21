@@ -23,6 +23,19 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
                                     NimbleServerTransportConnection* transportConnection,
                                     StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
 {
+    NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+    if (foundParticipantConnection == 0) {
+        return NimbleServerErrSerialize;
+    }
+    if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
+        foundParticipantConnection->warningCount++;
+        if (foundParticipantConnection->warningCount % 60 == 0) {
+            CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %u that is disconnected",
+                          foundParticipantConnection->id)
+        }
+        return NimbleServerErrDatagramFromDisconnectedConnection;
+    }
+
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
@@ -47,16 +60,6 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize steps")
         return errorCode;
-    }
-
-    NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
-    if (foundParticipantConnection == 0) {
-        return 0;
-    }
-    if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
-        CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %u that is disconnected",
-                      foundParticipantConnection->id)
-        return NimbleServerErrDatagramFromDisconnectedConnection;
     }
 
     CLOG_C_VERBOSE(&foundParticipantConnection->log,

@@ -30,6 +30,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectMaxTimer = 62 * 20;
     self->isUsed = false;
+    self->warningCount = 0;
     nimbleServerConnectionQualityInit(&self->quality, self->id, log);
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }

@@ -88,5 +88,6 @@ bool nimbleServerMustProvideGameState(const NimbleServer* self);
 void nimbleServerSetGameState(NimbleServer* self, const uint8_t* gameState, size_t gameStateOctetCount, StepId stepId);
 int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex);
 int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex);
+bool nimbleServerIsErrorExternal(int err);
 
 #endif
