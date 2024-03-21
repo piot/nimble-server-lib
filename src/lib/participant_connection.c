@@ -37,10 +37,11 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     self->quality.log.config = log.config;
     tc_snprintf(self->quality.debugPrefix, sizeof(self->quality.debugPrefix), "%s/quality", self->log.constantPrefix);
     self->quality.log.constantPrefix = self->quality.debugPrefix;
-    nimbleServerConnectionQualityInit(&self->quality, self->id, self->quality.log);
+    nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
 
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
+
 
 /// Resets the participant connection
 /// @param self participant connection
@@ -48,6 +49,8 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
 {
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
+    self->waitingForReconnectTimer = 0;
+    self->warningCount = 0;
 }
 
 /// Reinitialize the participant connection
@@ -58,7 +61,6 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
                                              NimbleServerTransportConnection* transportConnection,
                                              StepId currentAuthoritativeStepId)
 {
-
     self->state = NimbleServerParticipantConnectionStateNormal;
     nimbleServerConnectionQualityReInit(&self->quality);
 
@@ -66,6 +68,17 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
     // Expect that the client will add steps for the next authoritative step
     nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
     self->transportConnection = transportConnection;
+    self->waitingForReconnectTimer = 0;
+    self->warningCount = 0;
+}
+
+void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* self,
+                                             NimbleServerTransportConnection* transportConnection,
+                                             StepId currentAuthoritativeStepId)
+{
+    CLOG_C_DEBUG(&self->log, "rejoined from transport connection %hhu at step %08X",
+                 transportConnection->transportConnectionId, currentAuthoritativeStepId)
+    nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
 void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self)
@@ -122,16 +135,7 @@ bool nimbleServerParticipantConnectionUpdate(NimbleServerParticipantConnection* 
     return true;
 }
 
-void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* self,
-                                             NimbleServerTransportConnection* transportConnection,
-                                             StepId currentAuthoritativeStepId)
-{
-    CLOG_C_DEBUG(&self->log, "rejoined from transport connection %hhu at step %08X",
-                 transportConnection->transportConnectionId, currentAuthoritativeStepId)
-    nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
-    self->state = NimbleServerParticipantConnectionStateNormal;
-    self->waitingForReconnectTimer = 0;
-}
+
 
 /// Checks if a participantId is in the participant connection
 /// @param self participant connection to check

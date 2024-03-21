@@ -21,13 +21,12 @@ typedef struct NimbleServerConnectionQuality {
     size_t addedStepsToBufferCounter;
     size_t impedingDisconnectCounter;
     bool hasAddedFirstAcceptedSteps;
-    size_t participantConnectionId;
 
     char debugPrefix[64];
     Clog log;
 } NimbleServerConnectionQuality;
 
-void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, size_t participantConnectionId, Clog log);
+void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, Clog log);
 void nimbleServerConnectionQualityReset(NimbleServerConnectionQuality* self);
 void nimbleServerConnectionQualityReInit(NimbleServerConnectionQuality* self);
 void nimbleServerConnectionQualityProvidedUsableStep(NimbleServerConnectionQuality* self);

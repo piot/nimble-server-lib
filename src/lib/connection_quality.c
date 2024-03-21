@@ -6,13 +6,11 @@
 
 /// Initialize the connection quality
 /// @param self connection quality
-/// @param participantConnectionId the participant connection ID that this quality is associated with
 /// @param log logging
-void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, size_t participantConnectionId, Clog log)
+void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, Clog log)
 {
     self->log = log;
     nimbleServerConnectionQualityReset(self);
-    self->participantConnectionId = participantConnectionId;
 }
 
 /// Clear all values, except participant connection id and log
@@ -23,6 +21,7 @@ void nimbleServerConnectionQualityReset(NimbleServerConnectionQuality* self)
     self->forcedStepInRowCounter = 0;
     self->impedingDisconnectCounter = 0;
     self->hasAddedFirstAcceptedSteps = false;
+    self->addedStepsToBufferCounter = 0;
 }
 
 /// Reuse the existing connection quality
