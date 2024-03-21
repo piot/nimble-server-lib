@@ -51,6 +51,7 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectTimer = 0;
     self->warningCount = 0;
+    nimbleServerConnectionQualityReset(&self->quality);
 }
 
 /// Reinitialize the participant connection

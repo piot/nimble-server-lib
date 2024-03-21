@@ -15,7 +15,6 @@ typedef enum NimbleServerConnectionQualityDisconnectReason {
 } NimbleServerConnectionQualityDisconnectReason;
 
 typedef struct NimbleServerConnectionQuality {
-    NimbleServerConnectionQualityDisconnectReason reason;
     size_t forcedStepInRowCounter;
     size_t providedStepsInARow;
     size_t addedStepsToBufferCounter;

@@ -127,7 +127,6 @@ bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnection
             CLOG_C_NOTICE(&self->log, "recommending disconnect, description: %s",
                           nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
 #endif
-            self->reason = reason;
             return true;
         }
 
