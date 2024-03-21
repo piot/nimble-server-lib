@@ -8,8 +8,8 @@
 #include <blob-stream/blob_stream_logic_in.h>
 #include <imprint/tagged_allocator.h>
 #include <nimble-serialize/serialize.h>
-#include <nimble-server/participants.h>
 #include <nimble-server/connection_quality.h>
+#include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
 #include <stats/stats.h>
 #include <stdbool.h>
@@ -46,16 +46,25 @@ typedef struct NimbleServerParticipantConnection {
 
     NimbleServerConnectionQuality quality;
     uint32_t warningCount;
+    char debugPrefix[32];
     Clog log;
 } NimbleServerParticipantConnection;
 
-void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection,
-                                  ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
-                                  size_t maxParticipantCountForConnection, size_t maxSingleParticipantStepOctetCount,
-                                  Clog log);
-
+void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* self,
+                                           struct NimbleServerTransportConnection* transportConnection,
+                                           ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
+                                           size_t maxParticipantCountForConnection,
+                                           size_t maxSingleParticipantStepOctetCount, Clog log);
 void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self);
-void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self, struct NimbleServerTransportConnection* transportConnection, StepId latestAuthoritativeStepId);
-bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self, uint8_t participantId);
+void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self,
+                                             struct NimbleServerTransportConnection* transportConnection,
+                                             StepId latestAuthoritativeStepId);
+void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* self,
+                                             struct NimbleServerTransportConnection* transportConnection,
+                                             StepId currentAuthoritativeStepId);
+void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self);
+bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self,
+                                                       uint8_t participantId);
+bool nimbleServerParticipantConnectionUpdate(NimbleServerParticipantConnection* self);
 
 #endif

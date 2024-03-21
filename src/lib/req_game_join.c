@@ -46,10 +46,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
             } else {
                 CLOG_C_DEBUG(&connections->log, "rejoining, using a secret, to a previous connection %d",
                              foundConnectionFromSecret->id)
-                nimbleServerParticipantConnectionReInit(foundConnectionFromSecret, transportConnection,
-                                                        latestAuthoritativeStepId);
-                foundConnectionFromSecret->state = NimbleServerParticipantConnectionStateNormal;
-                foundConnectionFromSecret->waitingForReconnectTimer = 0;
+                nimbleServerParticipantConnectionRejoin(foundConnectionFromSecret, transportConnection, latestAuthoritativeStepId);
                 *outConnection = foundConnectionFromSecret;
                 return 0;
             }

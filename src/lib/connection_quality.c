@@ -10,8 +10,8 @@
 /// @param log logging
 void nimbleServerConnectionQualityInit(NimbleServerConnectionQuality* self, size_t participantConnectionId, Clog log)
 {
-    nimbleServerConnectionQualityReset(self);
     self->log = log;
+    nimbleServerConnectionQualityReset(self);
     self->participantConnectionId = participantConnectionId;
 }
 
@@ -125,7 +125,7 @@ bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnection
         if (self->impedingDisconnectCounter > 120) {
 #if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "giving up on connection %zu, disconnecting %s", self->participantConnectionId,
+            CLOG_C_NOTICE(&self->log, "recommending disconnect, description: %s",
                           nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
 #endif
             self->reason = reason;
@@ -135,15 +135,15 @@ bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnection
         if ((self->impedingDisconnectCounter % 20) == 0) {
 #if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "quality is really bad for connection %zu, considering disconnecting %s",
-                          self->participantConnectionId, nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
+            CLOG_C_NOTICE(&self->log, "bad quality, considering disconnecting. description: %s",
+                           nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
 #endif
         }
     } else {
         if (self->impedingDisconnectCounter > 0) {
             self->impedingDisconnectCounter--;
             if (self->impedingDisconnectCounter == 0) {
-                CLOG_C_NOTICE(&self->log, "connection %zu has stabilized again", self->participantConnectionId)
+                CLOG_C_NOTICE(&self->log, "connection has stabilized again")
             }
         }
     }

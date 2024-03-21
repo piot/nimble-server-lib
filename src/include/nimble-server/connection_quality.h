@@ -6,10 +6,7 @@
 #define NIMBLE_SERVER_CONNECTION_QUALITY_H
 
 #include <imprint/tagged_allocator.h>
-#include <nimble-serialize/serialize.h>
-#include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
-#include <stats/stats.h>
 #include <stdbool.h>
 
 typedef enum NimbleServerConnectionQualityDisconnectReason {
@@ -26,6 +23,7 @@ typedef struct NimbleServerConnectionQuality {
     bool hasAddedFirstAcceptedSteps;
     size_t participantConnectionId;
 
+    char debugPrefix[64];
     Clog log;
 } NimbleServerConnectionQuality;
 

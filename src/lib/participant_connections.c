@@ -120,9 +120,13 @@ static void addParticipantConnection(NimbleServerParticipantConnections* self,
                                           NimbleServerParticipants* gameParticipants,
                               struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
 {
+    tc_snprintf(participantConnection->debugPrefix, sizeof(participantConnection->debugPrefix), "%s/%u", self->log.constantPrefix, participantConnection->id);
+    participantConnection->log.constantPrefix = participantConnection->debugPrefix;
+    participantConnection->log.config = self->log.config;
+
     nimbleServerParticipantConnectionInit(participantConnection, transportConnection, self->allocator,
                                           latestAuthoritativeStepId, self->maxParticipantCountForConnection,
-                                          self->maxSingleParticipantStepOctetCount, self->log);
+                                          self->maxSingleParticipantStepOctetCount, participantConnection->log);
     self->connectionCount++;
     participantConnection->isUsed = true;
 
