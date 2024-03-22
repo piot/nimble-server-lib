@@ -353,7 +353,7 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
     uint8_t datagram[1200];
-    CLOG_C_VERBOSE(&self->log, "read all from transport")
+    //CLOG_C_VERBOSE(&self->log, "read all from transport")
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
 
