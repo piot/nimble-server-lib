@@ -198,8 +198,8 @@ int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParti
     }
     StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);
 
-    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: client %d incoming step range %08X - %08X", self->id,
-                   firstStepId, lastStepId)
+    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: client %d incoming step range %08X - %08X (count:%zu)", self->id,
+                   firstStepId, lastStepId, stepsThatFollow)
 
     size_t dropped = nbsStepsDropped(&self->steps, firstStepId);
     if (dropped > 0) {
