@@ -47,6 +47,7 @@ typedef struct NimbleServerParticipantConnection {
     NimbleServerConnectionQuality quality;
     NimbleServerConnectionQualityDelayed delayedQuality;
     uint32_t warningCount;
+    uint32_t warningAboutZeroAddedSteps;
     char debugPrefix[32];
     Clog log;
 } NimbleServerParticipantConnection;
@@ -67,5 +68,7 @@ void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnecti
 bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self,
                                                        uint8_t participantId);
 bool nimbleServerParticipantConnectionTick(NimbleServerParticipantConnection* self);
+int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParticipantConnection* self,
+                                                               struct FldInStream* inStream);
 
 #endif

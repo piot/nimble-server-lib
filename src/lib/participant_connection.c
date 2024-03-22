@@ -2,10 +2,20 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+#include "authoritative_steps.h"
+#include "incoming_predicted_steps.h"
+#include "nimble-server/server.h"
+#include "send_authoritative_steps.h"
+#include "transport_connection_stats.h"
+#include <flood/in_stream.h>
+#include <inttypes.h>
 #include <nimble-server/delayed_quality.h>
+#include <nimble-server/forced_step.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/req_step.h>
 #include <nimble-server/transport_connection.h>
+#include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
 /// Initializes a participant connection.
@@ -52,6 +62,7 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectTimer = 0;
     self->warningCount = 0;
+    self->warningAboutZeroAddedSteps = 0;
     nimbleServerConnectionQualityReset(&self->quality);
     nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
 }
@@ -73,6 +84,7 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
     self->transportConnection = transportConnection;
     self->waitingForReconnectTimer = 0;
     self->warningCount = 0;
+    self->warningAboutZeroAddedSteps = 0;
 }
 
 /// Facilitates the rejoining process of a participant connection using a new transport connection.
@@ -156,7 +168,6 @@ bool nimbleServerParticipantConnectionTick(NimbleServerParticipantConnection* se
     return true;
 }
 
-
 /// Checks if a participantId is in the participant connection
 /// @param self participant connection to check
 /// @param participantId participantId to check for
@@ -172,4 +183,49 @@ bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerPartici
     }
 
     return false;
+}
+
+int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParticipantConnection* self,
+                                                               FldInStream* inStream)
+{
+    size_t stepsThatFollow;
+    StepId firstStepId;
+
+    int errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
+    if (errorCode < 0) {
+        CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
+        return errorCode;
+    }
+    StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);
+
+    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: client %d incoming step range %08X - %08X", self->id,
+                   firstStepId, lastStepId)
+
+    size_t dropped = nbsStepsDropped(&self->steps, firstStepId);
+    if (dropped > 0) {
+        if (dropped > 60U) {
+            CLOG_C_WARN(&self->log, "dropped %zu", dropped)
+            return -3;
+        }
+        CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X", dropped,
+                    self->steps.expectedWriteId, firstStepId, lastStepId)
+        nimbleServerInsertForcedSteps(self, dropped);
+    }
+
+    int addedStepsCount = nbsStepsInSerialize(inStream, &self->steps, firstStepId, stepsThatFollow);
+    if (addedStepsCount < 0) {
+        return addedStepsCount;
+    }
+    if (addedStepsCount == 0) {
+        if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
+            CLOG_C_DEBUG(&self->log, "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not a problem unless it happens a lot)",
+                         firstStepId, lastStepId, self->steps.expectedWriteId)
+        }
+    }
+
+    if (addedStepsCount > 0) {
+        nimbleServerConnectionQualityAddedStepsToBuffer(&self->quality, (size_t) addedStepsCount);
+    }
+
+    return 0;
 }

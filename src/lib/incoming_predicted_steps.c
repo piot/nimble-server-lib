@@ -54,39 +54,8 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
                    "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
                    transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
 
-    size_t stepsThatFollow;
-    StepId firstStepId;
-    errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
-    if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize steps")
-        return errorCode;
-    }
 
-    CLOG_C_VERBOSE(&foundParticipantConnection->log,
-                   "handleIncomingSteps: client %d incoming step %08X, %zu steps follow",
-                   foundParticipantConnection->id, firstStepId, stepsThatFollow)
+    int addedStepsCountOrError = nimbleServerParticipantConnectionDeserializePredictedSteps(foundParticipantConnection, inStream);
 
-    size_t dropped = nbsStepsDropped(&foundParticipantConnection->steps, firstStepId);
-    if (dropped > 0) {
-        if (dropped > 60U) {
-            CLOG_C_WARN(&foundParticipantConnection->log, "dropped %zu", dropped)
-            return -3;
-        }
-        CLOG_C_WARN(&foundParticipantConnection->log,
-                    "client step: dropped %zu steps. expected %08X, but got from %u to %zu", dropped,
-                    foundParticipantConnection->steps.expectedWriteId, firstStepId, firstStepId + stepsThatFollow - 1)
-        nimbleServerInsertForcedSteps(foundParticipantConnection, dropped);
-    }
-
-    int addedStepsCount = nbsStepsInSerialize(inStream, &foundParticipantConnection->steps, firstStepId,
-                                              stepsThatFollow);
-    if (addedStepsCount < 0) {
-        return addedStepsCount;
-    }
-
-    if (addedStepsCount > 0) {
-        nimbleServerConnectionQualityAddedStepsToBuffer(&foundParticipantConnection->quality, (size_t) addedStepsCount);
-    }
-
-    return addedStepsCount;
+    return addedStepsCountOrError;
 }

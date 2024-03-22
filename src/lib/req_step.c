@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include "authoritative_steps.h"
-#include "check_for_disconnects.h"
 #include "incoming_predicted_steps.h"
 #include "nimble-server/server.h"
 #include "send_authoritative_steps.h"
