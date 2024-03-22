@@ -75,6 +75,10 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
     self->warningCount = 0;
 }
 
+/// Facilitates the rejoining process of a participant connection using a new transport connection.
+/// @param self Pointer to an instance of NimbleServerParticipantConnection.
+/// @param transportConnection The new transport connection through which the participant connection is rejoining.
+/// @param currentAuthoritativeStepId The current authoritative step ID that the rejoining process synchronize with.
 void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* self,
                                              NimbleServerTransportConnection* transportConnection,
                                              StepId currentAuthoritativeStepId)
@@ -84,6 +88,8 @@ void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* 
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
+/// Sets the participant connection in disconnect state.
+/// @param self Pointer to an instance of NimbleServerParticipantConnection.
 void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self)
 {
     CLOG_C_DEBUG(&self->log, "disconnected")
@@ -91,6 +97,8 @@ void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnecti
     self->state = NimbleServerParticipantConnectionStateDisconnected;
 }
 
+/// Sets the participant connection in a waiting for reconnect state.
+/// @param self Pointer to an instance of NimbleServerParticipantConnection.
 static void setToWaitingForReconnect(NimbleServerParticipantConnection* self)
 {
     CLOG_C_DEBUG(&self->log, "setting state to: waiting for reconnect")
@@ -98,6 +106,11 @@ static void setToWaitingForReconnect(NimbleServerParticipantConnection* self)
     self->waitingForReconnectTimer = 0;
 }
 
+/// Monitors the waiting period for a reconnect attempt and determines if it should continue waiting or give up.
+/// @param self Pointer to an instance of NimbleServerParticipantConnection
+/// @return Returns true if the waiting period has not yet exceeded the maximum allowed time, indicating that it should
+/// continue waiting for a possible reconnect. Returns false to suggest that the waiting period has expired,
+/// and the connection should be considered for disconnection.
 static bool tickWaitingForReconnect(NimbleServerParticipantConnection* self)
 {
     self->waitingForReconnectTimer++;
@@ -111,6 +124,10 @@ static bool tickWaitingForReconnect(NimbleServerParticipantConnection* self)
     return false;
 }
 
+/// Checks the connection quality of a server participant connection and updates its state accordingly.
+/// It decides whether the connection is still viable or if the participant should be moved to a waiting for reconnect
+/// state based on the quality assessment.
+/// @param self Pointer to an instance of NimbleServerParticipantConnection.
 static void tickNormal(NimbleServerParticipantConnection* self)
 {
     bool shouldKeep = nimbleServerConnectionQualityDelayedTick(&self->delayedQuality, &self->quality);

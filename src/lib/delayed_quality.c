@@ -5,7 +5,7 @@
 #include <nimble-server/connection_quality.h>
 #include <nimble-server/delayed_quality.h>
 
-/// Initialize the connection quality
+/// Initialize the delayed connection quality
 /// @param self connection quality
 /// @param log logging
 void nimbleServerConnectionQualityDelayedInit(NimbleServerConnectionQualityDelayed* self, Clog log)
@@ -21,6 +21,10 @@ void nimbleServerConnectionQualityDelayedReset(NimbleServerConnectionQualityDela
     self->impedingDisconnectCounter = 0;
 }
 
+/// Evaluates the quality of a server connection and decides if a disconnection should be be performed.
+/// @param self Pointer to an instance of NimbleServerConnectionQualityDelayed.
+/// @param quality Constant pointer to an instance of NimbleServerConnectionQuality representing the current assessment of the connection quality.
+/// @return Returns true if the connection should be kept, otherwise false if the disconnection should be performed.
 bool nimbleServerConnectionQualityDelayedTick(NimbleServerConnectionQualityDelayed* self,
                                               const NimbleServerConnectionQuality* quality)
 {

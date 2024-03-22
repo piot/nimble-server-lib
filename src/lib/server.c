@@ -9,7 +9,6 @@
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/debug.h>
-#include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
@@ -23,6 +22,8 @@
 #include <nimble-server/server.h>
 #include <nimble-server/transport_connection.h>
 
+/// Clean up participant references
+/// @param participantReferences the participant references that should be removed.
 static void removeReferencesFromGameParticipants(NimbleServerParticipantReferences* participantReferences)
 {
     NimbleServerParticipants* gameParticipants = participantReferences->gameParticipants;
@@ -37,6 +38,9 @@ static void removeReferencesFromGameParticipants(NimbleServerParticipantReferenc
     }
 }
 
+/// Disconnects a participant connection
+/// @param connections Pointer to an instance of Participant Connections
+/// @param connection The connection to be set in disconnected mode and removed from Participant Connections.
 static void disconnectConnection(NimbleServerParticipantConnections* connections,
                                  NimbleServerParticipantConnection* connection)
 {
@@ -47,6 +51,9 @@ static void disconnectConnection(NimbleServerParticipantConnections* connections
     nimbleServerParticipantConnectionsRemove(connections, connection);
 }
 
+/// Iterates over all participant connections in the server, performs a tick update, and disconnects connections
+/// that are recommended to be disconnected.
+/// @param self Pointer to an instance of NimbleServer.
 static void tickParticipantConnections(NimbleServer* self)
 {
     for (size_t i = 0; i < self->connections.capacityCount; ++i) {
