@@ -61,8 +61,6 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundG
         statsIntPerSecondAdd(authoritativeStepsPerSecondStat, advanceCount);
     }
 
-    nimbleServerCheckForDisconnections(connections);
-
     return advanceCount;
 }
 
@@ -87,7 +85,9 @@ int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportCo
                                                                  authoritativeStepsPerSecondStat,
                                                                  &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode)
+        if (!nimbleServerIsErrorExternal(errorCode)) {
+            CLOG_C_SOFT_ERROR(&transportConnection->log, "problem handling incoming step:%d", errorCode)
+        }
         return errorCode;
     }
 

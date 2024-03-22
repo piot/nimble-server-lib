@@ -10,7 +10,6 @@
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/game.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/server.h>

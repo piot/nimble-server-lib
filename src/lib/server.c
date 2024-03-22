@@ -9,15 +9,58 @@
 #include <flood/out_stream.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/debug.h>
+#include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
 #include <nimble-server/game.h>
+#include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
+#include <nimble-server/participant_connections.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
 #include <nimble-server/server.h>
+#include <nimble-server/transport_connection.h>
+
+static void removeReferencesFromGameParticipants(NimbleServerParticipantReferences* participantReferences)
+{
+    NimbleServerParticipants* gameParticipants = participantReferences->gameParticipants;
+    for (size_t i = 0; i < participantReferences->participantReferenceCount; ++i) {
+        NimbleServerParticipant* participant = participantReferences->participantReferences[i];
+        CLOG_ASSERT(gameParticipants->participantCount > 0,
+                    "participant count is wrong when removing game participants")
+        gameParticipants->participantCount--;
+
+        participant->isUsed = false;
+        participant->localIndex = 0;
+    }
+}
+
+static void disconnectConnection(NimbleServerParticipantConnections* connections,
+                                 NimbleServerParticipantConnection* connection)
+{
+    nimbleServerParticipantConnectionDisconnect(connection);
+
+    removeReferencesFromGameParticipants(&connection->participantReferences);
+
+    nimbleServerParticipantConnectionsRemove(connections, connection);
+}
+
+static void tickParticipantConnections(NimbleServer* self)
+{
+    for (size_t i = 0; i < self->connections.capacityCount; ++i) {
+        NimbleServerParticipantConnection* connection = &self->connections.connections[i];
+        if (!connection->isUsed) {
+            continue;
+        }
+
+        bool isWorking = nimbleServerParticipantConnectionTick(connection);
+        if (!isWorking) {
+            disconnectConnection(&self->connections, connection);
+        }
+    }
+}
 
 /// Updates the server
 /// Mostly for keeping track of stats and book-keeping.
@@ -31,6 +74,8 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
         CLOG_C_SOFT_ERROR(&self->log, "quality error %d", qualityError)
         return qualityError;
     }
+
+    tickParticipantConnections(self);
 
     nimbleServerReadFromMultiTransport(self);
 

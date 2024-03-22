@@ -9,6 +9,7 @@
 #include <imprint/tagged_allocator.h>
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/connection_quality.h>
+#include <nimble-server/delayed_quality.h>
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
 #include <stats/stats.h>
@@ -43,8 +44,8 @@ typedef struct NimbleServerParticipantConnection {
     size_t waitingForReconnectTimer;
     size_t waitingForReconnectMaxTimer;
     NimbleSerializeParticipantConnectionSecret secret;
-
     NimbleServerConnectionQuality quality;
+    NimbleServerConnectionQualityDelayed delayedQuality;
     uint32_t warningCount;
     char debugPrefix[32];
     Clog log;
@@ -65,6 +66,6 @@ void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* 
 void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self);
 bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self,
                                                        uint8_t participantId);
-bool nimbleServerParticipantConnectionUpdate(NimbleServerParticipantConnection* self);
+bool nimbleServerParticipantConnectionTick(NimbleServerParticipantConnection* self);
 
 #endif

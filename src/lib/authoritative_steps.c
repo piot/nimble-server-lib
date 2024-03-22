@@ -28,6 +28,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
         if (!connection->isUsed) {
             continue;
         }
+
         NbsSteps* steps = &connection->steps;
 
         size_t stepOctetCount;

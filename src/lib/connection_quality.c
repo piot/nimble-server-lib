@@ -19,7 +19,6 @@ void nimbleServerConnectionQualityReset(NimbleServerConnectionQuality* self)
 {
     self->providedStepsInARow = 0;
     self->forcedStepInRowCounter = 0;
-    self->impedingDisconnectCounter = 0;
     self->hasAddedFirstAcceptedSteps = false;
     self->addedStepsToBufferCounter = 0;
 }
@@ -36,9 +35,9 @@ void nimbleServerConnectionQualityReInit(NimbleServerConnectionQuality* self)
 /// @return false if there are a lot of forced steps
 static bool isFailingToProvideStepsInTime(const NimbleServerConnectionQuality* self)
 {
-    size_t forcedStepInRowCounterThreshold = 8U;
+    size_t forcedStepInRowCounterThreshold = 20U;
     if (!self->hasAddedFirstAcceptedSteps) {
-        forcedStepInRowCounterThreshold = 180U;
+        forcedStepInRowCounterThreshold = 200U;
     }
 
     return self->forcedStepInRowCounter >= forcedStepInRowCounterThreshold;
@@ -93,7 +92,7 @@ void nimbleServerConnectionQualityAddedForcedSteps(NimbleServerConnectionQuality
 ///@param buf buffer to store the string
 ///@param maxBufSize maximum number of characters in the string
 ///@return the filled out buf
-const char* nimbleServerConnectionQualityDescribe(NimbleServerConnectionQuality* self, char* buf, size_t maxBufSize)
+const char* nimbleServerConnectionQualityDescribe(const NimbleServerConnectionQuality* self, char* buf, size_t maxBufSize)
 {
     NimbleServerConnectionQualityDisconnectReason reason = evaluate(self);
     switch (reason) {
@@ -109,42 +108,11 @@ const char* nimbleServerConnectionQualityDescribe(NimbleServerConnectionQuality*
     return buf;
 }
 
-#if defined CLOG_LOG_ENABLED
-#define BUF_SIZE (128)
-#endif
-
 /// checks if the connection has been decided to be disconnected
 /// @param self connection quality
 /// @return true if the connection should be disconnected
-bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnectionQuality* self)
+bool nimbleServerConnectionQualityCheckIfShouldDisconnect(const NimbleServerConnectionQuality* self)
 {
     NimbleServerConnectionQualityDisconnectReason reason = evaluate(self);
-    if (reason != NimbleServerConnectionQualityDisconnectReasonKeep) {
-        self->impedingDisconnectCounter++;
-        if (self->impedingDisconnectCounter > 120) {
-#if defined CLOG_LOG_ENABLED
-            char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "recommending disconnect, description: %s",
-                          nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
-#endif
-            return true;
-        }
-
-        if ((self->impedingDisconnectCounter % 20) == 0) {
-#if defined CLOG_LOG_ENABLED
-            char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "bad quality, considering disconnecting. description: %s",
-                           nimbleServerConnectionQualityDescribe(self, buf, BUF_SIZE))
-#endif
-        }
-    } else {
-        if (self->impedingDisconnectCounter > 0) {
-            self->impedingDisconnectCounter--;
-            if (self->impedingDisconnectCounter == 0) {
-                CLOG_C_NOTICE(&self->log, "connection has stabilized again")
-            }
-        }
-    }
-
-    return false;
+    return reason != NimbleServerConnectionQualityDisconnectReasonKeep;
 }

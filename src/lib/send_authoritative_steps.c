@@ -73,8 +73,8 @@ ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTranspor
 
         if (rangeCount == 0) {
             transportConnection->noRangesToSendCounter++;
-            if (transportConnection->noRangesToSendCounter > 2) {
-                int noticeTime = 0; // transportConnection->noRangesToSendCounter % 2;
+            if (transportConnection->noRangesToSendCounter > 8) {
+                int noticeTime = transportConnection->noRangesToSendCounter % 20;
                 if (noticeTime == 0) {
                     CLOG_C_NOTICE(&transportConnection->log, "no ranges to send for %d ticks, suspicious",
                                   transportConnection->noRangesToSendCounter)

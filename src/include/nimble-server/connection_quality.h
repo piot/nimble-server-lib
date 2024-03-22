@@ -18,7 +18,6 @@ typedef struct NimbleServerConnectionQuality {
     size_t forcedStepInRowCounter;
     size_t providedStepsInARow;
     size_t addedStepsToBufferCounter;
-    size_t impedingDisconnectCounter;
     bool hasAddedFirstAcceptedSteps;
 
     char debugPrefix[64];
@@ -31,7 +30,7 @@ void nimbleServerConnectionQualityReInit(NimbleServerConnectionQuality* self);
 void nimbleServerConnectionQualityProvidedUsableStep(NimbleServerConnectionQuality* self);
 void nimbleServerConnectionQualityAddedStepsToBuffer(NimbleServerConnectionQuality* self, size_t count);
 void nimbleServerConnectionQualityAddedForcedSteps(NimbleServerConnectionQuality* self, size_t count);
-bool nimbleServerConnectionQualityCheckIfShouldDisconnect(NimbleServerConnectionQuality* self);
-const char* nimbleServerConnectionQualityDescribe(NimbleServerConnectionQuality* self, char* buf, size_t maxBufSize);
+bool nimbleServerConnectionQualityCheckIfShouldDisconnect(const NimbleServerConnectionQuality* self);
+const char* nimbleServerConnectionQualityDescribe(const NimbleServerConnectionQuality* self, char* buf, size_t maxBufSize);
 
 #endif

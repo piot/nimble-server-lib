@@ -2,7 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-#include <inttypes.h>
+#include <nimble-server/delayed_quality.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/transport_connection.h>
@@ -38,10 +38,11 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     tc_snprintf(self->quality.debugPrefix, sizeof(self->quality.debugPrefix), "%s/quality", self->log.constantPrefix);
     self->quality.log.constantPrefix = self->quality.debugPrefix;
     nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
+    nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
+    CLOG_C_DEBUG(&self->log, "initialize new participant connection");
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
-
 
 /// Resets the participant connection
 /// @param self participant connection
@@ -52,6 +53,7 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
     self->waitingForReconnectTimer = 0;
     self->warningCount = 0;
     nimbleServerConnectionQualityReset(&self->quality);
+    nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
 }
 
 /// Reinitialize the participant connection
@@ -64,7 +66,7 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
 {
     self->state = NimbleServerParticipantConnectionStateNormal;
     nimbleServerConnectionQualityReInit(&self->quality);
-
+    nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
     // Expect that the client will add steps for the next authoritative step
     nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
@@ -96,16 +98,7 @@ static void setToWaitingForReconnect(NimbleServerParticipantConnection* self)
     self->waitingForReconnectTimer = 0;
 }
 
-static void updateNormal(NimbleServerParticipantConnection* self)
-{
-    bool shouldDisconnect = nimbleServerConnectionQualityCheckIfShouldDisconnect(&self->quality);
-    if (shouldDisconnect && self->state != NimbleServerParticipantConnectionStateWaitingForReconnect) {
-        CLOG_C_DEBUG(&self->log, "connection quality recommended disconnect, so setting it to waiting for reconnect")
-        setToWaitingForReconnect(self);
-    }
-}
-
-static bool updateWaitingForReconnect(NimbleServerParticipantConnection* self)
+static bool tickWaitingForReconnect(NimbleServerParticipantConnection* self)
 {
     self->waitingForReconnectTimer++;
     if (self->waitingForReconnectTimer < self->waitingForReconnectMaxTimer) {
@@ -118,24 +111,33 @@ static bool updateWaitingForReconnect(NimbleServerParticipantConnection* self)
     return false;
 }
 
+static void tickNormal(NimbleServerParticipantConnection* self)
+{
+    bool shouldKeep = nimbleServerConnectionQualityDelayedTick(&self->delayedQuality, &self->quality);
+
+    if (!shouldKeep && self->state != NimbleServerParticipantConnectionStateWaitingForReconnect) {
+        CLOG_C_DEBUG(&self->log, "connection quality recommended disconnect, so setting it to waiting for reconnect")
+        setToWaitingForReconnect(self);
+    }
+}
+
 /// Updates a participant connection
 /// @param self participant connection
 /// @return false if connection should be disconnected, true otherwise
-bool nimbleServerParticipantConnectionUpdate(NimbleServerParticipantConnection* self)
+bool nimbleServerParticipantConnectionTick(NimbleServerParticipantConnection* self)
 {
     switch (self->state) {
         case NimbleServerParticipantConnectionStateNormal:
-            updateNormal(self);
+            tickNormal(self);
             break;
         case NimbleServerParticipantConnectionStateWaitingForReconnect:
-            return updateWaitingForReconnect(self);
+            return tickWaitingForReconnect(self);
         case NimbleServerParticipantConnectionStateDisconnected:
             break;
     }
 
     return true;
 }
-
 
 
 /// Checks if a participantId is in the participant connection
