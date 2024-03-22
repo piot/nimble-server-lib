@@ -40,7 +40,7 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
     nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
-    CLOG_C_DEBUG(&self->log, "initialize new participant connection");
+    CLOG_C_DEBUG(&self->log, "initialize new participant connection")
     nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
