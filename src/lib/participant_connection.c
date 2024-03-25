@@ -196,7 +196,7 @@ int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParti
         CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
         return errorCode;
     }
-    StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);
+    CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
 
     CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: client %d incoming step range %08X - %08X (count:%zu)", self->id,
                    firstStepId, lastStepId, stepsThatFollow)
