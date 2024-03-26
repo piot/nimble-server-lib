@@ -150,7 +150,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
-        return nimbleServerReqDownloadGameStateAck(transportConnection, &inStream, response->transportOut, clientTime);
+        return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream, response->transportOut, clientTime);
     }
 
 #define UDP_MAX_SIZE (1200)

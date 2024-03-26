@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved.
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+#include "send_authoritative_steps.h"
 #include <blob-stream/blob_stream_logic_out.h>
 #include <datagram-transport/transport.h>
 #include <datagram-transport/types.h>
@@ -16,10 +17,12 @@
 
 /// Handles a download state progress ack from the client
 /// @param transportConnection transportConnection
+/// @param foundGame the game to send
 /// @param inStream stream to read game state ack from
 /// @param transportOut the transport to send reply to
 /// @return negative on error
-int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
+int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
+                                        NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                                         DatagramTransportOut* transportOut, uint16_t clientTime)
 {
     NimbleSerializeBlobStreamChannelId channelId;
@@ -78,5 +81,34 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerTransportConnection* transpo
         transportOut->send(transportOut->self, stream.octets, stream.pos);
     }
 
-    return 0;
+    if (!blobStreamLogicOutIsAllSent(&transportConnection->blobStreamLogicOut)) {
+        return 0;
+    }
+
+    CLOG_C_DEBUG(&transportConnection->log, "sent all outgoing blob stream")
+
+    // There is a chance that the client will receive the complete blob stream, lets send a packet with
+    // authoritative inputs as well
+
+    fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
+    stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
+    transportConnectionPrepareHeader(transportConnection, &stream, clientTime);
+
+    CLOG_C_VERBOSE(&transportConnection->log,
+                   "download of game state is probably done, send a few authoritative steps as well from %08X", transportConnection->gameState.stepId)
+
+    ssize_t err = nimbleServerSendStepRanges(&stream, transportConnection, foundGame,
+                                             transportConnection->gameState.stepId, 0);
+    if (err < 0) {
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "could not send ranges")
+        return (int) err;
+    }
+    if (stream.pos > datagramTransportMaxSize) {
+        CLOG_C_SOFT_ERROR(&transportConnection->log,
+                          "trying to send auth steps datagram that has too many octets: %zu out of %zu. Discarding it",
+                          stream.pos, datagramTransportMaxSize)
+        return NimbleServerErrSerialize;
+    }
+
+    return transportOut->send(transportOut->self, stream.octets, stream.pos);
 }
