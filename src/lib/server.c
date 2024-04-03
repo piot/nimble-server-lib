@@ -150,7 +150,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
         // Special case, game state ack can send multiple datagrams as reply
-        return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream, response->transportOut, clientTime);
+        return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream, response->transportOut,
+                                                   clientTime);
     }
 
 #define UDP_MAX_SIZE (1200)
@@ -265,6 +266,30 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     return 0;
 }
 
+/// Prepare connection for host migration
+///
+/// This must be improved in the future, for now it assumes just one participant id per connection and also that
+/// the local index is 0.
+/// @param self server
+/// @param participantIds array of existing participant ids.
+/// @param participantIdCount length of participantIds array.
+/// @return negative on error
+int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], size_t participantIdCount)
+{
+    nimbleServerParticipantConnectionsReset(&self->connections);
+    for (size_t i = 0; i < participantIdCount; ++i) {
+        NimbleServerParticipantConnection* outConnection;
+        int err = nimbleServerParticipantConnectionsPrepare(&self->connections, &self->game.participants,
+                                                            self->game.authoritativeSteps.expectedWriteId - 1,
+                                                            participantIds[i], &outConnection);
+        if (err < 0) {
+            return err;
+        }
+    }
+
+    return 0;
+}
+
 /// Reinitialize (reuse the memory) and set a new game state.
 /// The gameState must be present for the first client that connects to the game.
 /// @param self server
@@ -353,7 +378,7 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
     uint8_t datagram[1200];
-    //CLOG_C_VERBOSE(&self->log, "read all from transport")
+    // CLOG_C_VERBOSE(&self->log, "read all from transport")
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
 

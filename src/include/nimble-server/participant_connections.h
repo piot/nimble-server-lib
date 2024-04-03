@@ -50,4 +50,9 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
                                              const NimbleServerParticipantJoinInfo* joinInfo,
                                              StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                              struct NimbleServerParticipantConnection** outConnection);
+
+int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections* self,
+                                              NimbleServerParticipants* gameParticipants,
+                                              StepId latestAuthoritativeStepId, uint32_t participantId,
+                                              struct NimbleServerParticipantConnection** outConnection);
 #endif

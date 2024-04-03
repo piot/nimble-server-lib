@@ -28,5 +28,6 @@ typedef struct NimbleServerParticipantJoinInfo {
 void nimbleServerParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount, Clog* log);
 int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleServerParticipantJoinInfo* joinInfo, size_t localParticipantCount,
                         struct NimbleServerParticipant** results);
+int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, uint32_t participantId, struct NimbleServerParticipant** outConnection);
 
 #endif

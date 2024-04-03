@@ -77,6 +77,7 @@ typedef struct NimbleServerResponse {
 } NimbleServerResponse;
 
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup);
+int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], size_t participantIdCount);
 int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
                                MonotonicTimeMs now);
 void nimbleServerReset(NimbleServer* self);

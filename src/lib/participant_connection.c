@@ -5,16 +5,11 @@
 #include "authoritative_steps.h"
 #include "incoming_predicted_steps.h"
 #include "nimble-server/server.h"
-#include "send_authoritative_steps.h"
-#include "transport_connection_stats.h"
 #include <flood/in_stream.h>
-#include <inttypes.h>
 #include <nimble-server/delayed_quality.h>
 #include <nimble-server/forced_step.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
-#include <nimble-server/req_step.h>
-#include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/out_serialize.h>
 

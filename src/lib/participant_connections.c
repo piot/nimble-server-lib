@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
 #include <nimble-server/transport_connection.h>
 #include <secure-random/secure_random.h>
-#include <nimble-server/errors.h>
 
 void nimbleServerParticipantConnectionsInit(NimbleServerParticipantConnections* self, size_t maxCount,
                                             ImprintAllocator* connectionAllocator,
@@ -114,13 +114,14 @@ static NimbleServerParticipantConnection* findFreeConnectionButDoNotReserveYet(N
 }
 
 static void addParticipantConnection(NimbleServerParticipantConnections* self,
-                              NimbleServerParticipantConnection* participantConnection,
-                                          struct NimbleServerTransportConnection* transportConnection,
-                                          StepId latestAuthoritativeStepId,
-                                          NimbleServerParticipants* gameParticipants,
-                              struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
+                                     NimbleServerParticipantConnection* participantConnection,
+                                     struct NimbleServerTransportConnection* transportConnection,
+                                     StepId latestAuthoritativeStepId, NimbleServerParticipants* gameParticipants,
+                                     struct NimbleServerParticipant* createdParticipants[16],
+                                     size_t localParticipantCount)
 {
-    tc_snprintf(participantConnection->debugPrefix, sizeof(participantConnection->debugPrefix), "%s/%u", self->log.constantPrefix, participantConnection->id);
+    tc_snprintf(participantConnection->debugPrefix, sizeof(participantConnection->debugPrefix), "%s/%u",
+                self->log.constantPrefix, participantConnection->id);
     participantConnection->log.constantPrefix = participantConnection->debugPrefix;
     participantConnection->log.config = self->log.config;
 
@@ -141,6 +142,37 @@ static void addParticipantConnection(NimbleServerParticipantConnections* self,
     participantConnection->secret = secureRandomUInt64();
 
     CLOG_C_DEBUG(&participantConnection->log, "participant connection is ready. All participants have joined")
+}
+
+int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections* self,
+                                              NimbleServerParticipants* gameParticipants,
+                                              StepId latestAuthoritativeStepId, uint32_t participantId,
+                                              NimbleServerParticipantConnection** outConnection)
+{
+    NimbleServerParticipantConnection* participantConnection = findFreeConnectionButDoNotReserveYet(self);
+    if (!participantConnection) {
+        CLOG_C_NOTICE(&self->log, "could not join, because out of participant connection memory")
+        return NimbleServerErrOutOfParticipantMemory;
+    }
+
+    struct NimbleServerParticipant* createdParticipants[16];
+
+    int errorCode = nimbleServerParticipantsPrepare(gameParticipants, participantId, createdParticipants);
+    if (errorCode < 0) {
+        *outConnection = 0;
+        return errorCode;
+    }
+
+    addParticipantConnection(self, participantConnection, 0, latestAuthoritativeStepId, gameParticipants,
+                             createdParticipants, 1);
+
+    participantConnection->isUsed = true;
+    participantConnection->state = NimbleServerParticipantConnectionStateWaitingForReconnect;
+    participantConnection->waitingForReconnectTimer = 0;
+
+    *outConnection = participantConnection;
+
+    return 0;
 }
 
 /// Creates a participant connection for the specified room.
@@ -175,7 +207,8 @@ int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections*
         return errorCode;
     }
 
-    addParticipantConnection(self, participantConnection, transportConnection, latestAuthoritativeStepId, gameParticipants, createdParticipants, localParticipantCount);
+    addParticipantConnection(self, participantConnection, transportConnection, latestAuthoritativeStepId,
+                             gameParticipants, createdParticipants, localParticipantCount);
 
     *outConnection = participantConnection;
 
