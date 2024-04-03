@@ -266,13 +266,22 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     return 0;
 }
 
-/// Prepare connection for host migration
+/// Prepares the server's participants and participant connections for a host migration process.
 ///
-/// This must be improved in the future, for now it assumes just one participant id per connection and also that
-/// the local index is 0.
+/// This function clears all existing participant connections and prepares each participant
+/// connection based on the provided participant IDs. The connections are set in waitingForReconnect.
+/// It is intended to support host migration scenarios where a client is setting up a new server.
+///
+/// @note Currently assumes only a single participant ID per connection and that the local
+/// participant index is 0. Future versions should aim to remove these limitations
+/// and support more complex scenarios.
+///
 /// @param self server
-/// @param participantIds array of existing participant ids.
-/// @param participantIdCount length of participantIds array.
+/// @param participantIds Array containing the unique identifiers for each participant
+/// that are setup to be waiting for incoming connections
+/// @param participantIdCount The number of elements in the @p participantIds array,
+/// indicating the total number of participants involved in the migration.
+///
 /// @return negative on error
 int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], size_t participantIdCount)
 {
