@@ -66,7 +66,7 @@ nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerPartici
                                                              uint32_t transportConnectionId)
 {
     for (size_t i = 0; i < self->connectionCount; ++i) {
-        if (self->connections[i].isUsed &&
+        if (self->connections[i].isUsed && self->connections[i].transportConnection &&
             self->connections[i].transportConnection->transportConnectionId == transportConnectionId) {
             return &self->connections[i];
         }
