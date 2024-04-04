@@ -13,14 +13,11 @@
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
-#include <nimble-server/participant_connections.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/req_step.h>
-#include <nimble-server/server.h>
-#include <nimble-server/transport_connection.h>
 
 /// Clean up participant references
 /// @param participantReferences the participant references that should be removed.

@@ -102,14 +102,19 @@ struct NimbleServerParticipantConnection*
 nimbleServerParticipantConnectionsFindConnectionFromParticipantId(NimbleServerParticipantConnections* self,
                                                                   NimbleSerializeParticipantId participantId)
 {
+    CLOG_C_DEBUG(&self->log, "host migration: finding connection for participant id %hhu", participantId)
     for (size_t i = 0; i < self->connectionCount; ++i) {
         if (self->connections[i].isUsed &&
-            self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect &&
-            self->connections[i].participantReferences.participantReferences[0]->id == participantId) {
-            return &self->connections[i];
+                       self->connections[i].participantReferences.participantReferences[0]->id == participantId) {
+            CLOG_C_DEBUG(&self->log, "host migration: found connection for participant id %hhu", participantId)
+            if (self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect) {
+                return &self->connections[i];
+            }
+            CLOG_C_NOTICE(&self->log, "host migration: found the connection, but it was in the wrong state %d", self->connections[i].state)
         }
     }
 
+    CLOG_C_NOTICE(&self->log, "host migration: could not find prepared connection for participant id %hhu", participantId)
     return 0;
 }
 

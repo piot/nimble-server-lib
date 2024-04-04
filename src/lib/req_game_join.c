@@ -70,20 +70,20 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
                 if (foundConnectionFromParticipantId->participantReferences.participantReferenceCount !=
                     joinRequest->playerCount) {
                     CLOG_C_NOTICE(&connections->log,
-                                  "could not rejoin with participantID. wrong number of local participant count")
+                                  "could not rejoin after host migration participantID. wrong number of local participant count")
+                    return -1;
                 } else {
-                    CLOG_C_DEBUG(&connections->log, "rejoining, using participantId %d, to a previous connection %d",
+                    CLOG_C_DEBUG(&connections->log, "client joining after host migration, requesting participantId %d, to a previous connection %d",
                                  joinRequest->participantId, foundConnectionFromParticipantId->id)
                     nimbleServerParticipantConnectionRejoin(foundConnectionFromParticipantId, transportConnection,
                                                             latestAuthoritativeStepId);
                     *outConnection = foundConnectionFromParticipantId;
                     return 0;
                 }
-                return 0;
             } else {
                 CLOG_C_NOTICE(&connections->log,
-                              "could not find connection with secret. Probably timed out. trying to add "
-                              "participants to a new participant connection")
+                              "could not find connection after host migration with participant id %hhu. Trying fallback and add "
+                              "participants to a new participant connection", joinRequest->participantId)
             }
             break;
         }
