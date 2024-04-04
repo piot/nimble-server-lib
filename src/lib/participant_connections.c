@@ -1,11 +1,12 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
 #include <nimble-server/errors.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
+#include <nimble-server/participant.h>
 #include <nimble-server/transport_connection.h>
 #include <secure-random/secure_random.h>
 
@@ -93,6 +94,25 @@ nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipa
     return 0;
 }
 
+/// Finds the participant connection with the specified participantId (and that is waiting for reconnect)
+/// @param self participant connections
+/// @param participantId a participantId
+/// @return pointer to a participant connection, or NULL otherwise
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnectionFromParticipantId(NimbleServerParticipantConnections* self,
+                                                                  NimbleSerializeParticipantId participantId)
+{
+    for (size_t i = 0; i < self->connectionCount; ++i) {
+        if (self->connections[i].isUsed &&
+            self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect &&
+            self->connections[i].participantReferences.participantReferences[0]->id == participantId) {
+            return &self->connections[i];
+        }
+    }
+
+    return 0;
+}
+
 static NimbleServerParticipantConnection* findFreeConnectionButDoNotReserveYet(NimbleServerParticipantConnections* self)
 {
     for (size_t i = 0; i < self->capacityCount; ++i) {
@@ -146,7 +166,7 @@ static void addParticipantConnection(NimbleServerParticipantConnections* self,
 
 int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections* self,
                                               NimbleServerParticipants* gameParticipants,
-                                              StepId latestAuthoritativeStepId, uint32_t participantId,
+                                              StepId latestAuthoritativeStepId, NimbleSerializeParticipantId participantId,
                                               NimbleServerParticipantConnection** outConnection)
 {
     NimbleServerParticipantConnection* participantConnection = findFreeConnectionButDoNotReserveYet(self);
@@ -188,7 +208,7 @@ int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections
 int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
                                              NimbleServerParticipants* gameParticipants,
                                              struct NimbleServerTransportConnection* transportConnection,
-                                             const NimbleServerParticipantJoinInfo* joinInfo,
+                                             const NimbleSerializeJoinGameRequestPlayer* joinInfo,
                                              StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                              NimbleServerParticipantConnection** outConnection)
 {

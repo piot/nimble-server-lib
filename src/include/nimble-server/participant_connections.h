@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------------------------------------*/
 #ifndef NIMBLE_SERVER_PARTICIPANT_CONNECTIONS_H
 #define NIMBLE_SERVER_PARTICIPANT_CONNECTIONS_H
 
@@ -44,15 +44,19 @@ nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerPartici
 struct NimbleServerParticipantConnection*
 nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipantConnections* self,
                                                            NimbleSerializeParticipantConnectionSecret connectionSecret);
+struct NimbleServerParticipantConnection*
+nimbleServerParticipantConnectionsFindConnectionFromParticipantId(NimbleServerParticipantConnections* self,
+                                                           NimbleSerializeParticipantId participantId);
+
 int nimbleServerParticipantConnectionsCreate(NimbleServerParticipantConnections* self,
                                              NimbleServerParticipants* gameParticipants,
                                              struct NimbleServerTransportConnection* transportConnection,
-                                             const NimbleServerParticipantJoinInfo* joinInfo,
+                                             const NimbleSerializeJoinGameRequestPlayer* joinInfo,
                                              StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                              struct NimbleServerParticipantConnection** outConnection);
 
 int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections* self,
                                               NimbleServerParticipants* gameParticipants,
-                                              StepId latestAuthoritativeStepId, uint32_t participantId,
+                                              StepId latestAuthoritativeStepId, NimbleSerializeParticipantId participantId,
                                               struct NimbleServerParticipantConnection** outConnection);
 #endif

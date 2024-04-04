@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
 #include <datagram-transport/transport.h>
 #include <datagram-transport/types.h>
@@ -27,14 +27,11 @@
 static void removeReferencesFromGameParticipants(NimbleServerParticipantReferences* participantReferences)
 {
     NimbleServerParticipants* gameParticipants = participantReferences->gameParticipants;
+
     for (size_t i = 0; i < participantReferences->participantReferenceCount; ++i) {
         NimbleServerParticipant* participant = participantReferences->participantReferences[i];
-        CLOG_ASSERT(gameParticipants->participantCount > 0,
-                    "participant count is wrong when removing game participants")
-        gameParticipants->participantCount--;
-
-        participant->isUsed = false;
-        participant->localIndex = 0;
+        nimbleServerParticipantsDestroy(gameParticipants, participant->id);
+        participant = 0;
     }
 }
 
@@ -266,6 +263,18 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     return 0;
 }
 
+static bool containsParticipantId(NimbleSerializeParticipantId participantIds[], size_t participantIdCount,
+                                  NimbleSerializeParticipantId searchFor)
+{
+    for (size_t participantIndex = 0; participantIndex < participantIdCount; ++participantIndex) {
+        if (searchFor == participantIds[participantIndex]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /// Prepares the server's participants and participant connections for a host migration process.
 ///
 /// This function clears all existing participant connections and prepares each participant
@@ -283,9 +292,11 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
 /// indicating the total number of participants involved in the migration.
 ///
 /// @return negative on error
-int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], size_t participantIdCount)
+int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId participantIds[],
+                              size_t participantIdCount)
 {
     nimbleServerParticipantConnectionsReset(&self->connections);
+
     for (size_t i = 0; i < participantIdCount; ++i) {
         NimbleServerParticipantConnection* outConnection;
         int err = nimbleServerParticipantConnectionsPrepare(&self->connections, &self->game.participants,
@@ -294,6 +305,13 @@ int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], siz
         if (err < 0) {
             return err;
         }
+    }
+
+    for (NimbleSerializeParticipantId i = 0; i < self->game.participants.participantCapacity; ++i) {
+        if (containsParticipantId(participantIds, participantIdCount, i)) {
+            continue;
+        }
+        nimbleServerCircularBufferWrite(&self->game.participants.freeList, i);
     }
 
     return 0;

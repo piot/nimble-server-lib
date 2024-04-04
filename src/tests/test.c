@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------------------------------------*/
 #include "utest.h"
 #include <imprint/default_setup.h>
 #include <nimble-server/server.h>
@@ -36,7 +36,7 @@ UTEST(NimbleSteps, verifyHostMigration)
     int reInitErr = nimbleServerReInitWithGame(&server, 0, 0);
     ASSERT_GE(0, reInitErr);
 
-    uint32_t participantIds[] = {
+    NimbleSerializeParticipantId participantIds[] = {
         0x42,
         0x10,
         0x18,

@@ -1,7 +1,7 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Peter Bjorklund. All rights reserved.
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+ *--------------------------------------------------------------------------------------------------------*/
 #ifndef NIMBLE_SERVER_SERVER_H
 #define NIMBLE_SERVER_SERVER_H
 
@@ -77,7 +77,7 @@ typedef struct NimbleServerResponse {
 } NimbleServerResponse;
 
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup);
-int nimbleServerHostMigration(NimbleServer* self, uint32_t participantIds[], size_t participantIdCount);
+int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId participantIds[], size_t participantIdCount);
 int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
                                MonotonicTimeMs now);
 void nimbleServerReset(NimbleServer* self);

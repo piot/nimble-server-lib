@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16.3)
 
 add_library(nimble-server-lib STATIC 
   authoritative_steps.c
+  circular_buffer.c
   connection_quality.c
   delayed_quality.c
   forced_step.c
