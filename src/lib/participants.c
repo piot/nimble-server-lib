@@ -19,7 +19,11 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
     CLOG_C_DEBUG(&self->log, "the participant can join, the game participant pool is at %zu/%zu",
                  self->participantCount, self->participantCapacity)
 
+    if (participantId >= self->participantCapacity) {
+        CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
+    }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
+
     if (participant->isUsed) {
         CLOG_SOFT_ERROR("could not prepare for host migration, participant already used")
         return -2;
@@ -41,11 +45,14 @@ void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSeria
 {
     CLOG_C_DEBUG(&self->log, "destroying participant %hhu", participantId)
 
-    CLOG_ASSERT(self->participantCount > 0,
-                "participant count is wrong when removing game participants")
+    CLOG_ASSERT(self->participantCount > 0, "participant count is wrong when removing game participants")
     self->participantCount--;
 
+    if (participantId >= self->participantCapacity) {
+        CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
+    }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
+
     if (!participant->isUsed) {
         CLOG_ERROR("internal error, tried to free an unused participant")
     }
@@ -61,8 +68,9 @@ void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSeria
 /// @param localParticipantCount the number of participants in joinInfo
 /// @param[out] results the resulting participant
 /// @return negative on error
-int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSerializeJoinGameRequestPlayer* localPlayers,
-                                 size_t localParticipantCount, NimbleServerParticipant** results)
+int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
+                                 const NimbleSerializeJoinGameRequestPlayer* localPlayers, size_t localParticipantCount,
+                                 NimbleServerParticipant** results)
 {
     CLOG_ASSERT(localParticipantCount == 1, "in this version of nimble only one local participant is supported")
 
@@ -77,10 +85,15 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
     size_t joinIndex = 0;
     NimbleSerializeParticipantId participantId = nimbleServerCircularBufferRead(&self->freeList);
 
+    if (participantId >= self->participantCapacity) {
+        CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
+    }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
+
     if (participant->isUsed) {
         CLOG_ERROR("internal error, participant is already used, even if the index came from the free list")
     }
+
     const NimbleSerializeJoinGameRequestPlayer* localPlayer = &localPlayers[joinIndex];
     participant->localIndex = localPlayer->localIndex;
     participant->isUsed = true;

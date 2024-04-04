@@ -36,7 +36,7 @@ ssize_t nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connecti
     participants.participantCount = connection->participantReferences.participantReferenceCount;
     for (size_t i = 0; i < participants.participantCount; ++i) {
         participants.participants[i]
-            .participantId = (uint8_t) connection->participantReferences.participantReferences[i]->id;
+            .participantId =  connection->participantReferences.participantReferences[i]->id;
         participants.participants[i].connectState = state;
         participants.participants[i].payload = 0;
         participants.participants[i].payloadCount = 0;
