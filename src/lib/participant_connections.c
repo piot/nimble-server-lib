@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------------------*/
 #include <clog/clog.h>
 #include <nimble-server/errors.h>
+#include <nimble-server/participant.h>
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/participant_connections.h>
-#include <nimble-server/participant.h>
 #include <nimble-server/transport_connection.h>
 #include <secure-random/secure_random.h>
 
@@ -75,7 +75,7 @@ nimbleServerParticipantConnectionsFindConnectionForTransport(NimbleServerPartici
     return 0;
 }
 
-/// Finds the participant connection with the specified secret (and that is waiting for reconnect)
+/// Finds the participant connection with the specified secret
 /// @param self participant connections
 /// @param connectionSecret a previous secret given out by the server
 /// @return pointer to a participant connection, or NULL otherwise
@@ -84,9 +84,7 @@ nimbleServerParticipantConnectionsFindConnectionFromSecret(NimbleServerParticipa
                                                            NimbleSerializeParticipantConnectionSecret connectionSecret)
 {
     for (size_t i = 0; i < self->connectionCount; ++i) {
-        if (self->connections[i].isUsed &&
-            self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect &&
-            self->connections[i].secret == connectionSecret) {
+        if (self->connections[i].isUsed && self->connections[i].secret == connectionSecret) {
             return &self->connections[i];
         }
     }
@@ -105,16 +103,18 @@ nimbleServerParticipantConnectionsFindConnectionFromParticipantId(NimbleServerPa
     CLOG_C_DEBUG(&self->log, "host migration: finding connection for participant id %hhu", participantId)
     for (size_t i = 0; i < self->connectionCount; ++i) {
         if (self->connections[i].isUsed &&
-                       self->connections[i].participantReferences.participantReferences[0]->id == participantId) {
+            self->connections[i].participantReferences.participantReferences[0]->id == participantId) {
             CLOG_C_DEBUG(&self->log, "host migration: found connection for participant id %hhu", participantId)
             if (self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect) {
                 return &self->connections[i];
             }
-            CLOG_C_NOTICE(&self->log, "host migration: found the connection, but it was in the wrong state %d", self->connections[i].state)
+            CLOG_C_NOTICE(&self->log, "host migration: found the connection, but it was in the wrong state %d",
+                          self->connections[i].state)
         }
     }
 
-    CLOG_C_NOTICE(&self->log, "host migration: could not find prepared connection for participant id %hhu", participantId)
+    CLOG_C_NOTICE(&self->log, "host migration: could not find prepared connection for participant id %hhu",
+                  participantId)
     return 0;
 }
 
@@ -171,7 +171,8 @@ static void addParticipantConnection(NimbleServerParticipantConnections* self,
 
 int nimbleServerParticipantConnectionsPrepare(NimbleServerParticipantConnections* self,
                                               NimbleServerParticipants* gameParticipants,
-                                              StepId latestAuthoritativeStepId, NimbleSerializeParticipantId participantId,
+                                              StepId latestAuthoritativeStepId,
+                                              NimbleSerializeParticipantId participantId,
                                               NimbleServerParticipantConnection** outConnection)
 {
     NimbleServerParticipantConnection* participantConnection = findFreeConnectionButDoNotReserveYet(self);
