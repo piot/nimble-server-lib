@@ -34,7 +34,7 @@ jobs:
         run: cmake --build . --clean-first -- VERBOSE=1
 
       - name: run tests
-        run: ctest . --verbose
+        run: ctest . --extra-verbose
 
       - uses: actions/upload-artifact@v2
         with:
