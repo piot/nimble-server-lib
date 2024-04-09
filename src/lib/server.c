@@ -304,6 +304,7 @@ int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId p
         }
     }
 
+    nimbleServerCircularBufferInit(&self->game.participants.freeList);
     for (NimbleSerializeParticipantId i = 0; i < self->game.participants.participantCapacity; ++i) {
         if (containsParticipantId(participantIds, participantIdCount, i)) {
             continue;
