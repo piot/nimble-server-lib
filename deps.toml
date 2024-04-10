@@ -32,6 +32,10 @@ name = 'piot/ordered-datagram-c'
 version = "*"
 
 [[dependencies]]
+name = 'piot/connection-layer'
+version = "*"
+
+[[dependencies]]
 name = 'piot/secure-random-c'
 version = "*"
 

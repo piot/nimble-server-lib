@@ -70,6 +70,8 @@ typedef struct NimbleServer {
     StatsIntPerSecond authoritativeStepsPerSecondStat;
     NimbleServerUpdateQuality updateQuality;
     NimbleServerCallbackObject callbackObject;
+
+    NimbleServerCircularBuffer freeTransportConnectionList;
 } NimbleServer;
 
 typedef struct NimbleServerResponse {

@@ -100,7 +100,7 @@ void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* 
 void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self)
 {
     CLOG_C_DEBUG(&self->log, "disconnected")
-    self->transportConnection->isUsed = false;
+    transportConnectionDisconnect(self->transportConnection);
     self->state = NimbleServerParticipantConnectionStateDisconnected;
 }
 
@@ -202,8 +202,8 @@ int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParti
             CLOG_C_WARN(&self->log, "dropped %zu", dropped)
             return -3;
         }
-        CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X", dropped,
-                    self->steps.expectedWriteId, firstStepId, lastStepId)
+        CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
+                    dropped, self->steps.expectedWriteId, firstStepId, lastStepId)
         nimbleServerInsertForcedSteps(self, dropped);
     }
 
@@ -213,7 +213,9 @@ int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParti
     }
     if (addedStepsCount == 0) {
         if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
-            CLOG_C_DEBUG(&self->log, "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not a problem unless it happens a lot)",
+            CLOG_C_DEBUG(&self->log,
+                         "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not a "
+                         "problem unless it happens a lot)",
                          firstStepId, lastStepId, self->steps.expectedWriteId)
         }
     }

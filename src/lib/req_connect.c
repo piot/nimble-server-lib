@@ -11,9 +11,26 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>
+#include <secure-random/secure_random.h>
 
-int nimbleServerReqConnect(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
-                           FldInStream* inStream, FldOutStream* outStream)
+static NimbleServerTransportConnection*
+findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionIndex, uint64_t connectionRequestNonce)
+{
+    for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
+        NimbleServerTransportConnection* connection = &self->transportConnections[i];
+        if (!connection->isUsed) {
+            continue;
+        }
+        if (connection->transportIndex == transportConnectionIndex &&
+            connection->connectedFromRequestNonce == connectionRequestNonce) {
+            return connection;
+        }
+    }
+    return 0;
+}
+
+int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex, FldInStream* inStream,
+                           FldOutStream* outStream)
 {
     NimbleSerializeConnectRequest connectOptions;
     int serializeErr = nimbleSerializeServerInConnectRequest(inStream, &connectOptions);
@@ -21,19 +38,45 @@ int nimbleServerReqConnect(NimbleServer* self, NimbleServerTransportConnection* 
         return NimbleServerErrSerializeVersion;
     }
 
-    transportConnection->useDebugStreams = connectOptions.useDebugStreams;
-
     if (!nimbleSerializeVersionIsEqual(&self->applicationVersion, &connectOptions.applicationVersion)) {
         CLOG_SOFT_ERROR("Wrong application version")
         return NimbleServerErrSerializeVersion;
     }
 
-    if (transportConnection->phase == NbTransportConnectionPhaseWaitingForValidConnect) {
+    NimbleServerTransportConnection* transportConnection = findExistingConnectionRequest(self, transportConnectionIndex,
+                                                                                         connectOptions.nonce);
+    if (!transportConnection) {
+        CLOG_C_DEBUG(&self->log, "request for a new connection")
+        if (nimbleServerCircularBufferIsEmpty(&self->freeTransportConnectionList)) {
+            CLOG_C_NOTICE(&self->log, "no free transport connection")
+            return NimbleServerErrSerialize;
+        }
+
+        uint8_t freeTransportIndex = nimbleServerCircularBufferRead(&self->freeTransportConnectionList);
+        transportConnection = &self->transportConnections[freeTransportIndex];
+        if (transportConnection->isUsed) {
+            CLOG_C_ERROR(&self->log, "the transport index from free list was not free")
+            // return -2;
+        }
+
+        transportConnection->isUsed = true;
+        transportConnection->transportIndex = transportConnectionIndex;
+        transportConnection->connectedFromRequestNonce = connectOptions.nonce;
+        transportConnection->secret = secureRandomUInt64();
+        transportConnection->useDebugStreams = connectOptions.useDebugStreams;
         transportConnection->phase = NbTransportConnectionPhaseConnected;
+        transportConnection->id = freeTransportIndex;
+
+        connectionLayerIncomingInit(&transportConnection->incomingConnection, transportConnection->secret);
+        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->secret);
+    } else {
+        CLOG_C_DEBUG(&self->log, "return existing connection")
     }
 
     NimbleSerializeConnectResponse connectResponse;
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
+    connectResponse.connectionId = transportConnection->id;
+    connectResponse.connectionSecret = transportConnection->secret;
 
     return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }
