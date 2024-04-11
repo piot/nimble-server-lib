@@ -15,6 +15,7 @@
 #include <imprint/default_setup.h>
 
 #include <datagram-transport/transport.h>
+#include <datagram-transport/types.h>
 #include <nimble-daemon/version.h>
 
 clog_config g_clog;
@@ -83,22 +84,20 @@ int main(int argc, char* argv[])
 
     static uint8_t exampleGameState = 42;
     nimbleServerGameSetGameState(&server.game, 0, &exampleGameState, 1, &serverLog);
-#define UDP_MAX_SIZE (1200)
 
-    uint8_t buf[UDP_MAX_SIZE];
+
+    uint8_t buf[DATAGRAM_TRANSPORT_MAX_SIZE];
     size_t size;
     struct sockaddr_in address;
 
-#define UDP_REPLY_MAX_SIZE (UDP_MAX_SIZE)
-
-    uint8_t reply[UDP_REPLY_MAX_SIZE];
+    uint8_t reply[DATAGRAM_TRANSPORT_MAX_SIZE];
     FldOutStream outStream;
-    fldOutStreamInit(&outStream, reply, UDP_REPLY_MAX_SIZE);
+    fldOutStreamInit(&outStream, reply, DATAGRAM_TRANSPORT_MAX_SIZE);
 
     CLOG_OUTPUT("ready for incoming packets")
 
     while (1) {
-        size = UDP_MAX_SIZE;
+        size = DATAGRAM_TRANSPORT_MAX_SIZE;
         ssize_t errorCode = udpServerReceive(&daemon.socket, buf, size, &address);
         if (errorCode < 0) {
             CLOG_WARN("problem with receive %zd", errorCode)

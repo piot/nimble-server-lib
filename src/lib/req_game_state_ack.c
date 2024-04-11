@@ -51,8 +51,7 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
     const BlobStreamOutEntry* entries[4];
 
     int entriesFound = blobStreamLogicOutPrepareSend(&transportConnection->blobStreamLogicOut, now, entries, 4);
-#define UDP_MAX_SIZE (1200)
-    static uint8_t buf[UDP_MAX_SIZE];
+    static uint8_t buf[DATAGRAM_TRANSPORT_MAX_SIZE];
     FldOutStream stream;
 
     for (int i = 0; i < entriesFound; ++i) {
@@ -60,7 +59,7 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
 
         // CLOG_DEBUG("sending state %08X (octet count :%zu)", options.stepId, options.gameStateOctetCount);
 
-        fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
+        fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
         stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
         FldOutStreamStoredPosition finalizePosition;
@@ -97,7 +96,7 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
     // There is a chance that the client will receive the complete blob stream, lets send a packet with
     // authoritative inputs as well
 
-    fldOutStreamInit(&stream, buf, UDP_MAX_SIZE);
+    fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
     stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
     FldOutStreamStoredPosition secondFinalizePosition;
     transportConnectionPrepareHeader(transportConnection, &stream, clientTime, &secondFinalizePosition);
