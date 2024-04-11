@@ -21,6 +21,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <connection-layer/incoming.h>
+#include <connection-layer/outgoing.h>
 
 struct FldOutStream;
 
@@ -33,10 +35,17 @@ typedef enum NimbleServerTransportConnectionPhase {
 } NimbleServerTransportConnectionPhase;
 
 typedef struct NimbleServerTransportConnection {
+    uint8_t id;
     uint8_t transportConnectionId;
+    uint8_t transportIndex;
+    uint64_t connectedFromRequestNonce;
+    uint64_t secret;
     struct NimbleServerParticipantConnection* assignedParticipantConnection;
     OrderedDatagramInLogic orderedDatagramInLogic;
     OrderedDatagramOutLogic orderedDatagramOutLogic;
+    ConnectionLayerIncoming incomingConnection;
+    ConnectionLayerOutgoing outgoingConnection;
+
     BlobStreamOut blobStreamOut;
     BlobStreamLogicOut blobStreamLogicOut;
     NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
@@ -55,7 +64,9 @@ typedef struct NimbleServerTransportConnection {
 
 void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAllocatorWithFree* blobStreamAllocator,
                              size_t maxGameOctetSize, Clog log);
+void transportConnectionDisconnect(NimbleServerTransportConnection* self);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
-int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime);
-
+int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime, FldOutStreamStoredPosition* outData);
+int transportConnectionCommitHeader(NimbleServerTransportConnection* self, FldOutStream* outStream,
+                                    FldOutStreamStoredPosition seekPosition);
 #endif

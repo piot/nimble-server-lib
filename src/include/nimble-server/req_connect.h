@@ -13,7 +13,7 @@ struct FldOutStream;
 struct FldInStream;
 struct NimbleServerTransportConnection;
 
-int nimbleServerReqConnect(struct NimbleServer* self, struct NimbleServerTransportConnection* transportConnection,
+int nimbleServerReqConnect(struct NimbleServer* self, uint8_t transportConnectionIndex,
                            struct FldInStream* inStream, struct FldOutStream* outStream);
 
 #endif

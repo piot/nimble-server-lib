@@ -45,6 +45,12 @@ static void disconnectConnection(NimbleServerParticipantConnections* connections
     nimbleServerParticipantConnectionsRemove(connections, connection);
 }
 
+static void disconnectTransportConnection(NimbleServer* self, NimbleServerTransportConnection* transportConnection)
+{
+    nimbleServerCircularBufferWrite(&self->freeTransportConnectionList, (uint8_t) transportConnection->id);
+    transportConnectionDisconnect(transportConnection);
+}
+
 /// Iterates over all participant connections in the server, performs a tick update, and disconnects connections
 /// that are recommended to be disconnected.
 /// @param self Pointer to an instance of NimbleServer.
@@ -59,6 +65,7 @@ static void tickParticipantConnections(NimbleServer* self)
         bool isWorking = nimbleServerParticipantConnectionTick(connection);
         if (!isWorking) {
             disconnectConnection(&self->connections, connection);
+            disconnectTransportConnection(self, connection->transportConnection);
         }
     }
 }
@@ -105,37 +112,96 @@ bool nimbleServerIsErrorExternal(int err)
 /// Handle an incoming request from a client identified by the connectionIndex
 /// It uses the NimbleServerResponse to send datagrams back to the client
 /// @param self server
-/// @param connectionIndex transport connection index that we received datagram from
+/// @param transportIndex transport connection index that we received datagram from
 /// @param data datagram payload
 /// @param len octet count of data
 /// @param response info on how to make a response
 /// @return negative on error
-int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
+int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
-    // CLOG_C_VERBOSE(&self->log, "feed: '%s' octetCount: %zu", nimbleSerializeCmdToString(data[5]), len)
-
-    if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
-        CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
-        return -83;
-    }
-
+    CLOG_C_VERBOSE(&self->log, "feed: octetCount: %zu", len)
     FldInStream inStream;
     fldInStreamInit(&inStream, data, len);
     inStream.readDebugInfo = true;
 
+    uint8_t connectionIndex;
+    fldInStreamReadUInt8(&inStream, &connectionIndex);
+
+#define UDP_MAX_SIZE (1200)
+    static uint8_t buf[UDP_MAX_SIZE];
+    FldOutStream outStream;
+    fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
+    outStream.writeDebugInfo = true; // transportConnection->useDebugStreams;
+
+    if (connectionIndex == 0) {
+        // Minimal header for oob
+        fldOutStreamWriteUInt8(&outStream, 0); // Write zero connection id
+
+        uint8_t cmd;
+        fldInStreamReadUInt8(&inStream, &cmd);
+        int result = 0;
+        switch (cmd) {
+            case NimbleSerializeCmdConnectRequest:
+                result = nimbleServerReqConnect(self, transportIndex, &inStream, &outStream);
+                break;
+            default:
+                CLOG_C_NOTICE(&self->log, "received unknown oob command %hhu", cmd)
+                return NimbleServerErrSerialize;
+        }
+
+        if (outStream.pos > datagramTransportMaxSize) {
+            CLOG_C_SOFT_ERROR(&self->log,
+                              "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
+                              outStream.pos, datagramTransportMaxSize)
+            return NimbleServerErrSerialize;
+        }
+
+        if (result < 0) {
+            return result;
+        }
+
+        return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
+    }
+
+    if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
+        CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
+        return NimbleServerErrSerialize;
+    }
+
     if (connectionIndex > 64) {
         CLOG_SOFT_ERROR("can only support up to 64 connections")
-        return -13;
+        return NimbleServerErrSerialize;
     }
 
     NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
     if (transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
         CLOG_SOFT_ERROR("was disconnected")
-        return -54;
+        return NimbleServerErrSerialize;
     }
 
-    orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
+    if (!transportConnection->isUsed) {
+        CLOG_SOFT_ERROR("connection is not used")
+        return NimbleServerErrSerialize;
+    }
+
+    if (transportConnection->transportIndex != transportIndex) {
+        CLOG_C_NOTICE(&self->log, "we received a packet from a wrong transport index. expected %hhu but received %hhu",
+                      transportConnection->transportIndex, transportIndex)
+        return NimbleServerErrSerialize;
+    }
+
+    int verifyHashStatus = connectionLayerIncomingVerify(&transportConnection->incomingConnection, &inStream);
+    if (verifyHashStatus < 0) {
+        CLOG_C_NOTICE(&self->log, "we received a packet with a wrong hash")
+        return NimbleServerErrSerialize;
+    }
+
+    int error = orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
+    if (error < 0) {
+        return NimbleServerErrSerialize;
+    }
+
     uint16_t clientTime;
     fldInStreamReadUInt16(&inStream, &clientTime);
 
@@ -148,22 +214,15 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
                                                    clientTime);
     }
 
-#define UDP_MAX_SIZE (1200)
-    static uint8_t buf[UDP_MAX_SIZE];
-    FldOutStream outStream;
-    fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
-    outStream.writeDebugInfo = true; // transportConnection->useDebugStreams;
-
-    int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime);
+    FldOutStreamStoredPosition finalizeSeekPosition;
+    int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime, &finalizeSeekPosition);
     if (err < 0) {
         return err;
     }
 
     int result;
     switch (cmd) {
-        case NimbleSerializeCmdConnectRequest:
-            result = nimbleServerReqConnect(self, transportConnection, &inStream, &outStream);
-            break;
+
         case NimbleSerializeCmdGameStep:
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
                                              &self->connections, &inStream, &outStream);
@@ -190,6 +249,11 @@ int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t*
 
     if (inStream.pos != inStream.size) {
         CLOG_C_ERROR(&self->log, "not read everything from buffer %zu of %zu", inStream.pos, inStream.size)
+    }
+
+    int commitError = transportConnectionCommitHeader(transportConnection, &outStream, finalizeSeekPosition);
+    if (commitError < 0) {
+        return commitError;
     }
 
     if (outStream.pos <= 4) {
@@ -247,10 +311,17 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->applicationVersion = setup.applicationVersion;
     self->callbackObject = setup.callbackObject;
     self->setup = setup;
-    for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
+
+    self->transportConnections[0].assignedParticipantConnection = 0;
+    self->transportConnections[0].transportConnectionId = (uint8_t) 0;
+    self->transportConnections[0].isUsed = false;
+
+    nimbleServerCircularBufferInit(&self->freeTransportConnectionList);
+    for (size_t i = 1; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParticipantConnection = 0;
         self->transportConnections[i].transportConnectionId = (uint8_t) i;
         self->transportConnections[i].isUsed = false;
+        nimbleServerCircularBufferWrite(&self->freeTransportConnectionList, (uint8_t) i);
     }
 
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, setup.now, 1000);
@@ -292,6 +363,7 @@ static bool containsParticipantId(NimbleSerializeParticipantId participantIds[],
 int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId participantIds[],
                               size_t participantIdCount)
 {
+    CLOG_C_INFO(&self->log, "prepare new host for migration")
     nimbleServerParticipantConnectionsReset(&self->connections);
 
     for (size_t i = 0; i < participantIdCount; ++i) {
@@ -347,7 +419,7 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
     CLOG_C_DEBUG(&self->log, "connection %d connected", connectionIndex)
 
     transportConnection->isUsed = true;
-    transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
+
 
     return 0;
 }
@@ -402,18 +474,18 @@ static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t
 int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
-    uint8_t datagram[1200];
+    uint8_t datagram[UDP_MAX_SIZE];
     // CLOG_C_VERBOSE(&self->log, "read all from transport")
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
 
     DatagramTransportOut responseTransport;
 
-    const int maximumNumberOfConnections = 64;
+    const int maximumNumberOfDatagramsPerTick = 64;
 
-    for (size_t i = 0; i < maximumNumberOfConnections; ++i) {
+    for (size_t i = 0; i < maximumNumberOfDatagramsPerTick; ++i) {
         ssize_t octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId,
-                                                                      datagram, 1200);
+                                                                      datagram, UDP_MAX_SIZE);
         if (octetCountReceived == 0) {
             if (i > 10) {
                 CLOG_C_NOTICE(&self->log, "high number of datagrams in one tick: %zu", i)
@@ -423,16 +495,6 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 
         if (octetCountReceived < 0) {
             return (int) octetCountReceived;
-        }
-        bool didConnectNow = !self->transportConnections[connectionId].isUsed;
-
-        if (didConnectNow) {
-            nimbleServerConnectionConnected(self, (uint8_t) connectionId);
-        }
-
-        bool disconnectNow = self->transportConnections[connectionId].phase == NbTransportConnectionPhaseDisconnected;
-        if (disconnectNow) {
-            nimbleServerConnectionDisconnected(self, (uint8_t) connectionId);
         }
 
         replyOnlyToConnection.connectionIndex = connectionId;
