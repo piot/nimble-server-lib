@@ -27,7 +27,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
     if (foundConnection != 0) {
         CLOG_C_DEBUG(
             &connections->log,
-            "found an existing participant connection %d for this transport connection (%hhu). ignoring join request",
+            "found an existing participant connection %u for this transport connection (%hhu). ignoring join request",
             foundConnection->id, transportConnection->transportConnectionId)
         *outConnection = foundConnection;
         return 0;
@@ -73,7 +73,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
                                   "could not rejoin after host migration participantID. wrong number of local participant count")
                     return -1;
                 } else {
-                    CLOG_C_DEBUG(&connections->log, "client joining after host migration, requesting participantId %d, to a previous connection %d",
+                    CLOG_C_DEBUG(&connections->log, "client joining after host migration, requesting participantId %d, to a previous connection %u",
                                  joinRequest->participantId, foundConnectionFromParticipantId->id)
                     nimbleServerParticipantConnectionRejoin(foundConnectionFromParticipantId, transportConnection,
                                                             latestAuthoritativeStepId);
