@@ -12,6 +12,7 @@
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>
 #include <secure-random/secure_random.h>
+#include <inttypes.h>
 
 static NimbleServerTransportConnection*
 findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionIndex, uint64_t connectionRequestNonce)
@@ -72,7 +73,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         connectionLayerIncomingInit(&transportConnection->incomingConnection, transportConnection->secret);
         connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->secret);
     } else {
-        CLOG_C_DEBUG(&self->log, "return existing connection")
+        CLOG_C_DEBUG(&self->log, "return existing connection %" PRIX64, connectOptions.nonce)
     }
 
     NimbleSerializeConnectResponse connectResponse;
