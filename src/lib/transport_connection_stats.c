@@ -14,7 +14,7 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
     NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
 
     if (foundParticipantConnection) {
-        tc_snprintf(debug, DEBUG_COUNT, "server: conn %d step count in incoming buffer",
+        tc_snprintf(debug, DEBUG_COUNT, "server: conn %u step count in incoming buffer",
                     foundParticipantConnection->id);
         statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, &transportConnection->log, debug,
                       "steps");
