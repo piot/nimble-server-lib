@@ -11,7 +11,7 @@ UTEST(NimbleSteps, verifyHostMigration)
 {
     ImprintDefaultSetup imprintSetup;
 
-    imprintDefaultSetupInit(&imprintSetup, 4 * 1024 * 1024);
+    imprintDefaultSetupInit(&imprintSetup, 32 * 1024 * 1024);
 
     NimbleServer server;
 
