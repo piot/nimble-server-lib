@@ -81,7 +81,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
 
         int verifyResult = nbsStepsVerifyStep(stepReadBuffer, stepOctetCount);
         if (verifyResult < 0) {
-            CLOG_C_SOFT_ERROR(&connection->log, "invalid step from connection %d lookingFor:%08X", connection->id,
+            CLOG_C_SOFT_ERROR(&connection->log, "invalid step from connection %u lookingFor:%08X", connection->id,
                               lookingFor)
             return -6;
         }
@@ -98,7 +98,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
 
         if (localParticipantCount != connection->participantReferences.participantReferenceCount) {
             CLOG_C_NOTICE(
-                &connection->log, "connection %d should provide the appropriate number of participants %d vs %zu",
+                &connection->log, "connection %u should provide the appropriate number of participants %d vs %zu",
                 connection->id, localParticipantCount, connection->participantReferences.participantReferenceCount)
         }
 
@@ -126,7 +126,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
             int hasParticipant = nimbleServerParticipantConnectionHasParticipantId(connection, participantId);
             if (!hasParticipant) {
                 CLOG_C_SOFT_ERROR(&connection->log,
-                                  "participant connection %d had no right to insert steps for participant %hhu",
+                                  "participant connection %u had no right to insert steps for participant %hhu",
                                   connection->id, participantId)
                 continue;
             }
