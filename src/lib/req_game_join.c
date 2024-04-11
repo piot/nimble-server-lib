@@ -46,7 +46,7 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
                     CLOG_C_NOTICE(&connections->log,
                                   "could not rejoin with secret. wrong number of local participant count")
                 } else {
-                    CLOG_C_DEBUG(&connections->log, "rejoining, using a secret, to a previous connection %d",
+                    CLOG_C_DEBUG(&connections->log, "rejoining, using a secret, to a previous connection %u",
                                  foundConnectionFromSecret->id)
                     nimbleServerParticipantConnectionRejoin(foundConnectionFromSecret, transportConnection,
                                                             latestAuthoritativeStepId);
