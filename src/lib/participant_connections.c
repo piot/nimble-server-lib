@@ -108,7 +108,7 @@ nimbleServerParticipantConnectionsFindConnectionFromParticipantId(NimbleServerPa
             if (self->connections[i].state == NimbleServerParticipantConnectionStateWaitingForReconnect) {
                 return &self->connections[i];
             }
-            CLOG_C_NOTICE(&self->log, "host migration: found the connection, but it was in the wrong state %d",
+            CLOG_C_NOTICE(&self->log, "host migration: found the connection, but it was in the wrong state %u",
                           self->connections[i].state)
         }
     }
