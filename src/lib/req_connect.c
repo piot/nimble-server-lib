@@ -14,6 +14,8 @@
 #include <secure-random/secure_random.h>
 #include <inttypes.h>
 
+// TODO: Also check the time since the connection was last requested
+
 static NimbleServerTransportConnection*
 findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionIndex, uint64_t connectionRequestNonce)
 {
@@ -44,6 +46,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         return NimbleServerErrSerializeVersion;
     }
 
+    // TODO: Also check the time since the connection was last requested
     NimbleServerTransportConnection* transportConnection = findExistingConnectionRequest(self, transportConnectionIndex,
                                                                                          connectOptions.nonce);
     if (!transportConnection) {
@@ -73,7 +76,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         connectionLayerIncomingInit(&transportConnection->incomingConnection, transportConnection->secret);
         connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->secret);
     } else {
-        CLOG_C_DEBUG(&self->log, "return existing connection %" PRIX64, connectOptions.nonce)
+        CLOG_C_DEBUG(&self->log, "return existing connection with nonce %" PRIX64, connectOptions.nonce)
     }
 
     NimbleSerializeConnectResponse connectResponse;
