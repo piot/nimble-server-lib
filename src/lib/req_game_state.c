@@ -19,6 +19,7 @@ int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportCo
 {
     uint8_t downloadClientRequestId;
     fldInStreamReadUInt8(inStream, &downloadClientRequestId);
+    CLOG_ASSERT(downloadClientRequestId != 0, "download client request can not be zero")
 
     if (downloadClientRequestId == transportConnection->blobStreamOutClientRequestId) {
         CLOG_C_VERBOSE(&transportConnection->log,
