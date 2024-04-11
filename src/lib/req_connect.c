@@ -67,6 +67,8 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         transportConnection->phase = NbTransportConnectionPhaseConnected;
         transportConnection->id = freeTransportIndex;
 
+        transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
+
         connectionLayerIncomingInit(&transportConnection->incomingConnection, transportConnection->secret);
         connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->secret);
     } else {

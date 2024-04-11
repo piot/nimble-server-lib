@@ -100,7 +100,6 @@ void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* 
 void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self)
 {
     CLOG_C_DEBUG(&self->log, "disconnected")
-    transportConnectionDisconnect(self->transportConnection);
     self->state = NimbleServerParticipantConnectionStateDisconnected;
 }
 

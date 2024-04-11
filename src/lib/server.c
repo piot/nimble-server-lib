@@ -45,6 +45,12 @@ static void disconnectConnection(NimbleServerParticipantConnections* connections
     nimbleServerParticipantConnectionsRemove(connections, connection);
 }
 
+static void disconnectTransportConnection(NimbleServer* self, NimbleServerTransportConnection* transportConnection)
+{
+    nimbleServerCircularBufferWrite(&self->freeTransportConnectionList, (uint8_t) transportConnection->id);
+    transportConnectionDisconnect(transportConnection);
+}
+
 /// Iterates over all participant connections in the server, performs a tick update, and disconnects connections
 /// that are recommended to be disconnected.
 /// @param self Pointer to an instance of NimbleServer.
@@ -59,6 +65,7 @@ static void tickParticipantConnections(NimbleServer* self)
         bool isWorking = nimbleServerParticipantConnectionTick(connection);
         if (!isWorking) {
             disconnectConnection(&self->connections, connection);
+            disconnectTransportConnection(self, connection->transportConnection);
         }
     }
 }
@@ -140,8 +147,21 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
                 break;
             default:
                 CLOG_C_NOTICE(&self->log, "received unknown oob command %hhu", cmd)
+                return NimbleServerErrSerialize;
         }
-        return result;
+
+        if (outStream.pos > datagramTransportMaxSize) {
+            CLOG_C_SOFT_ERROR(&self->log,
+                              "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
+                              outStream.pos, datagramTransportMaxSize)
+            return NimbleServerErrSerialize;
+        }
+
+        if (result < 0) {
+            return result;
+        }
+
+        return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
     }
 
     if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
@@ -399,7 +419,7 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
     CLOG_C_DEBUG(&self->log, "connection %d connected", connectionIndex)
 
     transportConnection->isUsed = true;
-    transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
+
 
     return 0;
 }

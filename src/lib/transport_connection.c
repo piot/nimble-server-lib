@@ -63,9 +63,9 @@ int transportConnectionCommitHeader(NimbleServerTransportConnection* self, FldOu
     FldOutStreamStoredPosition restoreEndPosition = fldOutStreamTell(outStream);
     size_t octetCount = outStream->pos;
     fldOutStreamSeek(outStream, seekPosition);
-
-    int writeStatus = connectionLayerOutgoingWrite(&self->outgoingConnection, outStream, outStream->p + 4,
-                                                   octetCount - outStream->pos - 4);
+const int connectionLayerOctetCount = 4+1;
+    int writeStatus = connectionLayerOutgoingWrite(&self->outgoingConnection, outStream, outStream->p + connectionLayerOctetCount,
+                                                   octetCount - outStream->pos - connectionLayerOctetCount);
     if (writeStatus < 0) {
         return writeStatus;
     }
