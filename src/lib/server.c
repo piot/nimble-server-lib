@@ -165,40 +165,36 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
     }
 
     if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
-        CLOG_SOFT_ERROR("illegal connection index : %u", connectionIndex)
-        return NimbleServerErrSerialize;
-    }
-
-    if (connectionIndex > 64) {
-        CLOG_SOFT_ERROR("can only support up to 64 connections")
+        CLOG_C_SOFT_ERROR(&self->log, "illegal connection index : %u", connectionIndex)
         return NimbleServerErrSerialize;
     }
 
     NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
-    if (transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
-        CLOG_SOFT_ERROR("was disconnected")
+    if (!transportConnection->isUsed) {
+        CLOG_C_VERBOSE(&self->log, "received a connectionIndex from an unused connection. probably an old datagram?")
         return NimbleServerErrSerialize;
     }
 
-    if (!transportConnection->isUsed) {
-        CLOG_SOFT_ERROR("connection is not used")
+    if (transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
+        CLOG_C_SOFT_ERROR(&self->log, "connection:%u is disconnected, so disregarding datagram", connectionIndex)
         return NimbleServerErrSerialize;
     }
 
     if (transportConnection->transportIndex != transportIndex) {
-        CLOG_C_NOTICE(&self->log, "we received a packet from a wrong transport index. expected %hhu but received %hhu",
+        CLOG_C_NOTICE(&self->log, "we received a datagram from wrong transport index. Expected %hhu but received %hhu",
                       transportConnection->transportIndex, transportIndex)
         return NimbleServerErrSerialize;
     }
 
     int verifyHashStatus = connectionLayerIncomingVerify(&transportConnection->incomingConnection, &inStream);
     if (verifyHashStatus < 0) {
-        CLOG_C_NOTICE(&self->log, "we received a packet with a wrong hash")
+        CLOG_C_NOTICE(&self->log, "we received a datagram with a wrong hash. could be due to it being and old datagram?")
         return NimbleServerErrSerialize;
     }
 
     int error = orderedDatagramInLogicReceive(&transportConnection->orderedDatagramInLogic, &inStream);
     if (error < 0) {
+        CLOG_C_VERBOSE(&self->log, "we received an out of order datagram, discarding")
         return NimbleServerErrSerialize;
     }
 
@@ -222,7 +218,6 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
 
     int result;
     switch (cmd) {
-
         case NimbleSerializeCmdGameStep:
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
                                              &self->connections, &inStream, &outStream);
