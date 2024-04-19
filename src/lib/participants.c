@@ -31,6 +31,7 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
 
     participant->localIndex = 0;
     participant->isUsed = true;
+    participant->hasProvidedStepsBefore = true;
     participant->id = participantId;
 
     CLOG_C_DEBUG(&self->log, "allocating participant with game unique id: %hhu", participant->id)
@@ -39,6 +40,16 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
     *outConnection = participant;
 
     return 0;
+}
+
+
+NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId)
+{
+    if (participantId >= self->participantCapacity) {
+        return 0;
+    }
+
+    return &self->participants[participantId];
 }
 
 void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId)
@@ -60,6 +71,7 @@ void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSeria
     nimbleServerCircularBufferWrite(&self->freeList, participantId);
     participant->isUsed = false;
     participant->localIndex = 0;
+    participant->hasProvidedStepsBefore = false;
 }
 
 /// Creates a new participant using the join information.
@@ -97,6 +109,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
     const NimbleSerializeJoinGameRequestPlayer* localPlayer = &localPlayers[joinIndex];
     participant->localIndex = localPlayer->localIndex;
     participant->isUsed = true;
+    participant->hasProvidedStepsBefore = false;
     participant->id = participantId;
 
     CLOG_C_DEBUG(&self->log, "allocating participant %zu with unique id: %hhu", joinIndex, participant->id)

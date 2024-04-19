@@ -35,4 +35,6 @@ void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSeria
 int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId,
                                     struct NimbleServerParticipant** createdParticipant);
 
+struct NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId);
+
 #endif

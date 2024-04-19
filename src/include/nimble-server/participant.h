@@ -12,6 +12,7 @@ typedef struct NimbleServerParticipant {
     size_t localIndex;
     uint8_t id;
     bool isUsed;
+    bool hasProvidedStepsBefore;
 } NimbleServerParticipant;
 
 #endif

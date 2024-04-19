@@ -32,7 +32,7 @@ typedef enum NimbleServerLocalPartyState {
 
 /// Represents a UDP "connection" from a client which can hold several game participants. */
 typedef struct NimbleServerLocalParty {
-    NimbleSerializeParticipantId id;
+    NimbleSerializeLocalPartyId id;
     bool isUsed;
     NbsSteps steps;
 
