@@ -37,7 +37,7 @@ ssize_t nimbleServerCreateForcedStep(NimbleServerLocalParty* party, uint8_t* for
     for (size_t i = 0; i < participants.participantCount; ++i) {
         participants.participants[i]
             .participantId =  party->participantReferences.participantReferences[i]->id;
-        participants.participants[i].connectState = state;
+        participants.participants[i].stepType = state;
         participants.participants[i].payload = 0;
         participants.participants[i].payloadCount = 0;
     }
