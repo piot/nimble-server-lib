@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------------------*/
 #include "utest.h"
 #include <imprint/default_setup.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/server.h>
 
 UTEST(NimbleSteps, verifyHostMigration)
@@ -56,7 +56,7 @@ UTEST(NimbleSteps, verifyHostMigration)
         CLOG_DEBUG("index %zu data: %hhu", i, freeList->data[index])
     }
 
-    for (size_t i = 0; i < server.connections.connectionCount; ++i) {
-        const NimbleServerParticipantConnection* participantConnection = &server.connections.connections[i];
+    for (size_t i = 0; i < server.localParties.partiesCount; ++i) {
+        const NimbleServerLocalParty* party = &server.localParties.parties[i];
     }
 }

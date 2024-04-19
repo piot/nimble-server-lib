@@ -10,15 +10,15 @@
 #include <stdint.h>
 
 struct NimbleServerGame;
-struct NimbleServerParticipantConnection;
-struct NimbleServerParticipantConnections;
+struct NimbleServerLocalParty;
+struct NimbleServerLocalParties;
 struct NimbleServerTransportConnection;
 struct FldOutStream;
 struct FldInStream;
 
 int nimbleServerReqGameStep(struct NimbleServerGame* game, struct NimbleServerTransportConnection* transportConnection,
                    StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                   struct NimbleServerParticipantConnections* connections, struct FldInStream* inStream,
+                   struct NimbleServerLocalParties* connections, struct FldInStream* inStream,
                    struct FldOutStream* response);
 
 #endif

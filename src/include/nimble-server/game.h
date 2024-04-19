@@ -6,7 +6,7 @@
 #define NIMBLE_SERVER_GAME_H
 
 #include <nimble-server/game_state.h>
-#include <nimble-server/participant_connections.h>
+#include <nimble-server/local_parties.h>
 #include <nimble-steps/steps.h>
 #include <stdbool.h>
 

@@ -10,8 +10,8 @@ add_library(nimble-server-lib STATIC
   game.c
   game_state.c
   incoming_predicted_steps.c
-  participant_connection.c
-  participant_connections.c
+  local_party.c
+  local_parties.c
   participants.c
   req_connect.c
   req_game_join.c

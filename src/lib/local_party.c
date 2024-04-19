@@ -9,12 +9,12 @@
 #include <nimble-server/delayed_quality.h>
 #include <nimble-server/forced_step.h>
 #include <nimble-server/participant.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
-/// Initializes a participant connection.
-/// @param self the participant connection
+/// Initializes a party.
+/// @param self the party
 /// @param connectionAllocator allocator for connection collection
 /// @param currentAuthoritativeStepId latest authoritative state step ID
 /// @param maxParticipantCountForConnection maximum number of participants for a single connection (e.g. for
@@ -23,7 +23,7 @@
 /// @param maxSingleParticipantStepOctetCount max number of octets for one single step.
 /// @param log the log to use for logging
 /// Need to create Participants to the game before associating them to the connection.
-void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* self,
+void nimbleServerLocalPartyInit(NimbleServerLocalParty* self,
                                            NimbleServerTransportConnection* transportConnection,
                                            ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
                                            size_t maxParticipantCountForConnection,
@@ -45,13 +45,13 @@ void nimbleServerParticipantConnectionInit(NimbleServerParticipantConnection* se
     nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
     nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
-    CLOG_C_DEBUG(&self->log, "initialize new participant connection")
-    nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
+    CLOG_C_DEBUG(&self->log, "initialize new local party")
+    nimbleServerLocalPartyReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
-/// Resets the participant connection
-/// @param self participant connection
-void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* self)
+/// Resets the party
+/// @param self party
+void nimbleServerLocalPartyReset(NimbleServerLocalParty* self)
 {
     self->isUsed = false;
     self->participantReferences.participantReferenceCount = 0;
@@ -62,15 +62,15 @@ void nimbleServerParticipantConnectionReset(NimbleServerParticipantConnection* s
     nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
 }
 
-/// Reinitialize the participant connection
-/// @param self participant connection
+/// Reinitialize the party
+/// @param self party
 /// @param transportConnection the underlying transport connection
 /// @param currentAuthoritativeStepId the authoritative step ID to start from
-void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* self,
+void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self,
                                              NimbleServerTransportConnection* transportConnection,
                                              StepId currentAuthoritativeStepId)
 {
-    self->state = NimbleServerParticipantConnectionStateNormal;
+    self->state = NimbleServerLocalPartyStateNormal;
     nimbleServerConnectionQualityReInit(&self->quality);
     nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
@@ -82,42 +82,42 @@ void nimbleServerParticipantConnectionReInit(NimbleServerParticipantConnection* 
     self->warningAboutZeroAddedSteps = 0;
 }
 
-/// Facilitates the rejoining process of a participant connection using a new transport connection.
-/// @param self Pointer to an instance of NimbleServerParticipantConnection.
-/// @param transportConnection The new transport connection through which the participant connection is rejoining.
+/// Facilitates the rejoining process of a party using a new transport connection.
+/// @param self Pointer to an instance of NimbleServerLocalParty.
+/// @param transportConnection The new transport connection through which the party is rejoining.
 /// @param currentAuthoritativeStepId The current authoritative step ID that the rejoining process synchronize with.
-void nimbleServerParticipantConnectionRejoin(NimbleServerParticipantConnection* self,
+void nimbleServerLocalPartyRejoin(NimbleServerLocalParty* self,
                                              NimbleServerTransportConnection* transportConnection,
                                              StepId currentAuthoritativeStepId)
 {
     CLOG_C_DEBUG(&self->log, "rejoined from transport connection %hhu at step %08X",
                  transportConnection->transportConnectionId, currentAuthoritativeStepId)
-    nimbleServerParticipantConnectionReInit(self, transportConnection, currentAuthoritativeStepId);
+    nimbleServerLocalPartyReInit(self, transportConnection, currentAuthoritativeStepId);
 }
 
-/// Sets the participant connection in disconnect state.
-/// @param self Pointer to an instance of NimbleServerParticipantConnection.
-void nimbleServerParticipantConnectionDisconnect(NimbleServerParticipantConnection* self)
+/// Sets the party in disconnect state.
+/// @param self Pointer to an instance of NimbleServerLocalParty.
+void nimbleServerLocalPartyDestroy(NimbleServerLocalParty* self)
 {
-    CLOG_C_DEBUG(&self->log, "disconnected")
-    self->state = NimbleServerParticipantConnectionStateDisconnected;
+    CLOG_C_DEBUG(&self->log, "destroy")
+    self->state = NimbleServerLocalPartyStateDissolved;
 }
 
-/// Sets the participant connection in a waiting for reconnect state.
-/// @param self Pointer to an instance of NimbleServerParticipantConnection.
-static void setToWaitingForReconnect(NimbleServerParticipantConnection* self)
+/// Sets the party in a waiting for reconnect state.
+/// @param self Pointer to an instance of NimbleServerLocalParty.
+static void setToWaitingForReJoin(NimbleServerLocalParty* self)
 {
-    CLOG_C_DEBUG(&self->log, "setting state to: waiting for reconnect")
-    self->state = NimbleServerParticipantConnectionStateWaitingForReconnect;
+    CLOG_C_DEBUG(&self->log, "setting state to: waiting for rejoin")
+    self->state = NimbleServerLocalPartyStateWaitingForReJoin;
     self->waitingForReconnectTimer = 0;
 }
 
 /// Monitors the waiting period for a reconnect attempt and determines if it should continue waiting or give up.
-/// @param self Pointer to an instance of NimbleServerParticipantConnection
+/// @param self Pointer to an instance of NimbleServerLocalParty
 /// @return Returns true if the waiting period has not yet exceeded the maximum allowed time, indicating that it should
 /// continue waiting for a possible reconnect. Returns false to suggest that the waiting period has expired,
 /// and the connection should be considered for disconnection.
-static bool tickWaitingForReconnect(NimbleServerParticipantConnection* self)
+static bool tickWaitingForReconnect(NimbleServerLocalParty* self)
 {
     self->waitingForReconnectTimer++;
     if (self->waitingForReconnectTimer < self->waitingForReconnectMaxTimer) {
@@ -130,43 +130,43 @@ static bool tickWaitingForReconnect(NimbleServerParticipantConnection* self)
     return false;
 }
 
-/// Checks the connection quality of a server participant connection and updates its state accordingly.
+/// Checks the connection quality of a server party and updates its state accordingly.
 /// It decides whether the connection is still viable or if the participant should be moved to a waiting for reconnect
 /// state based on the quality assessment.
-/// @param self Pointer to an instance of NimbleServerParticipantConnection.
-static void tickNormal(NimbleServerParticipantConnection* self)
+/// @param self Pointer to an instance of NimbleServerLocalParty.
+static void tickNormal(NimbleServerLocalParty* self)
 {
     bool shouldKeep = nimbleServerConnectionQualityDelayedTick(&self->delayedQuality, &self->quality);
 
-    if (!shouldKeep && self->state != NimbleServerParticipantConnectionStateWaitingForReconnect) {
-        CLOG_C_DEBUG(&self->log, "connection quality recommended disconnect, so setting it to waiting for reconnect")
-        setToWaitingForReconnect(self);
+    if (!shouldKeep && self->state != NimbleServerLocalPartyStateWaitingForReJoin) {
+        CLOG_C_DEBUG(&self->log, "connection quality recommended disconnect, so setting it to waiting for rejoin")
+        setToWaitingForReJoin(self);
     }
 }
 
-/// Updates a participant connection
-/// @param self participant connection
+/// Updates a party
+/// @param self party
 /// @return false if connection should be disconnected, true otherwise
-bool nimbleServerParticipantConnectionTick(NimbleServerParticipantConnection* self)
+bool nimbleServerLocalPartyTick(NimbleServerLocalParty* self)
 {
     switch (self->state) {
-        case NimbleServerParticipantConnectionStateNormal:
+        case NimbleServerLocalPartyStateNormal:
             tickNormal(self);
             break;
-        case NimbleServerParticipantConnectionStateWaitingForReconnect:
+        case NimbleServerLocalPartyStateWaitingForReJoin:
             return tickWaitingForReconnect(self);
-        case NimbleServerParticipantConnectionStateDisconnected:
+        case NimbleServerLocalPartyStateDissolved:
             break;
     }
 
     return true;
 }
 
-/// Checks if a participantId is in the participant connection
-/// @param self participant connection to check
+/// Checks if a participantId is in the party
+/// @param self party to check
 /// @param participantId participantId to check for
 /// @return true if found, false otherwise
-bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerParticipantConnection* self,
+bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self,
                                                        uint8_t participantId)
 {
     for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
@@ -179,7 +179,7 @@ bool nimbleServerParticipantConnectionHasParticipantId(const NimbleServerPartici
     return false;
 }
 
-int nimbleServerParticipantConnectionDeserializePredictedSteps(NimbleServerParticipantConnection* self,
+int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self,
                                                                FldInStream* inStream)
 {
     size_t stepsThatFollow;

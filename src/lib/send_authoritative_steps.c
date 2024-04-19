@@ -5,7 +5,7 @@
 #include "send_authoritative_steps.h"
 
 #include <nimble-serialize/server_out.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/pending_out_serialize.h>
 #include <nimble-steps/pending_steps.h>
@@ -18,7 +18,7 @@
 /// @param receiveMask receive status for steps that has been received prior to clientWaitingForStepId
 /// @return negative on error, otherwise number of ranges sent
 ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
-                               NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
+                                   NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
 {
 #define MAX_RANGES_COUNT (3)
     const int maxStepsCount = 8;
@@ -84,18 +84,17 @@ ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTranspor
             transportConnection->noRangesToSendCounter = 0;
         }
 
-        NimbleServerParticipantConnection* foundParticipantConnection = transportConnection
-                                                                            ->assignedParticipantConnection;
-        if (foundParticipantConnection != 0) {
-            lastReceivedStepFromClient = foundParticipantConnection->steps.expectedWriteId - 1;
-            bufferDelta = foundParticipantConnection->steps.stepsCount;
-            authoritativeBufferDelta = (int) foundParticipantConnection->steps.expectedWriteId -
+        NimbleServerLocalParty* party = transportConnection->assignedParty;
+        if (party != 0) {
+            lastReceivedStepFromClient = party->steps.expectedWriteId - 1;
+            bufferDelta = party->steps.stepsCount;
+            authoritativeBufferDelta = (int) party->steps.expectedWriteId -
                                        (int) foundGame->authoritativeSteps.expectedWriteId;
         }
     }
 
     nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
-                                       (int8_t) authoritativeBufferDelta,  &transportConnection->log);
+                                       (int8_t) authoritativeBufferDelta, &transportConnection->log);
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);

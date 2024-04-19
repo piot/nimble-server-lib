@@ -12,7 +12,7 @@
 #include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
@@ -32,17 +32,17 @@ static void removeReferencesFromGameParticipants(NimbleServerParticipantReferenc
     }
 }
 
-/// Disconnects a participant connection
-/// @param connections Pointer to an instance of Participant Connections
-/// @param connection The connection to be set in disconnected mode and removed from Participant Connections.
-static void disconnectConnection(NimbleServerParticipantConnections* connections,
-                                 NimbleServerParticipantConnection* connection)
+/// Destroys a local party
+/// @param parties Pointer to an instance of Local Parties
+/// @param party The party be set in disconnected mode and removed from Local Parties.
+static void destroyParty(NimbleServerLocalParties* parties,
+                                 NimbleServerLocalParty* party)
 {
-    nimbleServerParticipantConnectionDisconnect(connection);
+    nimbleServerLocalPartyDestroy(party);
 
-    removeReferencesFromGameParticipants(&connection->participantReferences);
+    removeReferencesFromGameParticipants(&party->participantReferences);
 
-    nimbleServerParticipantConnectionsRemove(connections, connection);
+    nimbleServerLocalPartiesRemove(parties, party);
 }
 
 static void disconnectTransportConnection(NimbleServer* self, NimbleServerTransportConnection* transportConnection)
@@ -51,21 +51,24 @@ static void disconnectTransportConnection(NimbleServer* self, NimbleServerTransp
     transportConnectionDisconnect(transportConnection);
 }
 
-/// Iterates over all participant connections in the server, performs a tick update, and disconnects connections
-/// that are recommended to be disconnected.
+/// Iterates over all parties in the server, performs a tick update, and disconnects parties
+/// that are recommended to be dissolved.
 /// @param self Pointer to an instance of NimbleServer.
-static void tickParticipantConnections(NimbleServer* self)
+static void tickParties(NimbleServer* self)
 {
-    for (size_t i = 0; i < self->connections.capacityCount; ++i) {
-        NimbleServerParticipantConnection* connection = &self->connections.connections[i];
-        if (!connection->isUsed) {
+    for (size_t i = 0; i < self->localParties.capacityCount; ++i) {
+        NimbleServerLocalParty* party = &self->localParties.parties[i];
+        if (!party->isUsed) {
             continue;
         }
 
-        bool isWorking = nimbleServerParticipantConnectionTick(connection);
+        bool isWorking = nimbleServerLocalPartyTick(party);
         if (!isWorking) {
-            disconnectConnection(&self->connections, connection);
-            disconnectTransportConnection(self, connection->transportConnection);
+            destroyParty(&self->localParties, party);
+            // It is not sure that a local party has a transport connection. The party could have been prepared by host migration.
+            if (party->transportConnection != 0) {
+                disconnectTransportConnection(self, party->transportConnection);
+            }
         }
     }
 }
@@ -83,7 +86,7 @@ int nimbleServerUpdate(NimbleServer* self, MonotonicTimeMs now)
         return qualityError;
     }
 
-    tickParticipantConnections(self);
+    tickParties(self);
 
     nimbleServerReadFromMultiTransport(self);
 
@@ -181,14 +184,14 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
     }
 
     if (transportConnection->transportIndex != transportIndex) {
-        CLOG_C_NOTICE(&self->log, "we received a datagram from wrong transport index. Expected %hhu but received %hhu",
+        CLOG_C_VERBOSE(&self->log, "we received a datagram from wrong transport index. Expected %hhu but received %hhu",
                       transportConnection->transportIndex, transportIndex)
         return NimbleServerErrSerialize;
     }
 
     int verifyHashStatus = connectionLayerIncomingVerify(&transportConnection->incomingConnection, &inStream);
     if (verifyHashStatus < 0) {
-        CLOG_C_NOTICE(&self->log, "we received a datagram with a wrong hash. could be due to it being and old datagram?")
+        CLOG_C_VERBOSE(&self->log, "we received a datagram with a wrong hash. could be due to it being and old datagram?")
         return NimbleServerErrSerialize;
     }
 
@@ -219,13 +222,16 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
     int result;
     switch (cmd) {
         case NimbleSerializeCmdGameStep:
+            CLOG_C_VERBOSE(&self->log, "CmdGameStep")
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
-                                             &self->connections, &inStream, &outStream);
+                                             &self->localParties, &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
+            CLOG_C_VERBOSE(&self->log, "JoinGame")
             result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
             break;
         case NimbleSerializeCmdDownloadGameStateRequest:
+            CLOG_C_VERBOSE(&self->log, "StateRequest")
             result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, &outStream);
             break;
         default:
@@ -298,7 +304,7 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
         // return -1;
     }
 
-    nimbleServerParticipantConnectionsInit(&self->connections, setup.maxConnectionCount, setup.memory,
+    nimbleServerLocalPartiesInit(&self->localParties, setup.maxConnectionCount, setup.memory,
                                            setup.maxParticipantCountForEachConnection,
                                            setup.maxSingleParticipantStepOctetCount, setup.log);
     self->pageAllocator = setup.memory;
@@ -307,13 +313,13 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->callbackObject = setup.callbackObject;
     self->setup = setup;
 
-    self->transportConnections[0].assignedParticipantConnection = 0;
+    self->transportConnections[0].assignedParty = 0;
     self->transportConnections[0].transportConnectionId = (uint8_t) 0;
     self->transportConnections[0].isUsed = false;
 
     nimbleServerCircularBufferInit(&self->freeTransportConnectionList);
     for (size_t i = 1; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
-        self->transportConnections[i].assignedParticipantConnection = 0;
+        self->transportConnections[i].assignedParty = 0;
         self->transportConnections[i].transportConnectionId = (uint8_t) i;
         self->transportConnections[i].isUsed = false;
         nimbleServerCircularBufferWrite(&self->freeTransportConnectionList, (uint8_t) i);
@@ -338,9 +344,9 @@ static bool containsParticipantId(NimbleSerializeParticipantId participantIds[],
     return false;
 }
 
-/// Prepares the server's participants and participant connections for a host migration process.
+/// Prepares the server's participants and local parties for a host migration process.
 ///
-/// This function clears all existing participant connections and prepares each participant
+/// This function clears all existing local parties and prepares each participant
 /// connection based on the provided participant IDs. The connections are set in waitingForReconnect.
 /// It is intended to support host migration scenarios where a client is setting up a new server.
 ///
@@ -359,11 +365,11 @@ int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId p
                               size_t participantIdCount)
 {
     CLOG_C_INFO(&self->log, "prepare new host for migration")
-    nimbleServerParticipantConnectionsReset(&self->connections);
+    nimbleServerLocalPartiesReset(&self->localParties);
 
     for (size_t i = 0; i < participantIdCount; ++i) {
-        NimbleServerParticipantConnection* outConnection;
-        int err = nimbleServerParticipantConnectionsPrepare(&self->connections, &self->game.participants,
+        NimbleServerLocalParty* outConnection;
+        int err = nimbleServerLocalPartiesPrepare(&self->localParties, &self->game.participants,
                                                             self->game.authoritativeSteps.expectedWriteId - 1,
                                                             participantIds[i], &outConnection);
         if (err < 0) {
@@ -393,7 +399,7 @@ int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId, MonotonicTimeM
 
     nbsStepsReInit(&self->game.authoritativeSteps, stepId);
     statsIntPerSecondInit(&self->authoritativeStepsPerSecondStat, now, 1000);
-    nimbleServerParticipantConnectionsReset(&self->connections);
+    nimbleServerLocalPartiesReset(&self->localParties);
     nimbleServerUpdateQualityReInit(&self->updateQuality);
     self->statsCounter = 0;
     return 0;
@@ -425,8 +431,8 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 /// @return negative on error
 int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionIndex)
 {
-    NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnection(
-        &self->connections, connectionIndex);
+    NimbleServerLocalParty* foundConnection = nimbleServerLocalPartiesFindParty(
+        &self->localParties, connectionIndex);
     if (!foundConnection) {
         return -2;
     }
@@ -435,7 +441,7 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
         return -4;
     }
 
-    foundConnection->id = 0x100;
+    foundConnection->id = 0xff;
     foundConnection->isUsed = false;
 
     NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
@@ -449,7 +455,7 @@ int nimbleServerConnectionDisconnected(NimbleServer* self, uint8_t connectionInd
 void nimbleServerReset(NimbleServer* self)
 {
     (void) self;
-    // nimbleServerParticipantConnectionsReset(&self->connections);
+    // nimbleServerLocalPartiesReset(&self->localParties);
 }
 
 typedef struct ReplyOnlyToConnection {

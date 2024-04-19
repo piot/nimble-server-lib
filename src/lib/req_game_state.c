@@ -6,7 +6,7 @@
 #include <flood/in_stream.h>
 #include <inttypes.h>
 #include <nimble-serialize/server_out.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_download_game_state.h>
 
 /// Handles a request from the client to download the latest game state.

@@ -11,11 +11,11 @@
 
 #include <nimble-steps-serialize/types.h>
 
-struct NimbleServerParticipantConnection;
+struct NimbleServerLocalParty;
 
-int nimbleServerInsertForcedSteps(struct NimbleServerParticipantConnection* foundParticipantConnection,
+int nimbleServerInsertForcedSteps(struct NimbleServerLocalParty* party,
                                   size_t dropped);
-ssize_t nimbleServerCreateForcedStep(struct NimbleServerParticipantConnection* connection,
+ssize_t nimbleServerCreateForcedStep(struct NimbleServerLocalParty* connection,
                                      uint8_t* defaultStepBuffer,
                                      size_t maxCount);
 

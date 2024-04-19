@@ -9,7 +9,7 @@
 #include "transport_connection_stats.h"
 #include <flood/in_stream.h>
 #include <inttypes.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_step.h>
 
 static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundGame)
@@ -33,7 +33,7 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundG
 }
 
 static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundGame,
-                                                        NimbleServerParticipantConnections* connections,
+                                                        NimbleServerLocalParties* connections,
                                                         FldInStream* inStream,
                                                         NimbleServerTransportConnection* transportConnection,
                                                         StatsIntPerSecond* authoritativeStepsPerSecondStat,
@@ -74,7 +74,7 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundG
 /// @return negative on error
 int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
                             StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                            NimbleServerParticipantConnections* connections, FldInStream* inStream,
+                            NimbleServerLocalParties* connections, FldInStream* inStream,
                             FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;

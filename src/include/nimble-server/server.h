@@ -9,7 +9,7 @@
 #include <datagram-transport/multi.h>
 #include <nimble-serialize/version.h>
 #include <nimble-server/game.h>
-#include <nimble-server/participant_connections.h>
+#include <nimble-server/local_parties.h>
 #include <nimble-server/serialized_game_state.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-server/update_quality.h>
@@ -54,16 +54,12 @@ typedef struct NimbleServerSetup {
 
 typedef struct NimbleServer {
     NimbleServerTransportConnection transportConnections[NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS];
-
-    NimbleServerParticipantConnections connections;
+    NimbleServerLocalParties localParties;
     NimbleServerGame game;
-
     struct ImprintAllocator* pageAllocator;
     struct ImprintAllocatorWithFree* blobAllocator;
-
     NimbleSerializeVersion applicationVersion;
     Clog log;
-
     DatagramTransportMulti multiTransport;
     NimbleServerSetup setup;
     uint16_t statsCounter;
@@ -72,6 +68,7 @@ typedef struct NimbleServer {
     NimbleServerCallbackObject callbackObject;
 
     NimbleServerCircularBuffer freeTransportConnectionList;
+    NimbleSerializeSessionSecret sessionSecret;
 } NimbleServer;
 
 typedef struct NimbleServerResponse {
@@ -79,9 +76,9 @@ typedef struct NimbleServerResponse {
 } NimbleServerResponse;
 
 int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup);
-int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId participantIds[], size_t participantIdCount);
-int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId,
-                               MonotonicTimeMs now);
+int nimbleServerHostMigration(NimbleServer* self, NimbleSerializeParticipantId participantIds[],
+                              size_t participantIdCount);
+int nimbleServerReInitWithGame(NimbleServer* self, StepId stepId, MonotonicTimeMs now);
 void nimbleServerReset(NimbleServer* self);
 int nimbleServerFeed(NimbleServer* self, uint8_t connectionIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response);

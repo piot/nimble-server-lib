@@ -8,7 +8,7 @@
 #include <nimble-serialize/server_in.h>
 #include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>
 #include <secure-random/secure_random.h>
@@ -82,7 +82,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
     NimbleSerializeConnectResponse connectResponse;
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
     connectResponse.connectionId = transportConnection->id;
-    connectResponse.connectionSecret = transportConnection->secret;
+    connectResponse.connectionIdSecret = transportConnection->secret;
 
     return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }

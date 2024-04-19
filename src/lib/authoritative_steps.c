@@ -6,14 +6,14 @@
 #include <flood/in_stream.h>
 #include <nimble-serialize/server_out.h>
 #include <nimble-server/forced_step.h>
-#include <nimble-server/participant_connection.h>
-#include <nimble-server/participant_connections.h>
+#include <nimble-server/local_party.h>
+#include <nimble-server/local_parties.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/types.h>
 
 #define NIMBLE_SERVER_LOGGING 1
 
-static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* connections, StepId lookingFor,
+static int composeOneAuthoritativeStep(NimbleServerLocalParties* parties, StepId lookingFor,
                                        uint8_t* composeStepBuffer, size_t maxLength, size_t* outSize)
 {
     FldOutStream composeStream;
@@ -23,8 +23,8 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
     size_t foundParticipantCount = 0;
     uint8_t stepReadBuffer[1024];
 
-    for (size_t i = 0; i < connections->capacityCount; ++i) {
-        NimbleServerParticipantConnection* connection = &connections->connections[i];
+    for (size_t i = 0; i < parties->capacityCount; ++i) {
+        NimbleServerLocalParty* connection = &parties->parties[i];
         if (!connection->isUsed) {
             continue;
         }
@@ -123,10 +123,10 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
                         lookingFor, connection->id, participantId, localStepOctetCount)
 #endif
 
-            int hasParticipant = nimbleServerParticipantConnectionHasParticipantId(connection, participantId);
+            int hasParticipant = nimbleServerLocalPartyHasParticipantId(connection, participantId);
             if (!hasParticipant) {
                 CLOG_C_SOFT_ERROR(&connection->log,
-                                  "participant connection %u had no right to insert steps for participant %hhu",
+                                  "party %u had no right to insert steps for participant %hhu",
                                   connection->id, participantId)
                 continue;
             }
@@ -151,14 +151,14 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
     return (int) foundParticipantCount;
 }
 
-static int maxPredictedStepContributionForConnections(NimbleServerParticipantConnections* connections,
+static int maxPredictedStepContributionForConnections(NimbleServerLocalParties* connections,
                                                       StepId lookingFor, int* outConnectionsThatCouldNotContribute)
 {
     int maxConnectionCanAdvanceStepCount = 0;
     int connectionCountThatCanNotContribute = 0;
 
     for (size_t i = 0u; i < connections->capacityCount; ++i) {
-        const NimbleServerParticipantConnection* connection = &connections->connections[i];
+        const NimbleServerLocalParty* connection = &connections->parties[i];
         if (!connection->isUsed) {
             continue;
         }
@@ -178,7 +178,7 @@ static int maxPredictedStepContributionForConnections(NimbleServerParticipantCon
     return maxConnectionCanAdvanceStepCount;
 }
 
-static bool shouldComposeNewAuthoritativeStep(NimbleServerParticipantConnections* connections, StepId lookingFor)
+static bool shouldComposeNewAuthoritativeStep(NimbleServerLocalParties* connections, StepId lookingFor)
 {
     int connectionCountThatCouldNotContribute = 0;
     int availableSteps = maxPredictedStepContributionForConnections(connections, lookingFor,
@@ -203,7 +203,7 @@ static bool canAdvanceDueToDistanceFromLastState(NbsSteps* authoritativeSteps)
     return allowed;
 }
 
-static bool shouldAdvanceAuthoritative(NimbleServerParticipantConnections* connections, NbsSteps* authoritativeSteps)
+static bool shouldAdvanceAuthoritative(NimbleServerLocalParties* connections, NbsSteps* authoritativeSteps)
 {
     return shouldComposeNewAuthoritativeStep(connections, authoritativeSteps->expectedWriteId) &&
            canAdvanceDueToDistanceFromLastState(authoritativeSteps);
@@ -213,7 +213,7 @@ static bool shouldAdvanceAuthoritative(NimbleServerParticipantConnections* conne
 /// @param game game
 /// @param connections connections to compose steps for
 /// @return number of combined steps composed
-int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
+int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game, NimbleServerLocalParties* connections)
 {
     size_t writtenAuthoritativeSteps = 0;
     NbsSteps* authoritativeSteps = &game->authoritativeSteps;
