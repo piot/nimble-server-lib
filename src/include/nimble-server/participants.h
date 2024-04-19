@@ -33,6 +33,6 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSer
                                  size_t localParticipantCount, struct NimbleServerParticipant** results);
 void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId);
 int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId,
-                                    struct NimbleServerParticipant** outConnection);
+                                    struct NimbleServerParticipant** createdParticipant);
 
 #endif

@@ -39,7 +39,7 @@ static int joinLocalParty(NimbleServerLocalParties* parties,
         case NimbleSerializeJoinGameTypePartySecret: {
             NimbleServerLocalParty*
                 foundPartyFromSecret = nimbleServerLocalPartiesFindParty(
-                    parties, joinRequest->partyAndSessionSecret.participantPartyId);
+                    parties, joinRequest->partyAndSessionSecret.partyId);
             if (foundPartyFromSecret != 0) {
                 if (foundPartyFromSecret->participantReferences.participantReferenceCount !=
                     joinRequest->playerCount) {
@@ -80,11 +80,11 @@ static int nimbleServerReadAndJoinParticipants(NimbleServerLocalParties* parties
                                                NimbleServerTransportConnection* transportConnection,
                                                const NimbleSerializeJoinGameRequest* request,
                                                StepId latestAuthoritativeStepId,
-                                               struct NimbleServerLocalParty** createdConnection)
+                                               struct NimbleServerLocalParty** party)
 {
     int errorCode = joinLocalParty(parties, gameParticipants, transportConnection,
                                                               request, latestAuthoritativeStepId,
-                                                              createdConnection);
+                                                              party);
     if (errorCode < 0) {
         CLOG_WARN("nimbleServerReadAndJoinParticipants: couldn't join game session")
         return errorCode;
@@ -108,38 +108,38 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         return err;
     }
 
-    NimbleServerLocalParty* createdConnection;
+    NimbleServerLocalParty* party;
     int errorCode = nimbleServerReadAndJoinParticipants(
         &self->localParties, &self->game.participants, transportConnection, &request,
-        self->game.authoritativeSteps.expectedWriteId, &createdConnection);
+        self->game.authoritativeSteps.expectedWriteId, &party);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
         nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce, &self->log);
         return errorCode;
     }
-    createdConnection->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
+    party->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
 
-    transportConnection->assignedParty = createdConnection;
+    transportConnection->assignedParty = party;
 
     NimbleSerializeJoinGameResponse gameResponse;
     NimbleSerializeJoinGameResponseParticipant* participants = gameResponse.participants;
-    for (size_t i = 0; i < createdConnection->participantReferences.participantReferenceCount; ++i) {
-        const NimbleServerParticipant* sourceParticipant = createdConnection->participantReferences
+    for (size_t i = 0; i < party->participantReferences.participantReferenceCount; ++i) {
+        const NimbleServerParticipant* sourceParticipant = party->participantReferences
                                                                .participantReferences[i];
         participants[i].participantId = sourceParticipant->id;
         participants[i].localIndex = sourceParticipant->localIndex;
         CLOG_VERBOSE("joined localIndex %zu with ID: %hhu", sourceParticipant->localIndex, sourceParticipant->id)
     }
 
-    gameResponse.partyAndSessionSecret.participantPartyId = createdConnection->id;
+    gameResponse.partyAndSessionSecret.partyId = party->id;
     gameResponse.partyAndSessionSecret.sessionSecret = self->sessionSecret;
-    gameResponse.participantCount = createdConnection->participantReferences.participantReferenceCount;
+    gameResponse.participantCount = party->participantReferences.participantReferenceCount;
 
     CLOG_C_DEBUG(
         &self->log,
         "client joined game with party %u stateID: %04X participant count: %zu secret: %" PRIX64,
-        createdConnection->id, self->game.authoritativeSteps.expectedWriteId - 1,
-        createdConnection->participantReferences.participantReferenceCount, self->sessionSecret.value)
+        party->id, self->game.authoritativeSteps.expectedWriteId - 1,
+        party->participantReferences.participantReferenceCount, self->sessionSecret.value)
     nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse, &self->log);
 
     return 0;

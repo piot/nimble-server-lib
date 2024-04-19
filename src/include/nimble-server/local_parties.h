@@ -46,7 +46,7 @@ nimbleServerLocalPartiesFindPartyFromSecret(NimbleServerLocalParties* self,
                                                            NimbleSerializePartyAndSessionSecret partyAndSessionSecret);
 struct NimbleServerLocalParty*
 nimbleServerLocalPartiesFindParticipantPartyFromId(NimbleServerLocalParties* self,
-                                                         NimbleSerializeParticipantPartyId participantPartyId);
+                                                         NimbleSerializeLocalPartyId partyId);
 
 int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self,
                                              NimbleServerParticipants* gameParticipants,
@@ -55,8 +55,7 @@ int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self,
                                              StepId latestAuthoritativeStepId, size_t localParticipantCount,
                                              struct NimbleServerLocalParty** outConnection);
 
-int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self,
-                                              NimbleServerParticipants* gameParticipants,
-                                              StepId latestAuthoritativeStepId, NimbleSerializeParticipantId participantId,
-                                              struct NimbleServerLocalParty** outConnection);
+int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServerParticipants* gameParticipants,
+                                    StepId latestAuthoritativeStepId, NimbleSerializeLocalPartyInfo partyInfo,
+                                    struct NimbleServerLocalParty** outParty);
 #endif
