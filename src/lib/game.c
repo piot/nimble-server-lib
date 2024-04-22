@@ -22,7 +22,11 @@ void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
                                                                               maxSingleParticipantStepOctetCount);
     nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
     nbsStepsReInit(&self->authoritativeSteps, 0);
-    nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount, &self->log);
+    tc_snprintf(self->participants.debugPrefix, sizeof(self->participants.debugPrefix), "%s/participants",
+                self->log.constantPrefix);
+
+    nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount,
+                                 maxSingleParticipantStepOctetCount, &self->log);
 }
 
 #if 0

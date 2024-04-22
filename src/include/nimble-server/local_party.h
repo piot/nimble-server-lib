@@ -10,19 +10,14 @@
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/connection_quality.h>
 #include <nimble-server/delayed_quality.h>
+#include <nimble-server/participant_references.h>
 #include <nimble-server/participants.h>
-#include <nimble-steps/steps.h>
+
 #include <stats/stats.h>
 #include <stdbool.h>
 
 struct NimbleServerParticipant;
 struct NimbleServerTransportConnection;
-
-typedef struct NimbleServerParticipantReferences {
-    size_t participantReferenceCount;
-    struct NimbleServerParticipant* participantReferences[NIMBLE_SERIALIZE_MAX_LOCAL_PLAYERS];
-    struct NimbleServerParticipants* gameParticipants;
-} NimbleServerParticipantReferences;
 
 typedef enum NimbleServerLocalPartyState {
     NimbleServerLocalPartyStateNormal,
@@ -30,11 +25,10 @@ typedef enum NimbleServerLocalPartyState {
     NimbleServerLocalPartyStateDissolved
 } NimbleServerLocalPartyState;
 
-/// Represents a UDP "connection" from a client which can hold several game participants. */
+/// Represents the collection of participants joined from one device (one client transport connection). */
 typedef struct NimbleServerLocalParty {
     NimbleSerializeLocalPartyId id;
     bool isUsed;
-    NbsSteps steps;
 
     NimbleServerLocalPartyState state;
     NimbleServerParticipantReferences participantReferences;
@@ -47,27 +41,24 @@ typedef struct NimbleServerLocalParty {
     NimbleServerConnectionQualityDelayed delayedQuality;
     uint32_t warningCount;
     uint32_t warningAboutZeroAddedSteps;
+
+    StepId highestReceivedStepId;
+    size_t stepsInBufferCount;
+
     char debugPrefix[32];
     Clog log;
 } NimbleServerLocalParty;
 
 void nimbleServerLocalPartyInit(NimbleServerLocalParty* self,
-                                           struct NimbleServerTransportConnection* transportConnection,
-                                           ImprintAllocator* allocator, StepId latestAuthoritativeStepId,
-                                           size_t maxParticipantCountForConnection,
-                                           size_t maxSingleParticipantStepOctetCount, Clog log);
+                                struct NimbleServerTransportConnection* transportConnection, Clog log);
 void nimbleServerLocalPartyReset(NimbleServerLocalParty* self);
 void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self,
-                                             struct NimbleServerTransportConnection* transportConnection,
-                                             StepId latestAuthoritativeStepId);
+                                  struct NimbleServerTransportConnection* transportConnection);
 void nimbleServerLocalPartyRejoin(NimbleServerLocalParty* self,
-                                             struct NimbleServerTransportConnection* transportConnection,
-                                             StepId currentAuthoritativeStepId);
+                                  struct NimbleServerTransportConnection* transportConnection);
 void nimbleServerLocalPartyDestroy(NimbleServerLocalParty* self);
-bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self,
-                                                       uint8_t participantId);
+bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self, uint8_t participantId);
 bool nimbleServerLocalPartyTick(NimbleServerLocalParty* self);
-int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self,
-                                                               struct FldInStream* inStream);
+int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self, struct FldInStream* inStream);
 
 #endif

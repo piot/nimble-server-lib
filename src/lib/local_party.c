@@ -7,33 +7,21 @@
 #include "nimble-server/server.h"
 #include <flood/in_stream.h>
 #include <nimble-server/delayed_quality.h>
-#include <nimble-server/forced_step.h>
-#include <nimble-server/participant.h>
+#include <nimble-server/errors.h>
 #include <nimble-server/local_party.h>
+#include <nimble-server/participant.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
 /// Initializes a party.
 /// @param self the party
-/// @param connectionAllocator allocator for connection collection
-/// @param currentAuthoritativeStepId latest authoritative state step ID
-/// @param maxParticipantCountForConnection maximum number of participants for a single connection (e.g. for
-/// split-screen it is usually 2-4).
 /// @param transportConnection the transport connection id
-/// @param maxSingleParticipantStepOctetCount max number of octets for one single step.
 /// @param log the log to use for logging
 /// Need to create Participants to the game before associating them to the connection.
-void nimbleServerLocalPartyInit(NimbleServerLocalParty* self,
-                                           NimbleServerTransportConnection* transportConnection,
-                                           ImprintAllocator* connectionAllocator, StepId currentAuthoritativeStepId,
-                                           size_t maxParticipantCountForConnection,
-                                           size_t maxSingleParticipantStepOctetCount, Clog log)
+void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleServerTransportConnection* transportConnection,
+                                Clog log)
 {
-    size_t combinedStepOctetSize = nbsStepsOutSerializeCalculateCombinedSize(maxParticipantCountForConnection,
-                                                                             maxSingleParticipantStepOctetCount);
-
     self->log = log;
-    nbsStepsInit(&self->steps, connectionAllocator, combinedStepOctetSize, log);
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectMaxTimer = 62 * 20;
     self->isUsed = false;
@@ -46,7 +34,7 @@ void nimbleServerLocalPartyInit(NimbleServerLocalParty* self,
     nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
     CLOG_C_DEBUG(&self->log, "initialize new local party")
-    nimbleServerLocalPartyReInit(self, transportConnection, currentAuthoritativeStepId);
+    nimbleServerLocalPartyReInit(self, transportConnection);
 }
 
 /// Resets the party
@@ -65,17 +53,13 @@ void nimbleServerLocalPartyReset(NimbleServerLocalParty* self)
 /// Reinitialize the party
 /// @param self party
 /// @param transportConnection the underlying transport connection
-/// @param currentAuthoritativeStepId the authoritative step ID to start from
-void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self,
-                                             NimbleServerTransportConnection* transportConnection,
-                                             StepId currentAuthoritativeStepId)
+void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self, NimbleServerTransportConnection* transportConnection)
 {
     self->state = NimbleServerLocalPartyStateNormal;
     nimbleServerConnectionQualityReInit(&self->quality);
     nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
     statsIntInit(&self->incomingStepCountInBufferStats, 60);
     // Expect that the client will add steps for the next authoritative step
-    nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
     self->transportConnection = transportConnection;
     self->waitingForReconnectTimer = 0;
     self->warningCount = 0;
@@ -85,14 +69,10 @@ void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self,
 /// Facilitates the rejoining process of a party using a new transport connection.
 /// @param self Pointer to an instance of NimbleServerLocalParty.
 /// @param transportConnection The new transport connection through which the party is rejoining.
-/// @param currentAuthoritativeStepId The current authoritative step ID that the rejoining process synchronize with.
-void nimbleServerLocalPartyRejoin(NimbleServerLocalParty* self,
-                                             NimbleServerTransportConnection* transportConnection,
-                                             StepId currentAuthoritativeStepId)
+void nimbleServerLocalPartyRejoin(NimbleServerLocalParty* self, NimbleServerTransportConnection* transportConnection)
 {
-    CLOG_C_DEBUG(&self->log, "rejoined from transport connection %hhu at step %08X",
-                 transportConnection->transportConnectionId, currentAuthoritativeStepId)
-    nimbleServerLocalPartyReInit(self, transportConnection, currentAuthoritativeStepId);
+    CLOG_C_DEBUG(&self->log, "rejoined from transport connection %hhu", transportConnection->transportConnectionId)
+    nimbleServerLocalPartyReInit(self, transportConnection);
 }
 
 /// Sets the party in disconnect state.
@@ -166,8 +146,7 @@ bool nimbleServerLocalPartyTick(NimbleServerLocalParty* self)
 /// @param self party to check
 /// @param participantId participantId to check for
 /// @return true if found, false otherwise
-bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self,
-                                                       uint8_t participantId)
+bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self, uint8_t participantId)
 {
     for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
         const NimbleServerParticipant* participant = self->participantReferences.participantReferences[i];
@@ -179,8 +158,7 @@ bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self,
     return false;
 }
 
-int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self,
-                                                               FldInStream* inStream)
+int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self, FldInStream* inStream)
 {
     size_t stepsThatFollow;
     StepId firstStepId;
@@ -190,37 +168,97 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
         return errorCode;
     }
+
     CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
 
-    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: client %u incoming step range %08X - %08X (count:%zu)", self->id,
+    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)",
                    firstStepId, lastStepId, stepsThatFollow)
 
-    size_t dropped = nbsStepsDropped(&self->steps, firstStepId);
-    if (dropped > 0) {
-        if (dropped > 60U) {
-            CLOG_C_WARN(&self->log, "dropped %zu", dropped)
-            return -3;
-        }
-        CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
-                    dropped, self->steps.expectedWriteId, firstStepId, lastStepId)
-        nimbleServerInsertForcedSteps(self, dropped);
-    }
-
-    int addedStepsCount = nbsStepsInSerialize(inStream, &self->steps, firstStepId, stepsThatFollow);
-    if (addedStepsCount < 0) {
-        return addedStepsCount;
-    }
-    if (addedStepsCount == 0) {
-        if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
-            CLOG_C_DEBUG(&self->log,
-                         "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not a "
-                         "problem unless it happens a lot)",
-                         firstStepId, lastStepId, self->steps.expectedWriteId)
+    // Drop old predicted steps if needed.
+    for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
+        NimbleServerParticipant* participant = self->participantReferences.participantReferences[i];
+        size_t dropped = nbsStepsDropped(&participant->steps, firstStepId);
+        if (dropped > 0) {
+            if (dropped > 60U) {
+                CLOG_C_WARN(&self->log, "dropped %zu", dropped)
+                return -3;
+            }
+            CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
+                        dropped, participant->steps.expectedWriteId, firstStepId, lastStepId)
+            // nimbleServerInsertForcedSteps(self, dropped);
         }
     }
 
-    if (addedStepsCount > 0) {
-        nimbleServerConnectionQualityAddedStepsToBuffer(&self->quality, (size_t) addedStepsCount);
+    for (size_t i = 0; i < stepsThatFollow; ++i) {
+        StepId stepId = firstStepId + (StepId) i;
+
+        // Read a combined step
+        uint8_t octetCountThatFollowForCombinedStep;
+        errorCode = fldInStreamReadUInt8(inStream, &octetCountThatFollowForCombinedStep);
+
+
+        uint8_t participantsThatFollow;
+        errorCode = fldInStreamReadUInt8(inStream, &participantsThatFollow);
+        if (errorCode < 0) {
+            return errorCode;
+        }
+
+        for (uint8_t participantIterator = 0; participantIterator < participantsThatFollow; ++participantIterator) {
+            uint8_t participantIdWithMask;
+            errorCode = fldInStreamReadUInt8(inStream, &participantIdWithMask);
+            if (errorCode < 0) {
+                return errorCode;
+            }
+
+            NimbleSerializeParticipantId participantId;
+            NimbleSerializeStepType stepType = NimbleSerializeStepTypeNormal;
+
+            if ((participantIdWithMask & 0x80) != 0) {
+                participantId = participantIdWithMask & 0x7f;
+                uint8_t stepTypeValue;
+                fldInStreamReadUInt8(inStream, &stepTypeValue);
+                stepType = (NimbleSerializeStepType) stepTypeValue;
+            } else {
+                participantId = participantIdWithMask;
+            }
+
+            if (stepType != NimbleSerializeStepTypeNormal) {
+                CLOG_C_NOTICE(&self->log, "not allowed to send anything else than normal predicted steps from client")
+                return NimbleServerErrSerialize;
+            }
+
+            NimbleServerParticipant* participant = nimbleParticipantReferencesFind(&self->participantReferences,
+                                                                                   participantId);
+            if (participant == 0) {
+                CLOG_C_NOTICE(&self->log,
+                              "tried to deserialize predicted steps for a participant %hhu that is not part of the party", participantId)
+                return NimbleServerErrSerialize;
+            }
+
+            int addedStepsCount = nimbleServerParticipantDeserializeSingleStep(participant, stepId, inStream);
+            if (addedStepsCount < 0) {
+                return addedStepsCount;
+            }
+            if (addedStepsCount == 0) {
+                if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
+                    // CLOG_C_DEBUG(
+                    //   &self->log,
+                    // "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not
+                    // a " "problem unless it happens a lot)", firstStepId, lastStepId,
+                    // self->steps.expectedWriteId)
+                }
+            }
+
+            if (addedStepsCount > 0) {
+                nimbleServerConnectionQualityAddedStepsToBuffer(&self->quality, (size_t) addedStepsCount);
+
+                StepId receivedUpToStepId = participant->steps.expectedWriteId - 1;
+                if (receivedUpToStepId > self->highestReceivedStepId) {
+                    self->highestReceivedStepId = receivedUpToStepId;
+                    self->stepsInBufferCount = participant->steps.stepsCount;
+                }
+            }
+        }
     }
 
     return 0;

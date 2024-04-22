@@ -28,8 +28,7 @@ void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCoun
         Clog subLog;
         subLog.constantPrefix = "NimbleServerLocalParty";
         subLog.config = log.config;
-        nimbleServerLocalPartyInit(&self->parties[i], 0, connectionAllocator, 0xffffffff, maxLocalPartyParticipantCount,
-                                   maxSingleParticipantOctetCount, subLog);
+        nimbleServerLocalPartyInit(&self->parties[i], 0, subLog);
     }
 }
 
@@ -92,17 +91,15 @@ static NimbleServerLocalParty* findFreePartyPlaceButDoNotReserveItYet(NimbleServ
 }
 
 static void addParty(NimbleServerLocalParties* self, NimbleServerLocalParty* party,
-                     struct NimbleServerTransportConnection* transportConnection, StepId latestAuthoritativeStepId,
+                     struct NimbleServerTransportConnection* transportConnection,
                      NimbleServerParticipants* gameParticipants,
                      struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
 {
-    tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/%u", self->log.constantPrefix, party->id);
+    tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/party/%u", self->log.constantPrefix, party->id);
     party->log.constantPrefix = party->debugPrefix;
     party->log.config = self->log.config;
 
-    nimbleServerLocalPartyInit(party, transportConnection, self->allocator, latestAuthoritativeStepId,
-                               self->maxLocalPartyParticipantCount, self->maxSingleParticipantStepOctetCount,
-                               party->log);
+    nimbleServerLocalPartyInit(party, transportConnection, party->log);
     self->partiesCount++;
     party->isUsed = true;
 
@@ -131,6 +128,7 @@ int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServer
 
     for (size_t participantIndex = 0; participantIndex < partyInfo.participantCount; ++participantIndex) {
         int errorCode = nimbleServerParticipantsPrepare(gameParticipants, partyInfo.participantIds[participantIndex],
+                                                        party, latestAuthoritativeStepId,
                                                         &createdParticipants[participantIndex]);
         if (errorCode < 0) {
             *outParty = 0;
@@ -138,7 +136,7 @@ int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServer
         }
     }
 
-    addParty(self, party, 0, latestAuthoritativeStepId, gameParticipants, createdParticipants, 1);
+    addParty(self, party, 0, gameParticipants, createdParticipants, 1);
 
     party->isUsed = true;
     party->state = NimbleServerLocalPartyStateWaitingForReJoin;
@@ -173,15 +171,14 @@ int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self, NimbleServerP
 
     struct NimbleServerParticipant* createdParticipants[16];
 
-    int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount,
-                                                 createdParticipants);
+    int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount, party,
+                                                 latestAuthoritativeStepId, createdParticipants);
     if (errorCode < 0) {
         *outConnection = 0;
         return errorCode;
     }
 
-    addParty(self, party, transportConnection, latestAuthoritativeStepId, gameParticipants, createdParticipants,
-             localParticipantCount);
+    addParty(self, party, transportConnection, gameParticipants, createdParticipants, localParticipantCount);
 
     *outConnection = party;
 

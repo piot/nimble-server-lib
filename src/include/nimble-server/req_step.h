@@ -17,8 +17,7 @@ struct FldOutStream;
 struct FldInStream;
 
 int nimbleServerReqGameStep(struct NimbleServerGame* game, struct NimbleServerTransportConnection* transportConnection,
-                   StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                   struct NimbleServerLocalParties* connections, struct FldInStream* inStream,
-                   struct FldOutStream* response);
+                            StatsIntPerSecond* authoritativeStepsPerSecondStat, struct FldInStream* inStream,
+                            struct FldOutStream* response);
 
 #endif

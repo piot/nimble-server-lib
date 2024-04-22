@@ -6,7 +6,6 @@
 #include <flood/in_stream.h>
 #include <inttypes.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/forced_step.h>
 #include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/in_serialize.h>

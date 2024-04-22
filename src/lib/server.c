@@ -225,7 +225,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
         case NimbleSerializeCmdGameStep:
             CLOG_C_VERBOSE(&self->log, "CmdGameStep")
             result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
-                                             &self->localParties, &inStream, &outStream);
+                                             &inStream, &outStream);
             break;
         case NimbleSerializeCmdJoinGameRequest:
             CLOG_C_VERBOSE(&self->log, "JoinGame")

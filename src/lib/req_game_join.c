@@ -48,8 +48,7 @@ static int joinLocalParty(NimbleServerLocalParties* parties,
                 } else {
                     CLOG_C_DEBUG(&parties->log, "rejoining, using a secret, to a previous connection %u",
                                  foundPartyFromSecret->id)
-                    nimbleServerLocalPartyRejoin(foundPartyFromSecret, transportConnection,
-                                                            latestAuthoritativeStepId);
+                    nimbleServerLocalPartyRejoin(foundPartyFromSecret, transportConnection);
                     *outConnection = foundPartyFromSecret;
                     return 0;
                 }

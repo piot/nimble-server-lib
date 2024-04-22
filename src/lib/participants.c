@@ -9,6 +9,7 @@
 #include <nimble-server/participants.h>
 
 int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId,
+                                    struct NimbleServerLocalParty* party, StepId currentAuthoritativeStepId,
                                     struct NimbleServerParticipant** outConnection)
 {
     if (self->participantCount + 1 > self->participantCapacity) {
@@ -24,6 +25,7 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
     }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
 
+    nimbleServerParticipantReInit(participant, party, currentAuthoritativeStepId);
     if (participant->isUsed) {
         CLOG_SOFT_ERROR("could not prepare for host migration, participant already used")
         return -2;
@@ -42,8 +44,8 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
     return 0;
 }
 
-
-NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId)
+NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* self,
+                                                      NimbleSerializeParticipantId participantId)
 {
     if (participantId >= self->participantCapacity) {
         return 0;
@@ -82,6 +84,7 @@ void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSeria
 /// @return negative on error
 int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
                                  const NimbleSerializeJoinGameRequestPlayer* localPlayers, size_t localParticipantCount,
+                                 struct NimbleServerLocalParty* party, StepId expectedStepId,
                                  NimbleServerParticipant** results)
 {
     CLOG_ASSERT(localParticipantCount == 1, "in this version of nimble only one local participant is supported")
@@ -101,6 +104,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
         CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
     }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
+    nimbleServerParticipantReInit(participant, party, expectedStepId);
 
     if (participant->isUsed) {
         CLOG_ERROR("internal error, participant is already used, even if the index came from the free list")
@@ -130,7 +134,7 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
 /// @param allocator allocator to pre-alloc the collection
 /// @param maxCount maximum number of participants to pre-alloc
 void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount,
-                                  Clog* log)
+                                  size_t maxStepOctetSize, Clog* log)
 {
     CLOG_ASSERT(maxCount > 0, "must allocate at least one participant")
     self->log = *log;
@@ -147,6 +151,25 @@ void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocat
         nimbleServerCircularBufferWrite(&self->freeList, (uint8_t) i);
     }
 
-    CLOG_C_DEBUG(&self->log, "allocating %zu server participants as capacity", maxCount)
+    CLOG_C_DEBUG(&self->log, "allocating %zu participants as capacity", maxCount)
+    for (uint8_t i = 0; i < maxCount; ++i) {
+        NimbleServerParticipant* participant = &self->participants[i];
+
+        CLOG_C_DEBUG(&self->log, "preparing participant %hhu", participant->id)
+
+        NimbleServerParticipantSetup setup = {
+            .id = i,
+            .maxStepOctetSizeForOneParticipant = maxStepOctetSize,
+            .connectionAllocator = allocator,
+        };
+
+        tc_snprintf(participant->debugPrefix, sizeof(participant->debugPrefix), "%s/%u", self->log.constantPrefix,
+                    participant->id);
+        setup.log.constantPrefix = participant->debugPrefix;
+        setup.log.config = self->log.config;
+
+        nimbleServerParticipantInit(participant, setup);
+    }
+
     CLOG_ASSERT(self->participants[0].isUsed == false, "CALLOC did not work")
 }

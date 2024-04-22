@@ -32,9 +32,7 @@ static int discardAuthoritativeStepsIfBufferGettingFull(NimbleServerGame* foundG
     return 0;
 }
 
-static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundGame,
-                                                        NimbleServerLocalParties* connections,
-                                                        FldInStream* inStream,
+static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundGame, FldInStream* inStream,
                                                         NimbleServerTransportConnection* transportConnection,
                                                         StatsIntPerSecond* authoritativeStepsPerSecondStat,
                                                         StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
@@ -52,7 +50,7 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundG
 
     int advanceCount = 0;
     if (!foundGame->debugIsFrozen) {
-        advanceCount = nimbleServerComposeAuthoritativeSteps(foundGame, connections);
+        advanceCount = nimbleServerComposeAuthoritativeSteps(foundGame);
         if (advanceCount < 0) {
             return advanceCount;
         }
@@ -68,19 +66,17 @@ static int readIncomingStepsAndCreateAuthoritativeSteps(NimbleServerGame* foundG
 /// @param foundGame game
 /// @param transportConnection transport connection that provides the steps
 /// @param authoritativeStepsPerSecondStat stats to update
-/// @param connections participant connections collection
 /// @param inStream stream to read from
 /// @param outStream out stream for reply
 /// @return negative on error
 int nimbleServerReqGameStep(NimbleServerGame* foundGame, NimbleServerTransportConnection* transportConnection,
-                            StatsIntPerSecond* authoritativeStepsPerSecondStat,
-                            NimbleServerLocalParties* connections, FldInStream* inStream,
+                            StatsIntPerSecond* authoritativeStepsPerSecondStat, FldInStream* inStream,
                             FldOutStream* outStream)
 {
     StepId clientWaitingForStepId;
     uint64_t receiveMask;
 
-    int errorCode = readIncomingStepsAndCreateAuthoritativeSteps(foundGame, connections, inStream, transportConnection,
+    int errorCode = readIncomingStepsAndCreateAuthoritativeSteps(foundGame, inStream, transportConnection,
                                                                  authoritativeStepsPerSecondStat,
                                                                  &clientWaitingForStepId, &receiveMask);
     if (errorCode < 0) {

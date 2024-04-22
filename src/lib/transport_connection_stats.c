@@ -14,10 +14,8 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
     NimbleServerLocalParty* party = transportConnection->assignedParty;
 
     if (party) {
-        tc_snprintf(debug, DEBUG_COUNT, "server: conn %u step count in incoming buffer",
-                    party->id);
-        statsIntDebug(&party->incomingStepCountInBufferStats, &transportConnection->log, debug,
-                      "steps");
+        tc_snprintf(debug, DEBUG_COUNT, "server: conn %u step count in incoming buffer", party->id);
+        statsIntDebug(&party->incomingStepCountInBufferStats, &transportConnection->log, debug, "steps");
     }
 
     tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)",
@@ -34,8 +32,7 @@ void nimbleServerTransportConnectionUpdateStats(NimbleServerTransportConnection*
 {
     NimbleServerLocalParty* party = transportConnection->assignedParty;
     if (party != 0) {
-        statsIntAdd(&party->incomingStepCountInBufferStats,
-                    (int) party->steps.stepsCount);
+        statsIntAdd(&party->incomingStepCountInBufferStats, (int) party->stepsInBufferCount);
     }
 
     size_t stepsBehindForClient = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;

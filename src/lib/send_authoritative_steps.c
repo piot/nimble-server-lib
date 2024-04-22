@@ -86,9 +86,9 @@ ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTranspor
 
         NimbleServerLocalParty* party = transportConnection->assignedParty;
         if (party != 0) {
-            lastReceivedStepFromClient = party->steps.expectedWriteId - 1;
-            bufferDelta = party->steps.stepsCount;
-            authoritativeBufferDelta = (int) party->steps.expectedWriteId -
+            lastReceivedStepFromClient = party->highestReceivedStepId;
+            bufferDelta = party->stepsInBufferCount;
+            authoritativeBufferDelta = (int) party->highestReceivedStepId -
                                        (int) foundGame->authoritativeSteps.expectedWriteId;
         }
     }
