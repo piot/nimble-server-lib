@@ -180,8 +180,8 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         size_t dropped = nbsStepsDropped(&participant->steps, firstStepId);
         if (dropped > 0) {
             if (dropped > 60U) {
-                CLOG_C_WARN(&self->log, "dropped %zu", dropped)
-                return -3;
+                CLOG_C_WARN(&self->log, "client had a big gap in predicted steps %zu", dropped)
+                //return -3;
             }
             CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
                         dropped, participant->steps.expectedWriteId, firstStepId, lastStepId)

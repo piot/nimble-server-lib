@@ -35,15 +35,23 @@ static ssize_t composeOneAuthoritativeStep(NimbleServerParticipants* participant
         if (!participant->isUsed) {
             continue;
         }
+        CLOG_EXECUTE(foundParticipantCount++;)
         NbsSteps* steps = &participant->steps;
 
+        uint8_t mask = 0x00;
+        NimbleSerializeStepType stepType = NimbleSerializeStepTypeNormal;
+
         int readStepOctetCount = nbsStepsReadExactStepId(steps, lookingFor, stepReadBuffer, 1024);
-        if (readStepOctetCount == -1) {
-            nimbleServerConnectionQualityAddedForcedSteps(&participant->inParty->quality, 1);
-            CLOG_C_VERBOSE(&participant->log,
-                           "no steps stored in party %zu (%u). server is looking for %08X. inserting forced step", i,
-                           participant->inParty->id, lookingFor)
-            continue;
+        if (readStepOctetCount < 0) {
+            if (readStepOctetCount == NimbleStepErrCollectionIsEmpty) {
+                nimbleServerConnectionQualityAddedForcedSteps(&participant->inParty->quality, 1);
+                CLOG_C_VERBOSE(&participant->log,
+                               "no steps stored in party %zu (%u). server is looking for %08X. inserting forced step",
+                               i, participant->inParty->id, lookingFor)
+                stepType = NimbleSerializeStepTypeStepNotProvidedInTime;
+            } else {
+                CLOG_C_ERROR(&participant->log, "steps for participant is corrupt. error %d", readStepOctetCount)
+            }
         } else {
             nimbleServerConnectionQualityProvidedUsableStep(&participant->inParty->quality);
         }
@@ -51,17 +59,17 @@ static ssize_t composeOneAuthoritativeStep(NimbleServerParticipants* participant
         // CLOG_VERBOSE("party %d: steps in buffer from %08X, count: %d (%08X)", i, steps->expectedReadId,
         // steps->stepsCount, steps->expectedWriteId);
 
-        uint8_t mask = 0x00;
-        NimbleSerializeStepType stepType = NimbleSerializeStepTypeNormal;
-        if (!participant->hasProvidedStepsBefore) {
+        if (stepType == NimbleSerializeStepTypeNormal && !participant->hasProvidedStepsBefore) {
             stepType = NimbleSerializeStepTypeJoined;
             CLOG_C_INFO(&participant->log, "someone joined")
             participant->hasProvidedStepsBefore = true;
-            mask = 0x80;
         }
 
+        if (stepType != NimbleSerializeStepTypeNormal) {
+            mask = 0x80;
+        }
         int serializeError = fldOutStreamWriteUInt8(&composeStream, mask | participant->id);
-        if (serializeError < 0 ) {
+        if (serializeError < 0) {
             return serializeError;
         }
         if (mask) {
@@ -70,16 +78,19 @@ static ssize_t composeOneAuthoritativeStep(NimbleServerParticipants* participant
                 fldOutStreamWriteUInt8(&composeStream, participant->inParty->id);
             }
         }
-        fldOutStreamWriteUInt8(&composeStream, (uint8_t) readStepOctetCount);
-        fldOutStreamWriteOctets(&composeStream, stepReadBuffer, (size_t) readStepOctetCount);
 
-        // CLOG_C_INFO(&participant->log, "connection %d. Wrote participant ID %d (octetCount %d)", connection->id,
-        // participantId, localStepOctetCount)
-        CLOG_EXECUTE(foundParticipantCount++;)
+        if (stepType == NimbleSerializeStepTypeNormal || stepType == NimbleSerializeStepTypeJoined) {
+            fldOutStreamWriteUInt8(&composeStream, (uint8_t) readStepOctetCount);
+            fldOutStreamWriteOctets(&composeStream, stepReadBuffer, (size_t) readStepOctetCount);
+        }
+
+        CLOG_C_INFO(&participant->log, "Wrote part of authoritative step. participant ID %hhu (octetCount %d)",
+                    participant->id, readStepOctetCount)
     }
-
+#if CLOG_LOG_ENABLED
     CLOG_ASSERT(foundParticipantCount == participants->participantCount,
                 "did not find the same amount of participants as in participantCount")
+#endif
 
     CLOG_C_VERBOSE(&participants->log, "authoritative step done. participant count %zu, total octet count: %zu",
                    foundParticipantCount, composeStream.pos)
@@ -168,15 +179,15 @@ int nimbleServerComposeAuthoritativeSteps(NimbleServerGame* game)
         StepId lookingFor = authoritativeSteps->expectedWriteId;
 
         uint8_t composeStepBuffer[1024];
-        ssize_t authoritativeStepOctetCount = composeOneAuthoritativeStep( &game->participants, lookingFor,
-                                                                         composeStepBuffer, 1024);
+        ssize_t authoritativeStepOctetCount = composeOneAuthoritativeStep(&game->participants, lookingFor,
+                                                                          composeStepBuffer, 1024);
         if (authoritativeStepOctetCount <= 0) {
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't compose a authoritative step")
             return 0;
         }
 
         int octetsWritten = nbsStepsWrite(authoritativeSteps, lookingFor, composeStepBuffer,
-                                          (size_t)authoritativeStepOctetCount);
+                                          (size_t) authoritativeStepOctetCount);
         if (octetsWritten < 0) {
             CLOG_C_SOFT_ERROR(&game->log, "authoritative: couldn't write")
             return octetsWritten;

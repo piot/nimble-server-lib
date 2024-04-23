@@ -22,10 +22,5 @@ void nimbleServerParticipantReInit(NimbleServerParticipant* self, NimbleServerLo
 int nimbleServerParticipantDeserializeSingleStep(NimbleServerParticipant* self, StepId stepId,
                                                  struct FldInStream* inStream)
 {
-    int addedStepsCount = nbsStepsInSerializeSinglePredictedStep(inStream, stepId, &self->steps);
-    if (addedStepsCount < 0) {
-        return addedStepsCount;
-    }
-
-    return addedStepsCount;
+    return nbsStepsInSerializeSinglePredictedStep(inStream, stepId, &self->steps);
 }
