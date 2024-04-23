@@ -94,11 +94,11 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
     }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
 
-    nimbleServerParticipantReInit(participant, party, currentAuthoritativeStepId);
     if (participant->isUsed) {
         CLOG_SOFT_ERROR("could not prepare for host migration, participant already used")
         return -2;
     }
+    nimbleServerParticipantReInit(participant, party, currentAuthoritativeStepId);
 
     participant->localIndex = 0;
     participant->isUsed = true;
