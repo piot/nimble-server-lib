@@ -17,7 +17,9 @@ void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocat
 {
     CLOG_ASSERT(maxCount > 0, "must allocate at least one participant")
     self->log = *log;
-    self->log.constantPrefix = "server/participants";
+    tc_snprintf(self->debugPrefix, sizeof(self->debugPrefix), "%s/participants", self->log.constantPrefix);
+    self->log.constantPrefix = self->debugPrefix;
+
     self->participantCapacity = maxCount;
     self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NimbleServerParticipant, maxCount);
     self->participantCount = 0;
@@ -34,8 +36,7 @@ void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocat
     for (uint8_t i = 0; i < maxCount; ++i) {
         NimbleServerParticipant* participant = &self->participants[i];
 
-        CLOG_C_DEBUG(&self->log, "preparing participant %hhu", participant->id)
-
+        CLOG_C_DEBUG(&self->log, "preparing participant %hhu", i)
         NimbleServerParticipantSetup setup = {
             .id = i,
             .maxStepOctetSizeForOneParticipant = maxStepOctetSize,
@@ -43,7 +44,7 @@ void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocat
         };
 
         tc_snprintf(participant->debugPrefix, sizeof(participant->debugPrefix), "%s/%u", self->log.constantPrefix,
-                    participant->id);
+                    setup.id);
         setup.log.constantPrefix = participant->debugPrefix;
         setup.log.config = self->log.config;
 
@@ -52,7 +53,6 @@ void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocat
 
     CLOG_ASSERT(self->participants[0].isUsed == false, "CALLOC did not work")
 }
-
 
 /// Marks the participant as not used anymore
 /// @param self participants collection
@@ -102,7 +102,7 @@ int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerial
 
     participant->localIndex = 0;
     participant->isUsed = true;
-    participant->hasProvidedStepsBefore = true;
+    participant->state = NimbleServerParticipantStateWaitingForRejoin;
     participant->id = participantId;
 
     CLOG_C_DEBUG(&self->log, "allocating participant with game unique id: %hhu", participant->id)
@@ -122,8 +122,6 @@ NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* 
 
     return &self->participants[participantId];
 }
-
-
 
 /// Creates a new participant using the join information.
 /// @param self participants collection
@@ -159,12 +157,10 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
 
     nimbleServerParticipantReInit(participant, party, expectedStepId);
 
-
-
     const NimbleSerializeJoinGameRequestPlayer* localPlayer = &localPlayers[joinIndex];
     participant->localIndex = localPlayer->localIndex;
     participant->isUsed = true;
-    participant->hasProvidedStepsBefore = false;
+    participant->state = NimbleServerParticipantStateJustJoined;
     participant->id = participantId;
 
     CLOG_C_DEBUG(&self->log, "allocating participant %zu with unique id: %hhu", joinIndex, participant->id)
@@ -179,4 +175,3 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
 
     return 0;
 }
-

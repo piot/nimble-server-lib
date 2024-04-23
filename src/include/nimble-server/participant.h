@@ -13,14 +13,22 @@ struct NimbleServerLocalParty;
 struct ImprintAllocator;
 struct FldInStream;
 
+typedef enum NimbleServerParticipantState {
+    NimbleServerParticipantStateJustJoined,
+    NimbleServerParticipantStateNormal,
+    NimbleServerParticipantStateWaitingForRejoin,
+    NimbleServerParticipantStateLeaving,
+    NimbleServerParticipantStateDestroyed,
+} NimbleServerParticipantState;
+
 typedef struct NimbleServerParticipant {
     size_t localIndex;
     uint8_t id;
     bool isUsed;
-    bool hasProvidedStepsBefore;
     NbsSteps steps;
-    bool shouldBeRemovedAfterLeftStep;
+
     struct NimbleServerLocalParty* inParty;
+    NimbleServerParticipantState state;
     Clog log;
     char debugPrefix[32];
 } NimbleServerParticipant;
@@ -35,6 +43,7 @@ typedef struct NimbleServerParticipantSetup {
 void nimbleServerParticipantInit(NimbleServerParticipant* self, NimbleServerParticipantSetup setup);
 void nimbleServerParticipantReInit(NimbleServerParticipant* self, struct NimbleServerLocalParty* party, StepId stepId);
 void nimbleServerParticipantDestroy(NimbleServerParticipant* self);
+void nimbleServerParticipantMarkAsLeaving(NimbleServerParticipant* self);
 int nimbleServerParticipantDeserializeSingleStep(NimbleServerParticipant* self, StepId stepId,
                                                  struct FldInStream* inStream);
 

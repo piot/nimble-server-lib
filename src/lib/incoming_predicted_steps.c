@@ -29,8 +29,7 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     if (party->state == NimbleServerLocalPartyStateDissolved) {
         party->warningCount++;
         if (party->warningCount % 60 == 0) {
-            CLOG_C_NOTICE(&foundGame->log, "ignoring steps from party %u that is dissolved",
-                          party->id)
+            CLOG_C_NOTICE(&foundGame->log, "ignoring steps from party %u that is dissolved", party->id)
         }
         return NimbleServerErrDatagramFromDisconnectedConnection;
     }
@@ -49,10 +48,10 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outClientWaitingForStepId = clientWaitingForStepId;
     *outReceiveMask = receiveMask;
 
-    CLOG_C_VERBOSE(&transportConnection->log,
-                   "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
-                   transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
-
+    CLOG_C_VERBOSE(
+        &transportConnection->log,
+        "handleIncomingSteps: transport connection %d party: %hhu is awaiting step %08X receiveMask: %" PRIX64,
+        transportConnection->transportConnectionId, party->id, clientWaitingForStepId, receiveMask)
 
     int addedStepsCountOrError = nimbleServerLocalPartyDeserializePredictedSteps(party, inStream);
 

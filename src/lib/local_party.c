@@ -15,15 +15,15 @@
 
 /// Initializes a party.
 /// @param self the party
-/// @param transportConnection the transport connection id
+/// @param id the id for the party
 /// @param log the log to use for logging
 /// Need to create Participants to the game before associating them to the connection.
-void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleServerTransportConnection* transportConnection,
-                                Clog log)
+void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleSerializeLocalPartyId id, Clog log)
 {
     self->log = log;
     CLOG_C_DEBUG(&self->log, "initialize local party")
 
+    self->id = id;
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectMaxTimer = 62 * 20;
     self->isUsed = false;
@@ -35,7 +35,7 @@ void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleServerTransp
     nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
     nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
-    nimbleServerLocalPartyReInit(self, transportConnection);
+    nimbleServerLocalPartyReInit(self, 0);
 }
 
 /// Reinitialize the party
@@ -91,6 +91,11 @@ static void setToWaitingForReJoin(NimbleServerLocalParty* self)
     CLOG_C_DEBUG(&self->log, "setting state to: waiting for rejoin")
     self->state = NimbleServerLocalPartyStateWaitingForReJoin;
     self->waitingForReconnectTimer = 0;
+
+    for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
+        NimbleServerParticipant* participant = self->participantReferences.participantReferences[i];
+        participant->state = NimbleServerParticipantStateWaitingForRejoin;
+    }
 }
 
 /// Monitors the waiting period for a reconnect attempt and determines if it should continue waiting or give up.
@@ -120,7 +125,8 @@ static void tickNormal(NimbleServerLocalParty* self)
     bool shouldKeep = nimbleServerConnectionQualityDelayedTick(&self->delayedQuality, &self->quality);
 
     if (!shouldKeep && self->state != NimbleServerLocalPartyStateWaitingForReJoin) {
-        CLOG_C_DEBUG(&self->log, "connection quality recommended disconnect, so setting it to waiting for rejoin")
+        CLOG_C_DEBUG(&self->log,
+                     "connection quality recommended waiting for rejoin, so setting it to waiting for rejoin")
         setToWaitingForReJoin(self);
     }
 }

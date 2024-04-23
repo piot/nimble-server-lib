@@ -1,3 +1,7 @@
+/*----------------------------------------------------------------------------------------------------------
+ *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
+ *  Licensed under the MIT License. See LICENSE in the project root for license information.
+ *--------------------------------------------------------------------------------------------------------*/
 #include <nimble-server/local_party.h>
 #include <nimble-server/participant.h>
 #include <nimble-steps-serialize/in_serialize.h>
@@ -9,6 +13,8 @@ void nimbleServerParticipantInit(NimbleServerParticipant* self, NimbleServerPart
 {
     self->log = setup.log;
     self->id = setup.id;
+    self->isUsed = false;
+    self->state = NimbleServerParticipantStateDestroyed;
     nbsStepsInit(&self->steps, setup.connectionAllocator, setup.maxStepOctetSizeForOneParticipant, setup.log);
 }
 
@@ -23,7 +29,7 @@ void nimbleServerParticipantReInit(NimbleServerParticipant* self, NimbleServerLo
     nbsStepsReInit(&self->steps, currentAuthoritativeStepId);
     self->inParty = party;
     self->isUsed = true;
-    self->hasProvidedStepsBefore = false;
+    self->state = NimbleServerParticipantStateJustJoined;
 }
 
 /// Destroys the participant (marks the memory as not used)
@@ -33,7 +39,14 @@ void nimbleServerParticipantDestroy(NimbleServerParticipant* self)
     self->isUsed = false;
     self->inParty = 0;
     self->localIndex = 0;
-    self->hasProvidedStepsBefore = false;
+    self->state = NimbleServerParticipantStateDestroyed;
+}
+
+/// Marking the participant as leaving
+/// @param self participant
+void nimbleServerParticipantMarkAsLeaving(NimbleServerParticipant* self)
+{
+    self->state = NimbleServerParticipantStateLeaving;
 }
 
 int nimbleServerParticipantDeserializeSingleStep(NimbleServerParticipant* self, StepId stepId,

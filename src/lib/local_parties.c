@@ -17,9 +17,8 @@
 /// @param maxLocalPartyParticipantCount maximum number of participants in a party.
 /// @param maxSingleParticipantOctetCount the maximum number of octets for one step for a participant.
 /// @param log logging
-void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCount,
-                                  ImprintAllocator* allocator, size_t maxLocalPartyParticipantCount,
-                                  size_t maxSingleParticipantOctetCount, Clog log)
+void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCount, ImprintAllocator* allocator,
+                                  size_t maxLocalPartyParticipantCount, size_t maxSingleParticipantOctetCount, Clog log)
 {
     self->partiesCount = 0;
     self->parties = IMPRINT_ALLOC_TYPE_COUNT(allocator, NimbleServerLocalParty, maxCount);
@@ -33,12 +32,14 @@ void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCoun
 
     for (size_t i = 0; i < self->capacityCount; ++i) {
         NimbleServerLocalParty* party = &self->parties[i];
+        uint8_t id = (uint8_t) i;
+
         Clog subLog;
-        tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/party/%u", self->log.constantPrefix, party->id);
+        tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/party/%u", self->log.constantPrefix, id);
         subLog.constantPrefix = party->debugPrefix;
         subLog.config = log.config;
 
-        nimbleServerLocalPartyInit(party, 0, subLog);
+        nimbleServerLocalPartyInit(party, id, subLog);
     }
 }
 
@@ -109,19 +110,16 @@ static NimbleServerLocalParty* findFreePartyPlaceButDoNotReserveItYet(NimbleServ
 /// @param self party collection
 /// @param party the party to assign the participants to
 /// @param transportConnection the transport connection where the party happens.
-/// @param gameParticipants participants collection where the participants were created from.
 /// @param createdParticipants the previously created participants.
 /// @param localParticipantCount how many participants is present in the createdParticipants.
 static void addParty(NimbleServerLocalParties* self, NimbleServerLocalParty* party,
                      struct NimbleServerTransportConnection* transportConnection,
-                     NimbleServerParticipants* gameParticipants,
                      struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
 {
     nimbleServerLocalPartyReInit(party, transportConnection);
     self->partiesCount++;
     party->isUsed = true;
 
-    party->participantReferences.gameParticipants = gameParticipants;
     for (size_t participantIndex = 0; participantIndex < localParticipantCount; ++participantIndex) {
         party->participantReferences.participantReferences[participantIndex] = createdParticipants[participantIndex];
     }
@@ -161,7 +159,7 @@ int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServer
         }
     }
 
-    addParty(self, party, 0, gameParticipants, createdParticipants, 1);
+    addParty(self, party, 0, createdParticipants, 1);
 
     party->isUsed = true;
     party->state = NimbleServerLocalPartyStateWaitingForReJoin;
@@ -202,7 +200,7 @@ int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self, NimbleServerP
         return errorCode;
     }
 
-    addParty(self, party, transportConnection, gameParticipants, createdParticipants, localParticipantCount);
+    addParty(self, party, transportConnection, createdParticipants, localParticipantCount);
 
     *outParty = party;
 

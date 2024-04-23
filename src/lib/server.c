@@ -21,14 +21,11 @@
 
 /// Clean up participant references
 /// @param participantReferences the participant references that should be removed.
-static void removeReferencesFromGameParticipants(NimbleServerParticipantReferences* participantReferences)
+static void markReferencesAsLeaving(NimbleServerParticipantReferences* participantReferences)
 {
-    NimbleServerParticipants* gameParticipants = participantReferences->gameParticipants;
-
     for (size_t i = 0; i < participantReferences->participantReferenceCount; ++i) {
         NimbleServerParticipant* participant = participantReferences->participantReferences[i];
-        nimbleServerParticipantsDestroy(gameParticipants, participant->id);
-        participant = 0;
+        nimbleServerParticipantMarkAsLeaving(participant);
     }
 }
 
@@ -39,7 +36,7 @@ static void destroyParty(NimbleServerLocalParties* parties, NimbleServerLocalPar
 {
     nimbleServerLocalPartyDestroy(party);
 
-    removeReferencesFromGameParticipants(&party->participantReferences);
+    markReferencesAsLeaving(&party->participantReferences);
 
     nimbleServerLocalPartiesRemove(parties, party);
 }

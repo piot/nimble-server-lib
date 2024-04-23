@@ -50,7 +50,7 @@ typedef struct NimbleServerLocalParty {
 } NimbleServerLocalParty;
 
 void nimbleServerLocalPartyInit(NimbleServerLocalParty* self,
-                                struct NimbleServerTransportConnection* transportConnection, Clog log);
+                                NimbleSerializeLocalPartyId id, Clog log);
 void nimbleServerLocalPartyReset(NimbleServerLocalParty* self);
 void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self,
                                   struct NimbleServerTransportConnection* transportConnection);

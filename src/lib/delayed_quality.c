@@ -35,7 +35,7 @@ bool nimbleServerConnectionQualityDelayedTick(NimbleServerConnectionQualityDelay
 #define BUF_SIZE 128
             char buf[BUF_SIZE];
             CLOG_C_NOTICE(
-                &self->log, "quality recommended disconnect for the first time (counter:%zu), description: %s",
+                &self->log, "quality recommended dissolve for the first time (counter:%zu), description: %s",
                 self->impedingDisconnectCounter, nimbleServerConnectionQualityDescribe(quality, buf, BUF_SIZE))
 
 #endif
@@ -44,7 +44,7 @@ bool nimbleServerConnectionQualityDelayedTick(NimbleServerConnectionQualityDelay
         if (self->impedingDisconnectCounter > 180) {
 #if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "recommending disconnect (counter:%zu), description: %s",
+            CLOG_C_NOTICE(&self->log, "recommending dissolve (counter:%zu), description: %s",
                           self->impedingDisconnectCounter,
                           nimbleServerConnectionQualityDescribe(quality, buf, BUF_SIZE))
 
@@ -55,7 +55,7 @@ bool nimbleServerConnectionQualityDelayedTick(NimbleServerConnectionQualityDelay
         if (self->impedingDisconnectCounter % 60 == 0) {
 #if defined CLOG_LOG_ENABLED
             char buf[BUF_SIZE];
-            CLOG_C_NOTICE(&self->log, "bad quality, considering disconnecting (counter:%zu). description: %s",
+            CLOG_C_NOTICE(&self->log, "bad quality, considering dissolving (counter:%zu). description: %s",
                           self->impedingDisconnectCounter,
                           nimbleServerConnectionQualityDescribe(quality, buf, BUF_SIZE))
 #endif
