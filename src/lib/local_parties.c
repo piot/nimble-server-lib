@@ -10,14 +10,21 @@
 #include <nimble-server/transport_connection.h>
 #include <secure-random/secure_random.h>
 
+/// Allocates memory for the local parties collection
+/// @param self local parties collection
+/// @param maxCount capacity for the collection
+/// @param allocator the allocator to use to reserve memory for the number of parties.
+/// @param maxLocalPartyParticipantCount maximum number of participants in a party.
+/// @param maxSingleParticipantOctetCount the maximum number of octets for one step for a participant.
+/// @param log logging
 void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCount,
-                                  ImprintAllocator* connectionAllocator, size_t maxLocalPartyParticipantCount,
+                                  ImprintAllocator* allocator, size_t maxLocalPartyParticipantCount,
                                   size_t maxSingleParticipantOctetCount, Clog log)
 {
     self->partiesCount = 0;
-    self->parties = IMPRINT_ALLOC_TYPE_COUNT(connectionAllocator, NimbleServerLocalParty, maxCount);
+    self->parties = IMPRINT_ALLOC_TYPE_COUNT(allocator, NimbleServerLocalParty, maxCount);
     self->capacityCount = maxCount;
-    self->allocator = connectionAllocator;
+    self->allocator = allocator;
     self->maxLocalPartyParticipantCount = maxLocalPartyParticipantCount;
     self->maxSingleParticipantStepOctetCount = maxSingleParticipantOctetCount;
     self->log = log;
@@ -25,13 +32,18 @@ void nimbleServerLocalPartiesInit(NimbleServerLocalParties* self, size_t maxCoun
     tc_mem_clear_type_n(self->parties, self->capacityCount);
 
     for (size_t i = 0; i < self->capacityCount; ++i) {
+        NimbleServerLocalParty* party = &self->parties[i];
         Clog subLog;
-        subLog.constantPrefix = "NimbleServerLocalParty";
+        tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/party/%u", self->log.constantPrefix, party->id);
+        subLog.constantPrefix = party->debugPrefix;
         subLog.config = log.config;
-        nimbleServerLocalPartyInit(&self->parties[i], 0, subLog);
+
+        nimbleServerLocalPartyInit(party, 0, subLog);
     }
 }
 
+/// Resets the memory of the party collection
+/// @param self party collection
 void nimbleServerLocalPartiesReset(NimbleServerLocalParties* self)
 {
     for (size_t i = 0; i < self->capacityCount; ++i) {
@@ -42,7 +54,7 @@ void nimbleServerLocalPartiesReset(NimbleServerLocalParties* self)
 /// Finds the party using the internal index
 /// @param self parties
 /// @param partyId party to find
-/// @return return NULL if connection was not found
+/// @return return NULL if party was not found
 struct NimbleServerLocalParty* nimbleServerLocalPartiesFindParty(NimbleServerLocalParties* self,
                                                                  NimbleSerializeLocalPartyId partyId)
 {
@@ -54,7 +66,7 @@ struct NimbleServerLocalParty* nimbleServerLocalPartiesFindParty(NimbleServerLoc
     return &self->parties[partyId];
 }
 
-/// Finds the party for the specified connection id
+/// Finds the party for with the specified transport id
 /// @param self parties
 /// @param transportConnectionId find party for the specified transport connection
 /// @return pointer to a party, or NULL otherwise
@@ -71,6 +83,9 @@ struct NimbleServerLocalParty* nimbleServerLocalPartiesFindPartyForTransport(Nim
     return 0;
 }
 
+/// Looks up a party that is not used
+/// @param self party collection
+/// @return zero if out of capacity, or a pointer to the reserved party.
 static NimbleServerLocalParty* findFreePartyPlaceButDoNotReserveItYet(NimbleServerLocalParties* self)
 {
     for (size_t i = 0; i < self->capacityCount; ++i) {
@@ -90,16 +105,19 @@ static NimbleServerLocalParty* findFreePartyPlaceButDoNotReserveItYet(NimbleServ
     return 0;
 }
 
+/// Adds a party for the specified transport connection and created participants.
+/// @param self party collection
+/// @param party the party to assign the participants to
+/// @param transportConnection the transport connection where the party happens.
+/// @param gameParticipants participants collection where the participants were created from.
+/// @param createdParticipants the previously created participants.
+/// @param localParticipantCount how many participants is present in the createdParticipants.
 static void addParty(NimbleServerLocalParties* self, NimbleServerLocalParty* party,
                      struct NimbleServerTransportConnection* transportConnection,
                      NimbleServerParticipants* gameParticipants,
                      struct NimbleServerParticipant* createdParticipants[16], size_t localParticipantCount)
 {
-    tc_snprintf(party->debugPrefix, sizeof(party->debugPrefix), "%s/party/%u", self->log.constantPrefix, party->id);
-    party->log.constantPrefix = party->debugPrefix;
-    party->log.config = self->log.config;
-
-    nimbleServerLocalPartyInit(party, transportConnection, party->log);
+    nimbleServerLocalPartyReInit(party, transportConnection);
     self->partiesCount++;
     party->isUsed = true;
 
@@ -114,6 +132,13 @@ static void addParty(NimbleServerLocalParties* self, NimbleServerLocalParty* par
     CLOG_C_DEBUG(&party->log, "party is ready. All participants have joined")
 }
 
+/// Used in host migration to prepare a party and the participants in that party.
+/// @param self party collection
+/// @param gameParticipants the game participants collection to use to propare the participants
+/// @param latestAuthoritativeStepId the tick id to start host migration from.
+/// @param partyInfo information about the local party
+/// @param outParty the created and prepared party
+/// @return negative on error.
 int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServerParticipants* gameParticipants,
                                     StepId latestAuthoritativeStepId, NimbleSerializeLocalPartyInfo partyInfo,
                                     NimbleServerLocalParty** outParty)
@@ -147,21 +172,20 @@ int nimbleServerLocalPartiesPrepare(NimbleServerLocalParties* self, NimbleServer
     return 0;
 }
 
-/// Creates a party for the specified room.
-/// @note In this version there must be an existing game in the room.
-/// @param self parties
+/// Creates a party for the specified participants and transport connection.
+/// @param self parties collection
 /// @param gameParticipants participants collection
 /// @param transportConnection the transport connection to create the party for
 /// @param joinInfo information about the joining participants
 /// @param latestAuthoritativeStepId latest known authoritative stepID
 /// @param localParticipantCount local participant count
-/// @param[out] outConnection the created connection
+/// @param[out] outParty the created party
 /// @return negative on error
 int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self, NimbleServerParticipants* gameParticipants,
                                    struct NimbleServerTransportConnection* transportConnection,
                                    const NimbleSerializeJoinGameRequestPlayer* joinInfo,
                                    StepId latestAuthoritativeStepId, size_t localParticipantCount,
-                                   NimbleServerLocalParty** outConnection)
+                                   NimbleServerLocalParty** outParty)
 {
     NimbleServerLocalParty* party = findFreePartyPlaceButDoNotReserveItYet(self);
     if (!party) {
@@ -174,18 +198,18 @@ int nimbleServerLocalPartiesCreate(NimbleServerLocalParties* self, NimbleServerP
     int errorCode = nimbleServerParticipantsJoin(gameParticipants, joinInfo, localParticipantCount, party,
                                                  latestAuthoritativeStepId, createdParticipants);
     if (errorCode < 0) {
-        *outConnection = 0;
+        *outParty = 0;
         return errorCode;
     }
 
     addParty(self, party, transportConnection, gameParticipants, createdParticipants, localParticipantCount);
 
-    *outConnection = party;
+    *outParty = party;
 
     return 0;
 }
 
-/// Remove party from parties collection
+/// Remove party from parties collection (mark it as not used).
 /// @param self parties
 /// @param party to remove from collection
 void nimbleServerLocalPartiesRemove(NimbleServerLocalParties* self, struct NimbleServerLocalParty* party)

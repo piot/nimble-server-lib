@@ -34,6 +34,7 @@ typedef struct NimbleServerParticipantSetup {
 
 void nimbleServerParticipantInit(NimbleServerParticipant* self, NimbleServerParticipantSetup setup);
 void nimbleServerParticipantReInit(NimbleServerParticipant* self, struct NimbleServerLocalParty* party, StepId stepId);
+void nimbleServerParticipantDestroy(NimbleServerParticipant* self);
 int nimbleServerParticipantDeserializeSingleStep(NimbleServerParticipant* self, StepId stepId,
                                                  struct FldInStream* inStream);
 

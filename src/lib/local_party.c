@@ -22,6 +22,8 @@ void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleServerTransp
                                 Clog log)
 {
     self->log = log;
+    CLOG_C_DEBUG(&self->log, "initialize local party")
+
     self->participantReferences.participantReferenceCount = 0;
     self->waitingForReconnectMaxTimer = 62 * 20;
     self->isUsed = false;
@@ -33,21 +35,7 @@ void nimbleServerLocalPartyInit(NimbleServerLocalParty* self, NimbleServerTransp
     nimbleServerConnectionQualityInit(&self->quality, self->quality.log);
     nimbleServerConnectionQualityDelayedInit(&self->delayedQuality, self->quality.log);
 
-    CLOG_C_DEBUG(&self->log, "initialize new local party")
     nimbleServerLocalPartyReInit(self, transportConnection);
-}
-
-/// Resets the party
-/// @param self party
-void nimbleServerLocalPartyReset(NimbleServerLocalParty* self)
-{
-    self->isUsed = false;
-    self->participantReferences.participantReferenceCount = 0;
-    self->waitingForReconnectTimer = 0;
-    self->warningCount = 0;
-    self->warningAboutZeroAddedSteps = 0;
-    nimbleServerConnectionQualityReset(&self->quality);
-    nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
 }
 
 /// Reinitialize the party
@@ -66,6 +54,19 @@ void nimbleServerLocalPartyReInit(NimbleServerLocalParty* self, NimbleServerTran
     self->warningAboutZeroAddedSteps = 0;
 }
 
+/// Resets and reuses the memory of a party
+/// @param self party
+void nimbleServerLocalPartyReset(NimbleServerLocalParty* self)
+{
+    self->isUsed = false;
+    self->participantReferences.participantReferenceCount = 0;
+    self->waitingForReconnectTimer = 0;
+    self->warningCount = 0;
+    self->warningAboutZeroAddedSteps = 0;
+    nimbleServerConnectionQualityReset(&self->quality);
+    nimbleServerConnectionQualityDelayedReset(&self->delayedQuality);
+}
+
 /// Facilitates the rejoining process of a party using a new transport connection.
 /// @param self Pointer to an instance of NimbleServerLocalParty.
 /// @param transportConnection The new transport connection through which the party is rejoining.
@@ -75,11 +76,11 @@ void nimbleServerLocalPartyRejoin(NimbleServerLocalParty* self, NimbleServerTran
     nimbleServerLocalPartyReInit(self, transportConnection);
 }
 
-/// Sets the party in disconnect state.
+/// Sets the party in dissolved state.
 /// @param self Pointer to an instance of NimbleServerLocalParty.
 void nimbleServerLocalPartyDestroy(NimbleServerLocalParty* self)
 {
-    CLOG_C_DEBUG(&self->log, "destroy")
+    CLOG_C_DEBUG(&self->log, "dissolved the party")
     self->state = NimbleServerLocalPartyStateDissolved;
 }
 
@@ -95,8 +96,8 @@ static void setToWaitingForReJoin(NimbleServerLocalParty* self)
 /// Monitors the waiting period for a reconnect attempt and determines if it should continue waiting or give up.
 /// @param self Pointer to an instance of NimbleServerLocalParty
 /// @return Returns true if the waiting period has not yet exceeded the maximum allowed time, indicating that it should
-/// continue waiting for a possible reconnect. Returns false to suggest that the waiting period has expired,
-/// and the connection should be considered for disconnection.
+/// continue waiting for a connection to rejoin the party. Returns false to suggest that the waiting period has expired,
+/// and the party should be considered for dissolving.
 static bool tickWaitingForReconnect(NimbleServerLocalParty* self)
 {
     self->waitingForReconnectTimer++;
@@ -104,7 +105,7 @@ static bool tickWaitingForReconnect(NimbleServerLocalParty* self)
         return true;
     }
 
-    CLOG_C_DEBUG(&self->log, "gave up on reconnect, waited %zu ticks. disconnecting it now",
+    CLOG_C_DEBUG(&self->log, "gave up on reconnect, waited %zu ticks. recommending the party to be dissolved",
                  self->waitingForReconnectTimer)
 
     return false;
@@ -171,8 +172,8 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
 
     CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
 
-    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)",
-                   firstStepId, lastStepId, stepsThatFollow)
+    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)", firstStepId,
+                   lastStepId, stepsThatFollow)
 
     // Drop old predicted steps if needed.
     for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
@@ -181,7 +182,7 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         if (dropped > 0) {
             if (dropped > 60U) {
                 CLOG_C_WARN(&self->log, "client had a big gap in predicted steps %zu", dropped)
-                //return -3;
+                // return -3;
             }
             CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
                         dropped, participant->steps.expectedWriteId, firstStepId, lastStepId)
@@ -195,7 +196,6 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         // Read a combined step
         uint8_t octetCountThatFollowForCombinedStep;
         errorCode = fldInStreamReadUInt8(inStream, &octetCountThatFollowForCombinedStep);
-
 
         uint8_t participantsThatFollow;
         errorCode = fldInStreamReadUInt8(inStream, &participantsThatFollow);
@@ -230,8 +230,10 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
             NimbleServerParticipant* participant = nimbleParticipantReferencesFind(&self->participantReferences,
                                                                                    participantId);
             if (participant == 0) {
-                CLOG_C_NOTICE(&self->log,
-                              "tried to deserialize predicted steps for a participant %hhu that is not part of the party", participantId)
+                CLOG_C_NOTICE(
+                    &self->log,
+                    "tried to deserialize predicted steps for a participant %hhu that is not part of the party",
+                    participantId)
                 return NimbleServerErrSerialize;
             }
 

@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     NimbleServerSetup setup;
 
     Clog serverLog;
-    serverLog.constantPrefix = "Server";
+    serverLog.constantPrefix = "example";
     serverLog.config = &g_clog;
 
     setup.applicationVersion = applicationVersion;

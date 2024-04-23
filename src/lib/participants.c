@@ -8,6 +8,75 @@
 #include <nimble-server/participant.h>
 #include <nimble-server/participants.h>
 
+/// Initializes and allocates memory the participant collection
+/// @param self participants collection
+/// @param allocator allocator to pre-alloc the collection
+/// @param maxCount maximum number of participants to pre-alloc
+void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount,
+                                  size_t maxStepOctetSize, Clog* log)
+{
+    CLOG_ASSERT(maxCount > 0, "must allocate at least one participant")
+    self->log = *log;
+    self->log.constantPrefix = "server/participants";
+    self->participantCapacity = maxCount;
+    self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NimbleServerParticipant, maxCount);
+    self->participantCount = 0;
+
+    nimbleServerCircularBufferInit(&self->freeList);
+
+    CLOG_ASSERT(maxCount < NIMBLE_SERVER_CIRCULAR_BUFFER_SIZE,
+                "maxCount must be less than NIMBLE_SERVER_CIRCULAR_BUFFER_SIZE")
+    for (size_t i = 0; i < maxCount; ++i) {
+        nimbleServerCircularBufferWrite(&self->freeList, (uint8_t) i);
+    }
+
+    CLOG_C_DEBUG(&self->log, "allocating %zu participants as capacity", maxCount)
+    for (uint8_t i = 0; i < maxCount; ++i) {
+        NimbleServerParticipant* participant = &self->participants[i];
+
+        CLOG_C_DEBUG(&self->log, "preparing participant %hhu", participant->id)
+
+        NimbleServerParticipantSetup setup = {
+            .id = i,
+            .maxStepOctetSizeForOneParticipant = maxStepOctetSize,
+            .connectionAllocator = allocator,
+        };
+
+        tc_snprintf(participant->debugPrefix, sizeof(participant->debugPrefix), "%s/%u", self->log.constantPrefix,
+                    participant->id);
+        setup.log.constantPrefix = participant->debugPrefix;
+        setup.log.config = self->log.config;
+
+        nimbleServerParticipantInit(participant, setup);
+    }
+
+    CLOG_ASSERT(self->participants[0].isUsed == false, "CALLOC did not work")
+}
+
+
+/// Marks the participant as not used anymore
+/// @param self participants collection
+/// @param participantId the participant to mark as not used anymore (destroyed).
+void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId)
+{
+    CLOG_C_DEBUG(&self->log, "destroying participant %hhu", participantId)
+
+    CLOG_ASSERT(self->participantCount > 0, "participant count is wrong when removing game participants")
+    self->participantCount--;
+
+    if (participantId >= self->participantCapacity) {
+        CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
+    }
+    struct NimbleServerParticipant* participant = &self->participants[participantId];
+
+    if (!participant->isUsed) {
+        CLOG_ERROR("internal error, tried to free an unused participant")
+    }
+
+    nimbleServerCircularBufferWrite(&self->freeList, participantId);
+    nimbleServerParticipantDestroy(participant);
+}
+
 int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId,
                                     struct NimbleServerLocalParty* party, StepId currentAuthoritativeStepId,
                                     struct NimbleServerParticipant** outConnection)
@@ -54,27 +123,7 @@ NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* 
     return &self->participants[participantId];
 }
 
-void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId)
-{
-    CLOG_C_DEBUG(&self->log, "destroying participant %hhu", participantId)
 
-    CLOG_ASSERT(self->participantCount > 0, "participant count is wrong when removing game participants")
-    self->participantCount--;
-
-    if (participantId >= self->participantCapacity) {
-        CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
-    }
-    struct NimbleServerParticipant* participant = &self->participants[participantId];
-
-    if (!participant->isUsed) {
-        CLOG_ERROR("internal error, tried to free an unused participant")
-    }
-
-    nimbleServerCircularBufferWrite(&self->freeList, participantId);
-    participant->isUsed = false;
-    participant->localIndex = 0;
-    participant->hasProvidedStepsBefore = false;
-}
 
 /// Creates a new participant using the join information.
 /// @param self participants collection
@@ -104,11 +153,13 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
         CLOG_C_ERROR(&self->log, "illegal participant id %hhu capacity: %zu", participantId, self->participantCapacity)
     }
     struct NimbleServerParticipant* participant = &self->participants[participantId];
-    nimbleServerParticipantReInit(participant, party, expectedStepId);
-
     if (participant->isUsed) {
         CLOG_ERROR("internal error, participant is already used, even if the index came from the free list")
     }
+
+    nimbleServerParticipantReInit(participant, party, expectedStepId);
+
+
 
     const NimbleSerializeJoinGameRequestPlayer* localPlayer = &localPlayers[joinIndex];
     participant->localIndex = localPlayer->localIndex;
@@ -129,47 +180,3 @@ int nimbleServerParticipantsJoin(NimbleServerParticipants* self,
     return 0;
 }
 
-/// Initializes and allocates memory the participant collection
-/// @param self participants collection
-/// @param allocator allocator to pre-alloc the collection
-/// @param maxCount maximum number of participants to pre-alloc
-void nimbleServerParticipantsInit(NimbleServerParticipants* self, ImprintAllocator* allocator, size_t maxCount,
-                                  size_t maxStepOctetSize, Clog* log)
-{
-    CLOG_ASSERT(maxCount > 0, "must allocate at least one participant")
-    self->log = *log;
-    self->log.constantPrefix = "server/participants";
-    self->participantCapacity = maxCount;
-    self->participants = IMPRINT_CALLOC_TYPE_COUNT(allocator, NimbleServerParticipant, maxCount);
-    self->participantCount = 0;
-
-    nimbleServerCircularBufferInit(&self->freeList);
-
-    CLOG_ASSERT(maxCount < NIMBLE_SERVER_CIRCULAR_BUFFER_SIZE,
-                "maxCount must be less than NIMBLE_SERVER_CIRCULAR_BUFFER_SIZE")
-    for (size_t i = 0; i < maxCount; ++i) {
-        nimbleServerCircularBufferWrite(&self->freeList, (uint8_t) i);
-    }
-
-    CLOG_C_DEBUG(&self->log, "allocating %zu participants as capacity", maxCount)
-    for (uint8_t i = 0; i < maxCount; ++i) {
-        NimbleServerParticipant* participant = &self->participants[i];
-
-        CLOG_C_DEBUG(&self->log, "preparing participant %hhu", participant->id)
-
-        NimbleServerParticipantSetup setup = {
-            .id = i,
-            .maxStepOctetSizeForOneParticipant = maxStepOctetSize,
-            .connectionAllocator = allocator,
-        };
-
-        tc_snprintf(participant->debugPrefix, sizeof(participant->debugPrefix), "%s/%u", self->log.constantPrefix,
-                    participant->id);
-        setup.log.constantPrefix = participant->debugPrefix;
-        setup.log.config = self->log.config;
-
-        nimbleServerParticipantInit(participant, setup);
-    }
-
-    CLOG_ASSERT(self->participants[0].isUsed == false, "CALLOC did not work")
-}
