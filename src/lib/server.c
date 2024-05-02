@@ -128,10 +128,11 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
     uint8_t connectionIndex;
     fldInStreamReadUInt8(&inStream, &connectionIndex);
 
-#define UDP_MAX_SIZE (1200)
-    static uint8_t buf[UDP_MAX_SIZE];
+#define ESTIMATED_TRANSPORT_SPECIFIC_OVERHEAD (32)
+#define MAX_SEND_OCTET_SIZE (DATAGRAM_TRANSPORT_MAX_SIZE - ESTIMATED_TRANSPORT_SPECIFIC_OVERHEAD)
+    static uint8_t buf[MAX_SEND_OCTET_SIZE];
     FldOutStream outStream;
-    fldOutStreamInit(&outStream, buf, UDP_MAX_SIZE);
+    fldOutStreamInit(&outStream, buf, sizeof(buf));
     outStream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
     if (connectionIndex == 0) {
@@ -469,7 +470,7 @@ static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t
 int nimbleServerReadFromMultiTransport(NimbleServer* self)
 {
     int connectionId;
-    uint8_t datagram[UDP_MAX_SIZE];
+    uint8_t datagram[DATAGRAM_TRANSPORT_MAX_SIZE];
     // CLOG_C_VERBOSE(&self->log, "read all from transport")
     ReplyOnlyToConnection replyOnlyToConnection;
     replyOnlyToConnection.multiTransport = self->multiTransport;
@@ -480,7 +481,7 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
 
     for (size_t i = 0; i < maximumNumberOfDatagramsPerTick; ++i) {
         ssize_t octetCountReceived = self->multiTransport.receiveFrom(self->multiTransport.self, &connectionId,
-                                                                      datagram, UDP_MAX_SIZE);
+                                                                      datagram, sizeof(datagram));
         if (octetCountReceived == 0) {
             if (i > 10) {
                 CLOG_C_NOTICE(&self->log, "high number of datagrams in one tick: %zu", i)
@@ -491,6 +492,8 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
         if (octetCountReceived < 0) {
             return (int) octetCountReceived;
         }
+
+        CLOG_ASSERT((size_t)octetCountReceived <= sizeof(datagram), "datagram memory overwrite %zu", (size_t) octetCountReceived)
 
         replyOnlyToConnection.connectionIndex = connectionId;
         responseTransport.self = &replyOnlyToConnection;
