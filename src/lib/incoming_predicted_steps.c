@@ -51,8 +51,8 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outReceiveMask = receiveMask;
 
     CLOG_C_VERBOSE(&transportConnection->log,
-                   "handleIncomingSteps: client %d is awaiting step %08X receiveMask: %" PRIX64,
-                   transportConnection->transportConnectionId, clientWaitingForStepId, receiveMask)
+                   "handleIncomingSteps: transport connection %d (participant:%d) is awaiting step %08X receiveMask: %" PRIX64,
+                   transportConnection->transportConnectionId, foundParticipantConnection->id, clientWaitingForStepId, receiveMask)
 
 
     int addedStepsCountOrError = nimbleServerParticipantConnectionDeserializePredictedSteps(foundParticipantConnection, inStream);
