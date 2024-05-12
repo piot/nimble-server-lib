@@ -83,6 +83,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
     connectResponse.connectionId = transportConnection->id;
     connectResponse.connectionSecret = transportConnection->secret;
+    connectResponse.responseToNonce = connectOptions.nonce;
 
     return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }
