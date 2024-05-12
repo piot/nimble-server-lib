@@ -99,7 +99,10 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
     fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
     stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
     FldOutStreamStoredPosition secondFinalizePosition;
-    transportConnectionPrepareHeader(transportConnection, &stream, clientTime, &secondFinalizePosition);
+    int error = transportConnectionPrepareHeader(transportConnection, &stream, clientTime, &secondFinalizePosition);
+    if (error < 0) {
+        return error;
+    }
 
     CLOG_C_VERBOSE(&transportConnection->log,
                    "download of game state is probably done, send a few authoritative steps as well from %08X",
