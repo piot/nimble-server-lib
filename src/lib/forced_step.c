@@ -8,11 +8,11 @@
 #include <nimble-server/participant_connection.h>
 #include <nimble-steps-serialize/out_serialize.h>
 
-static NimbleSerializeParticipantConnectState forcedStateFromConnection(NimbleServerParticipantConnection* connection)
+static NimbleSerializeStepType forcedStateFromConnection(NimbleServerParticipantConnection* connection)
 {
-    NimbleSerializeParticipantConnectState state = NimbleSerializeParticipantConnectStateStepNotProvidedInTime;
+    NimbleSerializeStepType state = NimbleSerializeStepTypeStepNotProvidedInTime;
     if (connection->state == NimbleServerParticipantConnectionStateWaitingForReconnect) {
-        state = NimbleSerializeParticipantConnectStateStepWaitingForReconnect;
+        state = NimbleSerializeStepTypeWaitingForReJoin;
     }
 
     return state;
@@ -32,12 +32,12 @@ ssize_t nimbleServerCreateForcedStep(NimbleServerParticipantConnection* connecti
 {
     NimbleStepsOutSerializeLocalParticipants participants;
 
-    NimbleSerializeParticipantConnectState state = forcedStateFromConnection(connection);
+    NimbleSerializeStepType state = forcedStateFromConnection(connection);
     participants.participantCount = connection->participantReferences.participantReferenceCount;
     for (size_t i = 0; i < participants.participantCount; ++i) {
         participants.participants[i]
             .participantId =  connection->participantReferences.participantReferences[i]->id;
-        participants.participants[i].connectState = state;
+        participants.participants[i].stepType = state;
         participants.participants[i].payload = 0;
         participants.participants[i].payloadCount = 0;
     }

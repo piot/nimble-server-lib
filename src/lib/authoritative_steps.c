@@ -107,7 +107,7 @@ static int composeOneAuthoritativeStep(NimbleServerParticipantConnections* conne
             uint8_t participantId;
             fldInStreamReadUInt8(&stepInStream, &participantId);
             uint8_t localStepOctetCount = 0;
-            uint8_t readLocalConnectState = NimbleSerializeParticipantConnectStateNormal;
+            uint8_t readLocalConnectState = NimbleSerializeStepTypeNormal;
             bool hasMask = participantId & 0x80;
             uint8_t mask = 0;
             if (hasMask) {

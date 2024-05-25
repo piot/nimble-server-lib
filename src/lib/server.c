@@ -189,7 +189,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
 
     int verifyHashStatus = connectionLayerIncomingVerify(&transportConnection->incomingConnection, &inStream);
     if (verifyHashStatus < 0) {
-        CLOG_C_NOTICE(&self->log, "we received a datagram with a wrong hash. could be due to it being and old datagram?")
+        CLOG_C_NOTICE(&self->log,
+                      "we received a datagram with a wrong hash. could be due to it being and old datagram?")
         return NimbleServerErrSerialize;
     }
 
@@ -202,70 +203,74 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
     uint16_t clientTime;
     fldInStreamReadUInt16(&inStream, &clientTime);
 
-    uint8_t cmd;
-    fldInStreamReadUInt8(&inStream, &cmd);
+    while (inStream.pos != inStream.size) {
+        uint8_t cmd;
+        fldInStreamReadUInt8(&inStream, &cmd);
 
-    if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
-        // Special case, game state ack can send multiple datagrams as reply
-        return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream, response->transportOut,
-                                                   clientTime);
-    }
+        CLOG_C_VERBOSE(&self->log, "cmd: %s (connection: %d, clientTime:%u)", nimbleSerializeCmdToString(cmd),
+                       connectionIndex, clientTime)
 
-    FldOutStreamStoredPosition finalizeSeekPosition;
-    int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime, &finalizeSeekPosition);
-    if (err < 0) {
-        return err;
-    }
+        if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
+            // Special case, game state ack can send multiple datagrams as reply
+            return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream,
+                                                       response->transportOut, clientTime);
+        }
 
-    int result;
-    switch (cmd) {
-        case NimbleSerializeCmdGameStep:
-            result = nimbleServerReqGameStep(&self->game, transportConnection, &self->authoritativeStepsPerSecondStat,
-                                             &self->connections, &inStream, &outStream);
-            break;
-        case NimbleSerializeCmdJoinGameRequest:
-            result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
-            break;
-        case NimbleSerializeCmdDownloadGameStateRequest:
-            result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, &outStream);
-            break;
-        default:
-            CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
-            return 0;
-    }
+        FldOutStreamStoredPosition finalizeSeekPosition;
+        int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime, &finalizeSeekPosition);
+        if (err < 0) {
+            return err;
+        }
 
-    if (result < 0) {
-        if (!nimbleServerIsErrorExternal(result)) {
-            CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result, nimbleSerializeCmdToString(cmd))
+        int result;
+        switch (cmd) {
+            case NimbleSerializeCmdGameStep:
+                result = nimbleServerReqGameStep(&self->game, transportConnection,
+                                                 &self->authoritativeStepsPerSecondStat, &self->connections, &inStream,
+                                                 &outStream);
+                break;
+            case NimbleSerializeCmdJoinGameRequest:
+                result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
+                break;
+            case NimbleSerializeCmdDownloadGameStateRequest:
+                result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, &outStream);
+                break;
+            default:
+                CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
+                return 0;
+        }
+
+        if (result < 0) {
+            if (!nimbleServerIsErrorExternal(result)) {
+                CLOG_C_SOFT_ERROR(&self->log, "error %d encountered for cmd: %s", result,
+                                  nimbleSerializeCmdToString(cmd))
+                return result;
+            }
+            // CLOG_C_NOTICE(&self->log, "accepting error %d", result)
             return result;
         }
-        // CLOG_C_NOTICE(&self->log, "accepting error %d", result)
-        return result;
+
+        int commitError = transportConnectionCommitHeader(transportConnection, &outStream, finalizeSeekPosition);
+        if (commitError < 0) {
+            return commitError;
+        }
+
+        if (outStream.pos <= 4) {
+            CLOG_C_WARN(&self->log, "no reply to send")
+            return NimbleServerErrSerialize;
+        }
+
+        orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
+        if (outStream.pos > datagramTransportMaxSize) {
+            CLOG_C_SOFT_ERROR(&self->log,
+                              "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
+                              outStream.pos, datagramTransportMaxSize)
+            return NimbleServerErrSerialize;
+        }
+        response->transportOut->send(response->transportOut->self, buf, outStream.pos);
     }
 
-    if (inStream.pos != inStream.size) {
-        CLOG_C_ERROR(&self->log, "not read everything from buffer %zu of %zu", inStream.pos, inStream.size)
-    }
-
-    int commitError = transportConnectionCommitHeader(transportConnection, &outStream, finalizeSeekPosition);
-    if (commitError < 0) {
-        return commitError;
-    }
-
-    if (outStream.pos <= 4) {
-        CLOG_C_ERROR(&self->log, "no reply to send")
-        // return 0;
-    }
-
-    orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
-
-    if (outStream.pos > datagramTransportMaxSize) {
-        CLOG_C_SOFT_ERROR(&self->log, "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
-                          outStream.pos, datagramTransportMaxSize)
-        return NimbleServerErrSerialize;
-    }
-
-    return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
+    return 0;
 }
 
 /// Initialize nimble server
@@ -416,7 +421,6 @@ int nimbleServerConnectionConnected(NimbleServer* self, uint8_t connectionIndex)
 
     transportConnection->isUsed = true;
 
-
     return 0;
 }
 
@@ -493,7 +497,8 @@ int nimbleServerReadFromMultiTransport(NimbleServer* self)
             return (int) octetCountReceived;
         }
 
-        CLOG_ASSERT((size_t)octetCountReceived <= sizeof(datagram), "datagram memory overwrite %zu", (size_t) octetCountReceived)
+        CLOG_ASSERT((size_t) octetCountReceived <= sizeof(datagram), "datagram memory overwrite %zu",
+                    (size_t) octetCountReceived)
 
         replyOnlyToConnection.connectionIndex = connectionId;
         responseTransport.self = &replyOnlyToConnection;

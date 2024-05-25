@@ -49,11 +49,11 @@ void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self
 int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, FldOutStream* outStream,
                                      uint16_t clientTime, FldOutStreamStoredPosition* seekPosition)
 {
-    fldOutStreamWriteUInt8(outStream, self->id);
     *seekPosition = fldOutStreamTell(outStream);
     connectionLayerOutgoingWrite(&self->outgoingConnection, outStream, 0, 0);
+
+    fldOutStreamWriteUInt8(outStream, self->id);
     orderedDatagramOutLogicPrepare(&self->orderedDatagramOutLogic, outStream);
-    fldOutStreamWriteMarker(outStream, 0xdd);
     return fldOutStreamWriteUInt16(outStream, clientTime);
 }
 
@@ -63,7 +63,7 @@ int transportConnectionCommitHeader(NimbleServerTransportConnection* self, FldOu
     FldOutStreamStoredPosition restoreEndPosition = fldOutStreamTell(outStream);
     size_t octetCount = outStream->pos;
     fldOutStreamSeek(outStream, seekPosition);
-const int connectionLayerOctetCount = 4+1;
+const int connectionLayerOctetCount = 1+1+4;
     int writeStatus = connectionLayerOutgoingWrite(&self->outgoingConnection, outStream, outStream->p + connectionLayerOctetCount,
                                                    octetCount - outStream->pos - connectionLayerOctetCount);
     if (writeStatus < 0) {

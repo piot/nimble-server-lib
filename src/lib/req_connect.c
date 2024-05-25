@@ -73,8 +73,8 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
 
         transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
 
-        connectionLayerIncomingInit(&transportConnection->incomingConnection, transportConnection->secret);
-        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->secret);
+        connectionLayerIncomingInit(&transportConnection->incomingConnection, (uint32_t) transportConnection->secret);
+        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, (uint32_t) transportConnection->secret);
     } else {
         CLOG_C_DEBUG(&self->log, "return existing connection with nonce %" PRIX64, connectOptions.nonce)
     }
