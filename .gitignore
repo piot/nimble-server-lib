@@ -19,3 +19,4 @@ CTestTestfile.cmake
 Testing/Temporary/CTestCostData.txt
 Testing/Temporary
 src/tests/nimble_server_tests
+src/tests/Testing/Temporary

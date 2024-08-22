@@ -170,20 +170,33 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
     size_t stepsThatFollow;
     StepId firstStepId;
 
-    int errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
-    if (errorCode < 0) {
-        CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
-        return errorCode;
-    }
+    uint8_t participant_count;
 
-    CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
+    fldInStreamReadUInt8(inStream, &participant_count);
+    CLOG_C_VERBOSE(&self->log, "participant count %hhu", participant_count)
 
-    CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)", firstStepId,
-                   lastStepId, stepsThatFollow)
+    for (size_t participant_iterator = 0; participant_iterator < participant_count; ++participant_iterator) {
+        uint8_t participant_index;
 
-    // Drop old predicted steps if needed.
-    for (size_t i = 0; i < self->participantReferences.participantReferenceCount; ++i) {
-        NimbleServerParticipant* participant = self->participantReferences.participantReferences[i];
+        fldInStreamReadUInt8(inStream, &participant_index);
+        if (participant_index >= self->participantReferences.participantReferenceCount) {
+            CLOG_C_SOFT_ERROR(&self->log, "illegal participant index %hhu", participant_count)
+            return -4;
+        }
+        NimbleServerParticipant* participant = self->participantReferences.participantReferences[participant_index];
+
+        int errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
+        if (errorCode < 0) {
+            CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
+            return errorCode;
+        }
+
+        CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
+
+        CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)", firstStepId,
+                       lastStepId, stepsThatFollow)
+
+        // Drop old predicted steps if needed.
         size_t dropped = nbsStepsDropped(&participant->steps, firstStepId);
         if (dropped > 0) {
             if (dropped > 60U) {
@@ -194,77 +207,38 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
                         dropped, participant->steps.expectedWriteId, firstStepId, lastStepId)
             // nimbleServerInsertForcedSteps(self, dropped);
         }
-    }
 
-    for (size_t i = 0; i < stepsThatFollow; ++i) {
-        StepId stepId = firstStepId + (StepId) i;
+        size_t totalAddedStepsCount = 0;
 
-        // Read a combined step
-        uint8_t octetCountThatFollowForCombinedStep;
-        errorCode = fldInStreamReadUInt8(inStream, &octetCountThatFollowForCombinedStep);
-
-        uint8_t participantsThatFollow;
-        errorCode = fldInStreamReadUInt8(inStream, &participantsThatFollow);
-        if (errorCode < 0) {
-            return errorCode;
-        }
-
-        for (uint8_t participantIterator = 0; participantIterator < participantsThatFollow; ++participantIterator) {
-            uint8_t participantIdWithMask;
-            errorCode = fldInStreamReadUInt8(inStream, &participantIdWithMask);
-            if (errorCode < 0) {
-                return errorCode;
-            }
-
-            NimbleSerializeParticipantId participantId;
-            NimbleSerializeStepType stepType = NimbleSerializeStepTypeNormal;
-
-            if ((participantIdWithMask & 0x80) != 0) {
-                participantId = participantIdWithMask & 0x7f;
-                uint8_t stepTypeValue;
-                fldInStreamReadUInt8(inStream, &stepTypeValue);
-                stepType = (NimbleSerializeStepType) stepTypeValue;
-            } else {
-                participantId = participantIdWithMask;
-            }
-
-            if (stepType != NimbleSerializeStepTypeNormal) {
-                CLOG_C_NOTICE(&self->log, "not allowed to send anything else than normal predicted steps from client")
-                return NimbleServerErrSerialize;
-            }
-
-            NimbleServerParticipant* participant = nimbleParticipantReferencesFind(&self->participantReferences,
-                                                                                   participantId);
-            if (participant == 0) {
-                CLOG_C_NOTICE(
-                    &self->log,
-                    "tried to deserialize predicted steps for a participant %hhu that is not part of the party",
-                    participantId)
-                return NimbleServerErrSerialize;
-            }
+        for (size_t i = 0; i < stepsThatFollow; ++i) {
+            StepId stepId = firstStepId + (StepId) i;
 
             int addedStepsCount = nimbleServerParticipantDeserializeSingleStep(participant, stepId, inStream);
             if (addedStepsCount < 0) {
+                CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize single step")
                 return addedStepsCount;
             }
-            if (addedStepsCount == 0) {
-                if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
-                    // CLOG_C_DEBUG(
-                    //   &self->log,
-                    // "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not
-                    // a " "problem unless it happens a lot)", firstStepId, lastStepId,
-                    // self->steps.expectedWriteId)
-                }
+
+            totalAddedStepsCount += (size_t) addedStepsCount;
+        }
+
+        if (totalAddedStepsCount == 0) {
+            if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
+                // CLOG_C_DEBUG(
+                //   &self->log,
+                // "Got a packet with old predicted steps. range: %08X - %08X, but is waiting for %08X. (Not
+                // a " "problem unless it happens a lot)", firstStepId, lastStepId,
+                // self->steps.expectedWriteId)
             }
+        }
 
-            if (addedStepsCount > 0) {
-                nimbleServerConnectionQualityAddedStepsToBuffer(&self->quality, (size_t) addedStepsCount);
+        if (totalAddedStepsCount > 0) {
+            nimbleServerConnectionQualityAddedStepsToBuffer(&self->quality, (size_t) totalAddedStepsCount);
 
-                StepId receivedUpToStepId = participant->steps.expectedWriteId - 1;
-                if (receivedUpToStepId > self->highestReceivedStepId) {
-                    self->highestReceivedStepId = receivedUpToStepId;
-                    self->stepsInBufferCount = participant->steps.stepsCount;
-                }
+            StepId receivedUpToStepId = participant->steps.expectedWriteId - 1;
+            if (receivedUpToStepId > self->highestReceivedStepId) {
+                self->highestReceivedStepId = receivedUpToStepId;
+                self->stepsInBufferCount = participant->steps.stepsCount;
             }
         }
     }

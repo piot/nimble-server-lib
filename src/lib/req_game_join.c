@@ -136,7 +136,7 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
 
     CLOG_C_DEBUG(
         &self->log,
-        "client joined game with party %u stateID: %04X participant count: %zu secret: %" PRIX64,
+        "join game response party %u stateID: %04X participant count: %zu secret: %" PRIX64,
         party->id, self->game.authoritativeSteps.expectedWriteId - 1,
         party->participantReferences.participantReferenceCount, self->sessionSecret.value)
     nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse, &self->log);
