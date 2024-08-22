@@ -12,7 +12,7 @@
 #include <nimble-serialize/serialize.h>
 #include <nimble-serialize/version.h>
 #include <nimble-server/game.h>
-#include <nimble-server/participant_connections.h>
+#include <nimble-server/local_parties.h>
 #include <nimble-server/participants.h>
 #include <nimble-steps/steps.h>
 #include <ordered-datagram/in_logic.h>
@@ -40,7 +40,7 @@ typedef struct NimbleServerTransportConnection {
     uint8_t transportIndex;
     uint64_t connectedFromRequestNonce;
     uint64_t secret;
-    struct NimbleServerParticipantConnection* assignedParticipantConnection;
+    struct NimbleServerLocalParty* assignedParty;
     OrderedDatagramInLogic orderedDatagramInLogic;
     OrderedDatagramOutLogic orderedDatagramOutLogic;
     ConnectionLayerIncoming incomingConnection;

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
 #include "transport_connection_stats.h"
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 
 static void showStats(NimbleServerTransportConnection* transportConnection)
@@ -11,13 +11,11 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
 #define DEBUG_COUNT (128)
     char debug[DEBUG_COUNT];
 
-    NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
+    NimbleServerLocalParty* party = transportConnection->assignedParty;
 
-    if (foundParticipantConnection) {
-        tc_snprintf(debug, DEBUG_COUNT, "server: conn %u step count in incoming buffer",
-                    foundParticipantConnection->id);
-        statsIntDebug(&foundParticipantConnection->incomingStepCountInBufferStats, &transportConnection->log, debug,
-                      "steps");
+    if (party) {
+        tc_snprintf(debug, DEBUG_COUNT, "server: conn %u step count in incoming buffer", party->id);
+        statsIntDebug(&party->incomingStepCountInBufferStats, &transportConnection->log, debug, "steps");
     }
 
     tc_snprintf(debug, DEBUG_COUNT, "server: conn %d steps behind authoritative (latency)",
@@ -32,10 +30,9 @@ static void showStats(NimbleServerTransportConnection* transportConnection)
 void nimbleServerTransportConnectionUpdateStats(NimbleServerTransportConnection* transportConnection,
                                                 NimbleServerGame* foundGame, StepId clientWaitingForStepId)
 {
-    NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
-    if (foundParticipantConnection != 0) {
-        statsIntAdd(&foundParticipantConnection->incomingStepCountInBufferStats,
-                    (int) foundParticipantConnection->steps.stepsCount);
+    NimbleServerLocalParty* party = transportConnection->assignedParty;
+    if (party != 0) {
+        statsIntAdd(&party->incomingStepCountInBufferStats, (int) party->stepsInBufferCount);
     }
 
     size_t stepsBehindForClient = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;

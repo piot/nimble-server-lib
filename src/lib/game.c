@@ -22,18 +22,22 @@ void nimbleServerGameInit(NimbleServerGame* self, ImprintAllocator* allocator,
                                                                               maxSingleParticipantStepOctetCount);
     nbsStepsInit(&self->authoritativeSteps, allocator, combinedStepOctetCount, log);
     nbsStepsReInit(&self->authoritativeSteps, 0);
-    nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount, &self->log);
+    tc_snprintf(self->participants.debugPrefix, sizeof(self->participants.debugPrefix), "%s/participants",
+                self->log.constantPrefix);
+
+    nimbleServerParticipantsInit(&self->participants, allocator, maxParticipantCount,
+                                 maxSingleParticipantStepOctetCount, &self->log);
 }
 
 #if 0
-static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerParticipantConnections* connections)
+static void nimbleServerGameShowReport(NimbleServerGame* game, NimbleServerLocalParties* connections)
 {
     NbsSteps* steps = &game->authoritativeSteps;
     CLOG_C_INFO(&game->log, "Authoritative: steps %08X to %08X (count: %zu) latestState: %08X", steps->expectedReadId,
                 steps->expectedWriteId - 1, steps->stepsCount, game->latestState.stepId)
 
     for (size_t i = 0u; i < connections->connectionCount; ++i) {
-        const NimbleServerParticipantConnection* connection = &connections->connections[i];
+        const NimbleServerLocalParty* connection = &connections->connections[i];
         if (connection->steps.stepsCount == 0) {
             CLOG_C_INFO(&game->log, " .. con#%d: no steps, lastStepId: %08X", connection->id,
                         connection->steps.expectedWriteId - 1)

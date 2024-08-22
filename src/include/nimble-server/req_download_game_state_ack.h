@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct NimbleServerParticipantConnection;
+struct NimbleServerLocalParty;
 struct NimbleServerTransportConnection;
 struct DatagramTransportOut;
 struct FldInStream;

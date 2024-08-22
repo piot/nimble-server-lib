@@ -11,23 +11,23 @@
 #include <nimble-server/errors.h>
 #include <nimble-server/game.h>
 #include <nimble-server/participant.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_join_game.h>
 #include <nimble-server/server.h>
 
-static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConnections* connections,
+static int joinLocalParty(NimbleServerLocalParties* parties,
                                                      NimbleServerParticipants* gameParticipants,
                                                      NimbleServerTransportConnection* transportConnection,
                                                      const NimbleSerializeJoinGameRequest* joinRequest,
                                                      StepId latestAuthoritativeStepId,
-                                                     struct NimbleServerParticipantConnection** outConnection)
+                                                     struct NimbleServerLocalParty** outConnection)
 {
-    NimbleServerParticipantConnection* foundConnection = nimbleServerParticipantConnectionsFindConnectionForTransport(
-        connections, transportConnection->transportConnectionId);
+    NimbleServerLocalParty* foundConnection = nimbleServerLocalPartiesFindPartyForTransport(
+        parties, transportConnection->transportConnectionId);
     if (foundConnection != 0) {
         CLOG_C_DEBUG(
-            &connections->log,
-            "found an existing participant connection %u for this transport connection (%hhu). ignoring join request",
+            &parties->log,
+            "found an existing party %u for this transport connection (%hhu). ignoring join request",
             foundConnection->id, transportConnection->transportConnectionId)
         *outConnection = foundConnection;
         return 0;
@@ -36,60 +36,34 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
     switch (joinRequest->joinGameType) {
         case NimbleSerializeJoinGameTypeNoSecret:
             break;
-        case NimbleSerializeJoinGameTypeSecret: {
-            NimbleServerParticipantConnection*
-                foundConnectionFromSecret = nimbleServerParticipantConnectionsFindConnectionFromSecret(
-                    connections, joinRequest->connectionSecret);
-            if (foundConnectionFromSecret != 0) {
-                if (foundConnectionFromSecret->participantReferences.participantReferenceCount !=
+        case NimbleSerializeJoinGameTypePartySecret: {
+            NimbleServerLocalParty*
+                foundPartyFromSecret = nimbleServerLocalPartiesFindParty(
+                    parties, joinRequest->partyAndSessionSecret.partyId);
+            if (foundPartyFromSecret != 0) {
+                if (foundPartyFromSecret->participantReferences.participantReferenceCount !=
                     joinRequest->playerCount) {
-                    CLOG_C_NOTICE(&connections->log,
+                    CLOG_C_NOTICE(&parties->log,
                                   "could not rejoin with secret. wrong number of local participant count")
                 } else {
-                    CLOG_C_DEBUG(&connections->log, "rejoining, using a secret, to a previous connection %u",
-                                 foundConnectionFromSecret->id)
-                    nimbleServerParticipantConnectionRejoin(foundConnectionFromSecret, transportConnection,
-                                                            latestAuthoritativeStepId);
-                    *outConnection = foundConnectionFromSecret;
+                    CLOG_C_DEBUG(&parties->log, "rejoining, using a secret, to a previous connection %u",
+                                 foundPartyFromSecret->id)
+                    nimbleServerLocalPartyRejoin(foundPartyFromSecret, transportConnection);
+                    *outConnection = foundPartyFromSecret;
                     return 0;
                 }
                 return 0;
             } else {
-                CLOG_C_NOTICE(&connections->log,
+                CLOG_C_NOTICE(&parties->log,
                               "could not find connection with secret. Probably timed out. trying to add "
-                              "participants to a new participant connection")
+                              "participants to a new party")
             }
 
-            break;
-        }
-        case NimbleSerializeJoinGameTypeHostMigrationParticipantId: {
-            NimbleServerParticipantConnection*
-                foundConnectionFromParticipantId = nimbleServerParticipantConnectionsFindConnectionFromParticipantId(
-                    connections, joinRequest->participantId);
-            if (foundConnectionFromParticipantId != 0) {
-                if (foundConnectionFromParticipantId->participantReferences.participantReferenceCount !=
-                    joinRequest->playerCount) {
-                    CLOG_C_NOTICE(&connections->log,
-                                  "could not rejoin after host migration participantID. wrong number of local participant count")
-                    return -1;
-                } else {
-                    CLOG_C_DEBUG(&connections->log, "client joining after host migration, requesting participantId %d, to a previous connection %u",
-                                 joinRequest->participantId, foundConnectionFromParticipantId->id)
-                    nimbleServerParticipantConnectionRejoin(foundConnectionFromParticipantId, transportConnection,
-                                                            latestAuthoritativeStepId);
-                    *outConnection = foundConnectionFromParticipantId;
-                    return 0;
-                }
-            } else {
-                CLOG_C_NOTICE(&connections->log,
-                              "could not find connection after host migration with participant id %hhu. Trying fallback and add "
-                              "participants to a new participant connection", joinRequest->participantId)
-            }
             break;
         }
     }
 
-    int errorCode = nimbleServerParticipantConnectionsCreate(connections, gameParticipants, transportConnection,
+    int errorCode = nimbleServerLocalPartiesCreate(parties, gameParticipants, transportConnection,
                                                              joinRequest->players, latestAuthoritativeStepId,
                                                              joinRequest->playerCount, outConnection);
     if (errorCode < 0) {
@@ -100,16 +74,16 @@ static int nimbleServerGameJoinParticipantConnection(NimbleServerParticipantConn
     return 0;
 }
 
-static int nimbleServerReadAndJoinParticipants(NimbleServerParticipantConnections* connections,
+static int nimbleServerReadAndJoinParticipants(NimbleServerLocalParties* parties,
                                                NimbleServerParticipants* gameParticipants,
                                                NimbleServerTransportConnection* transportConnection,
                                                const NimbleSerializeJoinGameRequest* request,
                                                StepId latestAuthoritativeStepId,
-                                               struct NimbleServerParticipantConnection** createdConnection)
+                                               struct NimbleServerLocalParty** party)
 {
-    int errorCode = nimbleServerGameJoinParticipantConnection(connections, gameParticipants, transportConnection,
+    int errorCode = joinLocalParty(parties, gameParticipants, transportConnection,
                                                               request, latestAuthoritativeStepId,
-                                                              createdConnection);
+                                                              party);
     if (errorCode < 0) {
         CLOG_WARN("nimbleServerReadAndJoinParticipants: couldn't join game session")
         return errorCode;
@@ -133,38 +107,38 @@ int nimbleServerReqGameJoin(NimbleServer* self, NimbleServerTransportConnection*
         return err;
     }
 
-    NimbleServerParticipantConnection* createdConnection;
+    NimbleServerLocalParty* party;
     int errorCode = nimbleServerReadAndJoinParticipants(
-        &self->connections, &self->game.participants, transportConnection, &request,
-        self->game.authoritativeSteps.expectedWriteId, &createdConnection);
+        &self->localParties, &self->game.participants, transportConnection, &request,
+        self->game.authoritativeSteps.expectedWriteId, &party);
     if (errorCode < 0) {
         CLOG_WARN("couldn't find game session")
         nimbleSerializeServerOutJoinGameOutOfParticipantSlotsResponse(outStream, request.nonce, &self->log);
         return errorCode;
     }
-    createdConnection->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
+    party->waitingForReconnectMaxTimer = self->setup.maxWaitingForReconnectTicks;
 
-    transportConnection->assignedParticipantConnection = createdConnection;
+    transportConnection->assignedParty = party;
 
     NimbleSerializeJoinGameResponse gameResponse;
     NimbleSerializeJoinGameResponseParticipant* participants = gameResponse.participants;
-    for (size_t i = 0; i < createdConnection->participantReferences.participantReferenceCount; ++i) {
-        const NimbleServerParticipant* sourceParticipant = createdConnection->participantReferences
+    for (size_t i = 0; i < party->participantReferences.participantReferenceCount; ++i) {
+        const NimbleServerParticipant* sourceParticipant = party->participantReferences
                                                                .participantReferences[i];
-        participants[i].id = sourceParticipant->id;
+        participants[i].participantId = sourceParticipant->id;
         participants[i].localIndex = sourceParticipant->localIndex;
         CLOG_VERBOSE("joined localIndex %zu with ID: %hhu", sourceParticipant->localIndex, sourceParticipant->id)
     }
 
-    gameResponse.participantConnectionIndex = (NimbleSerializeParticipantConnectionIndex) createdConnection->id;
-    gameResponse.participantConnectionSecret = createdConnection->secret;
-    gameResponse.participantCount = createdConnection->participantReferences.participantReferenceCount;
+    gameResponse.partyAndSessionSecret.partyId = party->id;
+    gameResponse.partyAndSessionSecret.sessionSecret = self->sessionSecret;
+    gameResponse.participantCount = party->participantReferences.participantReferenceCount;
 
     CLOG_C_DEBUG(
         &self->log,
-        "client joined game with participant connection %u stateID: %04X participant count: %zu secret: %" PRIX64,
-        createdConnection->id, self->game.authoritativeSteps.expectedWriteId - 1,
-        createdConnection->participantReferences.participantReferenceCount, createdConnection->secret)
+        "client joined game with party %u stateID: %04X participant count: %zu secret: %" PRIX64,
+        party->id, self->game.authoritativeSteps.expectedWriteId - 1,
+        party->participantReferences.participantReferenceCount, self->sessionSecret.value)
     nimbleSerializeServerOutJoinGameResponse(outStream, &gameResponse, &self->log);
 
     return 0;

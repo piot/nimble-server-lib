@@ -5,7 +5,7 @@
 #include "send_authoritative_steps.h"
 
 #include <nimble-serialize/server_out.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/pending_out_serialize.h>
 #include <nimble-steps/pending_steps.h>
@@ -84,21 +84,20 @@ ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTranspor
             transportConnection->noRangesToSendCounter = 0;
         }
 
-        NimbleServerParticipantConnection* foundParticipantConnection = transportConnection
-                                                                            ->assignedParticipantConnection;
-        if (foundParticipantConnection != 0) {
-            lastReceivedStepFromClient = foundParticipantConnection->steps.expectedWriteId - 1;
-            bufferDelta = foundParticipantConnection->steps.stepsCount;
-            authoritativeBufferDelta = (int) foundParticipantConnection->steps.expectedWriteId -
+        NimbleServerLocalParty* party = transportConnection->assignedParty;
+        if (party != 0) {
+            lastReceivedStepFromClient = party->highestReceivedStepId;
+            bufferDelta = party->stepsInBufferCount;
+            authoritativeBufferDelta = (int) party->highestReceivedStepId -
                                        (int) foundGame->authoritativeSteps.expectedWriteId;
         }
     }
 
     int serializeErr = nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
-                                                          (int8_t) authoritativeBufferDelta, &transportConnection->log);
-    if (serializeErr < 0) {
-        return serializeErr;
-    }
+                                       (int8_t) authoritativeBufferDelta, &transportConnection->log);
+                                       if (serializeErr < 0) {
+                                           return serializeErr;
+                                       }
 
     if (moreDebug) {
         nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);

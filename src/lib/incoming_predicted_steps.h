@@ -10,8 +10,8 @@
 #include <stdint.h>
 
 struct NimbleServerGame;
-struct NimbleServerParticipantConnection;
-struct NimbleServerParticipantConnections;
+struct NimbleServerLocalParty;
+struct NimbleServerLocalParties;
 struct NimbleServerTransportConnection;
 struct FldOutStream;
 struct FldInStream;

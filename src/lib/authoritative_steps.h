@@ -10,9 +10,8 @@
 #include <stdint.h>
 
 struct NimbleServerGame;
-struct NimbleServerParticipantConnections;
+struct NimbleServerParticipants;
 
-int nimbleServerComposeAuthoritativeSteps(struct NimbleServerGame* game,
-                                          struct NimbleServerParticipantConnections* connections);
+int nimbleServerComposeAuthoritativeSteps(struct NimbleServerGame* game);
 
 #endif

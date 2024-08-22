@@ -5,14 +5,14 @@
 #include <clog/clog.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
+#include <inttypes.h>
 #include <nimble-serialize/server_in.h>
 #include <nimble-serialize/server_out.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_connect.h>
 #include <nimble-server/server.h>
 #include <secure-random/secure_random.h>
-#include <inttypes.h>
 
 // TODO: Also check the time since the connection was last requested
 
@@ -71,10 +71,12 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         transportConnection->phase = NbTransportConnectionPhaseConnected;
         transportConnection->id = freeTransportIndex;
 
-        transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount, self->log);
+        transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount,
+                                self->log);
 
         connectionLayerIncomingInit(&transportConnection->incomingConnection, (uint32_t) transportConnection->secret);
-        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, (uint32_t) transportConnection->secret);
+        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->id,
+                                    (uint32_t) transportConnection->secret);
     } else {
         CLOG_C_DEBUG(&self->log, "return existing connection with nonce %" PRIX64, connectOptions.nonce)
     }
@@ -82,8 +84,9 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
     NimbleSerializeConnectResponse connectResponse;
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
     connectResponse.connectionId = transportConnection->id;
-    connectResponse.connectionSecret = transportConnection->secret;
+    connectResponse.connectionIdSecret = transportConnection->secret;
     connectResponse.responseToNonce = connectOptions.nonce;
+    connectResponse.connectionIdSecret = transportConnection->secret;
 
     return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }

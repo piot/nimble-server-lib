@@ -6,8 +6,7 @@
 #include <flood/in_stream.h>
 #include <inttypes.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/forced_step.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/in_serialize.h>
 #include <nimble-steps-serialize/pending_in_serialize.h>
@@ -23,15 +22,14 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
                                     NimbleServerTransportConnection* transportConnection,
                                     StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
 {
-    NimbleServerParticipantConnection* foundParticipantConnection = transportConnection->assignedParticipantConnection;
-    if (foundParticipantConnection == 0) {
+    NimbleServerLocalParty* party = transportConnection->assignedParty;
+    if (party == 0) {
         return NimbleServerErrSerialize;
     }
-    if (foundParticipantConnection->state == NimbleServerParticipantConnectionStateDisconnected) {
-        foundParticipantConnection->warningCount++;
-        if (foundParticipantConnection->warningCount % 60 == 0) {
-            CLOG_C_NOTICE(&foundGame->log, "ignoring steps from connection %u that is disconnected",
-                          foundParticipantConnection->id)
+    if (party->state == NimbleServerLocalPartyStateDissolved) {
+        party->warningCount++;
+        if (party->warningCount % 60 == 0) {
+            CLOG_C_NOTICE(&foundGame->log, "ignoring steps from party %u that is dissolved", party->id)
         }
         return NimbleServerErrDatagramFromDisconnectedConnection;
     }
@@ -50,12 +48,12 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     *outClientWaitingForStepId = clientWaitingForStepId;
     *outReceiveMask = receiveMask;
 
-    CLOG_C_VERBOSE(&transportConnection->log,
-                   "handleIncomingSteps: transport connection %d (participant:%d) is awaiting step %08X receiveMask: %" PRIX64,
-                   transportConnection->transportConnectionId, foundParticipantConnection->id, clientWaitingForStepId, receiveMask)
+    CLOG_C_VERBOSE(
+        &transportConnection->log,
+        "handleIncomingSteps: transport connection %d party: %hhu is awaiting step %08X receiveMask: %" PRIX64,
+        transportConnection->transportConnectionId, party->id, clientWaitingForStepId, receiveMask)
 
-
-    int addedStepsCountOrError = nimbleServerParticipantConnectionDeserializePredictedSteps(foundParticipantConnection, inStream);
+    int addedStepsCountOrError = nimbleServerLocalPartyDeserializePredictedSteps(party, inStream);
 
     return addedStepsCountOrError;
 }

@@ -11,7 +11,7 @@
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/serialize.h>
 #include <nimble-server/errors.h>
-#include <nimble-server/participant_connection.h>
+#include <nimble-server/local_party.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/server.h>
 
@@ -33,11 +33,11 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
     }
 
     // CLOG_INFO("nimbleServerReqJoinGameStateAck %04X vs %04X", channelId,
-    // foundParticipantConnection->blobStreamOutChannel)
+    // party->blobStreamOutChannel)
 
-    // if (channelId != foundParticipantConnection->blobStreamOutChannel) {
+    // if (channelId != party->blobStreamOutChannel) {
     //  CLOG_SOFT_ERROR("we have ack for wrong channel %04X vs %04X", channelId,
-    //  foundParticipantConnection->blobStreamOutChannel)
+    //  party->blobStreamOutChannel)
     //   return errorCode;
     // }
 

@@ -7,12 +7,14 @@
 
 #include <clog/clog.h>
 #include <nimble-serialize/types.h>
+#include <nimble-server/circular_buffer.h>
+#include <nimble-steps/types.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <nimble-server/circular_buffer.h>
 
 struct NimbleServerParticipant;
 struct ImprintAllocator;
+struct NimbleServerLocalParty;
 
 /// All the participants that are within a game
 typedef struct NimbleServerParticipants {
@@ -21,6 +23,7 @@ typedef struct NimbleServerParticipants {
     size_t participantCount;
     NimbleServerCircularBuffer freeList;
     Clog log;
+    char debugPrefix[32];
 } NimbleServerParticipants;
 
 typedef struct NimbleServerParticipantJoinInfo {
@@ -28,11 +31,15 @@ typedef struct NimbleServerParticipantJoinInfo {
 } NimbleServerParticipantJoinInfo;
 
 void nimbleServerParticipantsInit(NimbleServerParticipants* self, struct ImprintAllocator* allocator, size_t maxCount,
-                                  Clog* log);
+                                  size_t maxStepOctetSize, Clog* log);
 int nimbleServerParticipantsJoin(NimbleServerParticipants* self, const NimbleSerializeJoinGameRequestPlayer* joinInfo,
-                                 size_t localParticipantCount, struct NimbleServerParticipant** results);
+                                 size_t localParticipantCount, struct NimbleServerLocalParty* party, StepId stepId,
+                                 struct NimbleServerParticipant** results);
 void nimbleServerParticipantsDestroy(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId);
 int nimbleServerParticipantsPrepare(NimbleServerParticipants* self, NimbleSerializeParticipantId participantId,
-                                    struct NimbleServerParticipant** outConnection);
+                                    struct NimbleServerLocalParty* party, StepId currentAuthoritativeStepId,
+                                    struct NimbleServerParticipant** createdParticipant);
+struct NimbleServerParticipant* nimbleServerParticipantsFind(NimbleServerParticipants* self,
+                                                             NimbleSerializeParticipantId participantId);
 
 #endif

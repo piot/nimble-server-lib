@@ -8,8 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct NimbleServerParticipantConnections;
+struct NimbleServerLocalParties;
 
-void nimbleServerCheckForDisconnections(struct NimbleServerParticipantConnections* connections);
+void nimbleServerCheckForDisconnections(struct NimbleServerLocalParties* connections);
 
 #endif
