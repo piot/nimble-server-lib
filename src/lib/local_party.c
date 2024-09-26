@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #include "authoritative_steps.h"
 #include "incoming_predicted_steps.h"
 #include "nimble-server/server.h"

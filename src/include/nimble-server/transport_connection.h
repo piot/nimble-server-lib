@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #ifndef NIMBLE_SERVER_TRANSPORT_CONNECTION_H
 #define NIMBLE_SERVER_TRANSPORT_CONNECTION_H
 
@@ -21,8 +22,6 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <connection-layer/incoming.h>
-#include <connection-layer/outgoing.h>
 
 struct FldOutStream;
 
@@ -38,18 +37,15 @@ typedef struct NimbleServerTransportConnection {
     uint8_t id;
     uint8_t transportConnectionId;
     uint8_t transportIndex;
-    uint64_t connectedFromRequestNonce;
+    NimbleSerializeClientRequestId connectedFromConnectRequestId;
     uint64_t secret;
     struct NimbleServerLocalParty* assignedParty;
     OrderedDatagramInLogic orderedDatagramInLogic;
     OrderedDatagramOutLogic orderedDatagramOutLogic;
-    ConnectionLayerIncoming incomingConnection;
-    ConnectionLayerOutgoing outgoingConnection;
 
     BlobStreamOut blobStreamOut;
     BlobStreamLogicOut blobStreamLogicOut;
-    NimbleSerializeBlobStreamChannelId blobStreamOutChannel;
-    NimbleSerializeBlobStreamChannelId nextBlobStreamOutChannel;
+    BlobStreamTransferId nextBlobStreamOutChannel;
     uint8_t blobStreamOutClientRequestId;
     ImprintAllocatorWithFree* blobStreamOutAllocator;
     StatsInt stepsBehindStats;
@@ -66,7 +62,7 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
                              size_t maxGameOctetSize, Clog log);
 void transportConnectionDisconnect(NimbleServerTransportConnection* self);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
-int transportConnectionPrepareHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime, FldOutStreamStoredPosition* outData);
-int transportConnectionCommitHeader(NimbleServerTransportConnection* self, FldOutStream* outStream,
-                                    FldOutStreamStoredPosition seekPosition);
+int transportConnectionWriteHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime);
+void transportConnectionCommitHeader(NimbleServerTransportConnection* self);
+
 #endif

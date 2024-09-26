@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #include "send_authoritative_steps.h"
 #include <blob-stream/blob_stream_logic_out.h>
 #include <datagram-transport/transport.h>
@@ -21,16 +22,11 @@
 /// @param inStream stream to read game state ack from
 /// @param transportOut the transport to send reply to
 /// @return negative on error
-int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
+int nimbleServerReqBlobStream(NimbleServerGame* foundGame,
                                         NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
                                         DatagramTransportOut* transportOut, uint16_t clientTime)
 {
-    NimbleSerializeBlobStreamChannelId channelId;
-    int errorCode = nimbleSerializeInBlobStreamChannelId(inStream, &channelId);
-    if (errorCode < 0) {
-        CLOG_SOFT_ERROR("nimbleServerReqJoinGameStateAck: could not get channelId")
-        return errorCode;
-    }
+    (void) foundGame;
 
     // CLOG_INFO("nimbleServerReqJoinGameStateAck %04X vs %04X", channelId,
     // party->blobStreamOutChannel)
@@ -47,6 +43,46 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
         return receiveResult;
     }
 
+    return nimbleServerSendBlobStream(transportConnection, transportOut, clientTime);
+}
+
+/*
+int sendAuthoritativeSteps() {
+    // There is a chance that the client will receive the complete blob stream, lets send a packet with
+    // authoritative inputs as well
+
+    fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
+    stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
+    int error = transportConnectionWriteHeader(transportConnection, &stream, clientTime);
+    if (error < 0) {
+        return error;
+    }
+
+    CLOG_C_VERBOSE(&transportConnection->log,
+                   "download of game state is probably done, send a few authoritative steps as well from %08X",
+                   transportConnection->gameState.stepId)
+
+    ssize_t err = nimbleServerSendStepRanges(&stream, transportConnection, foundGame,
+                                             transportConnection->gameState.stepId, 0);
+    if (err < 0) {
+        CLOG_C_SOFT_ERROR(&transportConnection->log, "could not send ranges")
+        return (int) err;
+    }
+
+    if (stream.pos > datagramTransportMaxSize) {
+        CLOG_C_SOFT_ERROR(&transportConnection->log,
+                          "trying to send auth steps datagram that has too many octets: %zu out of %zu. Discarding it",
+                          stream.pos, datagramTransportMaxSize)
+        return NimbleServerErrSerialize;
+    }
+
+    return transportOut->send(transportOut->self, stream.octets, stream.pos);
+}
+*/
+
+int nimbleServerSendBlobStream(NimbleServerTransportConnection* transportConnection, DatagramTransportOut* transportOut,
+                               uint16_t clientTime)
+{
     MonotonicTimeMs now = monotonicTimeMsNow();
     const BlobStreamOutEntry* entries[4];
 
@@ -62,19 +98,14 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
         fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
         stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
-        FldOutStreamStoredPosition finalizePosition;
-        transportConnectionPrepareHeader(transportConnection, &stream, clientTime, &finalizePosition);
+        transportConnectionWriteHeader(transportConnection, &stream, clientTime);
 
-        nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdGameStatePart, &transportConnection->log);
-        nimbleSerializeOutBlobStreamChannelId(&stream, channelId);
-        blobStreamLogicOutSendEntry(&stream, entry);
+        // Signals that it is a blob stream command that follows
+        nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdServerOutBlobStream, &transportConnection->log);
 
-        int finalizeStatus = transportConnectionCommitHeader(transportConnection, &stream, finalizePosition);
-        if (finalizeStatus < 0) {
-            return finalizeStatus;
-        }
+        blobStreamLogicOutSendEntry(&stream, entry, transportConnection->blobStreamLogicOut.transferId);
 
-        orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
+        transportConnectionCommitHeader(transportConnection);
 
         if (stream.pos > datagramTransportMaxSize) {
             CLOG_C_SOFT_ERROR(
@@ -92,36 +123,5 @@ int nimbleServerReqDownloadGameStateAck(NimbleServerGame* foundGame,
     }
 
     CLOG_C_DEBUG(&transportConnection->log, "sent all outgoing blob stream")
-
-    // There is a chance that the client will receive the complete blob stream, lets send a packet with
-    // authoritative inputs as well
-
-    fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
-    stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
-    FldOutStreamStoredPosition secondFinalizePosition;
-    int error = transportConnectionPrepareHeader(transportConnection, &stream, clientTime, &secondFinalizePosition);
-    if (error < 0) {
-        return error;
-    }
-
-    CLOG_C_VERBOSE(&transportConnection->log,
-                   "download of game state is probably done, send a few authoritative steps as well from %08X",
-                   transportConnection->gameState.stepId)
-
-    ssize_t err = nimbleServerSendStepRanges(&stream, transportConnection, foundGame,
-                                             transportConnection->gameState.stepId, 0);
-    if (err < 0) {
-        CLOG_C_SOFT_ERROR(&transportConnection->log, "could not send ranges")
-        return (int) err;
-    }
-    transportConnectionCommitHeader(transportConnection, &stream, secondFinalizePosition);
-
-    if (stream.pos > datagramTransportMaxSize) {
-        CLOG_C_SOFT_ERROR(&transportConnection->log,
-                          "trying to send auth steps datagram that has too many octets: %zu out of %zu. Discarding it",
-                          stream.pos, datagramTransportMaxSize)
-        return NimbleServerErrSerialize;
-    }
-
-    return transportOut->send(transportOut->self, stream.octets, stream.pos);
+    return 0;
 }

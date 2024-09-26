@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #include <clog/clog.h>
 #include <clog/console.h>
 #include <flood/in_stream.h>
@@ -107,7 +108,7 @@ int main(int argc, char* argv[])
             socketSendToAddress.sockAddrIn = &address;
 
             fldOutStreamRewind(&outStream);
-#if 0
+#if CONFIGURATION_DEBUG
             nimbleSerializeDebugHex("received", buf, size);
 #endif
             errorCode = nimbleServerFeed(&server, 1, buf, size, &response);

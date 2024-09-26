@@ -2,11 +2,13 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #include <clog/clog.h>
 #include <datagram-transport/transport.h>
 #include <datagram-transport/types.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
+#include <hexify/hexify.h>
 #include <nimble-serialize/commands.h>
 #include <nimble-serialize/debug.h>
 #include <nimble-server/errors.h>
@@ -109,25 +111,6 @@ bool nimbleServerIsErrorExternal(int err)
            err == NimbleServerErrDatagramFromDisconnectedConnection || err == NimbleServerErrOutOfParticipantMemory;
 }
 
-static void debugHex(const char* debug, const uint8_t* data, size_t length)
-{
-    (void) debug;
-    CLOG_INFO(" ### %s ###", debug)
-
-    for (size_t i = 0; i < length; ++i) {
-        if ((i % 16) == 0) {
-            tc_fprintf(stderr, "\n");
-        }
-        tc_fprintf(stderr, "%02X ", data[i]);
-    }
-
-    if (length > 0) {
-        tc_fprintf(stderr, "\n");
-    }
-
-    tc_fflush(stderr);
-}
-
 /// Handle an incoming request from a client identified by the connectionIndex
 /// It uses the NimbleServerResponse to send datagrams back to the client
 /// @param self server
@@ -139,78 +122,55 @@ static void debugHex(const char* debug, const uint8_t* data, size_t length)
 int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
-    CLOG_C_VERBOSE(&self->log, "feed: octetCount: %zu", len)
+#if CONFIGURATION_DEBUG
+    {
+        char temp[256];
+        CLOG_C_VERBOSE(&self->log, "feed: octetCount: %zu\n%s", len, hexifyFormat(temp, 256, data, len))
+    }
+#endif
+
     FldInStream inStream;
     fldInStreamInit(&inStream, data, len);
     inStream.readDebugInfo = true;
 
-    uint8_t connectionIndex;
-    fldInStreamReadUInt8(&inStream, &connectionIndex);
-
 #define ESTIMATED_TRANSPORT_SPECIFIC_OVERHEAD (32)
 #define MAX_SEND_OCTET_SIZE (DATAGRAM_TRANSPORT_MAX_SIZE - ESTIMATED_TRANSPORT_SPECIFIC_OVERHEAD)
 
-    if (connectionIndex == 0) {
-        static uint8_t buf[MAX_SEND_OCTET_SIZE];
-        FldOutStream outStream;
-        fldOutStreamInit(&outStream, buf, sizeof(buf));
-        outStream.writeDebugInfo = false; // transportConnection->useDebugStreams;
-
-        // Minimal header for oob
-        fldOutStreamWriteUInt8(&outStream, 0); // Write zero connection id
-
-        uint8_t cmd;
-        fldInStreamReadUInt8(&inStream, &cmd);
-        int result = 0;
-        switch (cmd) {
-            case NimbleSerializeCmdConnectRequest:
-                result = nimbleServerReqConnect(self, transportIndex, &inStream, &outStream);
-                break;
-            default:
-                CLOG_C_NOTICE(&self->log, "received unknown oob command %hhu", cmd)
-                return NimbleServerErrSerialize;
-        }
-
-        if (outStream.pos > datagramTransportMaxSize) {
-            CLOG_C_SOFT_ERROR(&self->log,
-                              "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
-                              outStream.pos, datagramTransportMaxSize)
-            return NimbleServerErrSerialize;
-        }
-
-        if (result < 0) {
-            return result;
-        }
-
-        return response->transportOut->send(response->transportOut->self, buf, outStream.pos);
-    }
-
-    if (connectionIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
-        CLOG_C_SOFT_ERROR(&self->log, "illegal connection index : %u", connectionIndex)
+    if (transportIndex >= NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS) {
+        CLOG_C_SOFT_ERROR(&self->log, "illegal connection index : %u", transportIndex)
         return NimbleServerErrSerialize;
     }
 
-    NimbleServerTransportConnection* transportConnection = &self->transportConnections[connectionIndex];
+    NimbleServerTransportConnection* transportConnection = &self->transportConnections[transportIndex];
+
+    /* TODO:
     if (!transportConnection->isUsed) {
         CLOG_C_VERBOSE(&self->log, "received a connectionIndex from an unused connection. probably an old datagram?")
         return NimbleServerErrSerialize;
     }
 
     if (transportConnection->phase == NbTransportConnectionPhaseDisconnected) {
-        CLOG_C_SOFT_ERROR(&self->log, "connection:%u is disconnected, so disregarding datagram", connectionIndex)
+        CLOG_C_SOFT_ERROR(&self->log, "connection:%u is disconnected, so disregarding datagram", transportIndex)
         return NimbleServerErrSerialize;
+    }
+     */
+
+    if (!transportConnection->isUsed) {
+        transportConnection->isUsed = true;
+        transportConnection->transportIndex = transportIndex;
+        transportConnection->connectedFromConnectRequestId = 0; // TODO: connectOptions.nonce;
+        transportConnection->secret = 0;                        // TODO: secureRandomUInt64();
+        transportConnection->useDebugStreams = false;           // TODO: connectOptions.useDebugStreams;
+        transportConnection->phase = NbTransportConnectionPhaseConnected;
+        transportConnection->id = transportIndex;
+
+        transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount,
+                                self->log);
     }
 
     if (transportConnection->transportIndex != transportIndex) {
         CLOG_C_VERBOSE(&self->log, "we received a datagram from wrong transport index. Expected %hhu but received %hhu",
                        transportConnection->transportIndex, transportIndex)
-        return NimbleServerErrSerialize;
-    }
-
-    int verifyHashStatus = connectionLayerIncomingVerify(&transportConnection->incomingConnection, &inStream);
-    if (verifyHashStatus < 0) {
-        CLOG_C_VERBOSE(&self->log,
-                       "we received a datagram with a wrong hash. could be due to it being and old datagram?")
         return NimbleServerErrSerialize;
     }
 
@@ -228,12 +188,16 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
         fldInStreamReadUInt8(&inStream, &cmd);
 
         CLOG_C_VERBOSE(&self->log, "received cmd: %s (connection: %d, clientTime:%u)", nimbleSerializeCmdToString(cmd),
-                       connectionIndex, clientTime)
+                       transportIndex, clientTime)
 
-        if (cmd == NimbleSerializeCmdDownloadGameStateStatus) {
-            // Special case, game state ack can send multiple datagrams as reply
-            return nimbleServerReqDownloadGameStateAck(&self->game, transportConnection, &inStream,
-                                                       response->transportOut, clientTime);
+        if (cmd == NimbleSerializeCmdClientOutBlobStream) {
+            // Special case, blob streams can send multiple datagrams as reply
+            int err = nimbleServerReqBlobStream(&self->game, transportConnection, &inStream, response->transportOut,
+                                                clientTime);
+            if (err < 0) {
+                return err;
+            }
+            continue;
         }
 
         static uint8_t buf[MAX_SEND_OCTET_SIZE];
@@ -241,14 +205,17 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
         fldOutStreamInit(&outStream, buf, sizeof(buf));
         outStream.writeDebugInfo = false; // transportConnection->useDebugStreams;
 
-        FldOutStreamStoredPosition finalizeSeekPosition;
-        int err = transportConnectionPrepareHeader(transportConnection, &outStream, clientTime, &finalizeSeekPosition);
+        int err = transportConnectionWriteHeader(transportConnection, &outStream, clientTime);
         if (err < 0) {
             return err;
         }
 
         int result;
         switch (cmd) {
+            case NimbleSerializeCmdConnectRequest:
+                result = nimbleServerReqConnect(self, transportIndex, &inStream, &outStream);
+                break;
+
             case NimbleSerializeCmdGameStep:
                 result = nimbleServerReqGameStep(&self->game, transportConnection,
                                                  &self->authoritativeStepsPerSecondStat, &inStream, &outStream);
@@ -257,7 +224,8 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
                 result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
                 break;
             case NimbleSerializeCmdDownloadGameStateRequest:
-                result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, &outStream);
+                result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, response->transportOut,
+                                                          clientTime);
                 break;
             default:
                 CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])
@@ -273,25 +241,22 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
             return result;
         }
 
-
         if (outStream.pos <= 4) {
             CLOG_C_WARN(&self->log, "no reply to send")
             return NimbleServerErrSerialize;
         }
 
-        int commitError = transportConnectionCommitHeader(transportConnection, &outStream, finalizeSeekPosition);
-        if (commitError < 0) {
-            return commitError;
-        }
-
-        orderedDatagramOutLogicCommit(&transportConnection->orderedDatagramOutLogic);
+        transportConnectionCommitHeader(transportConnection);
         if (outStream.pos > datagramTransportMaxSize) {
             CLOG_C_SOFT_ERROR(&self->log,
                               "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
                               outStream.pos, datagramTransportMaxSize)
             return NimbleServerErrSerialize;
         }
-        debugHex("server sends", buf, outStream.pos);
+        {
+            char temp[256];
+            CLOG_C_VERBOSE(&self->log, "server sends:\n%s", hexifyFormat(temp, 256, buf, outStream.pos))
+        }
 
         response->transportOut->send(response->transportOut->self, buf, outStream.pos);
     }
@@ -493,6 +458,8 @@ typedef struct ReplyOnlyToConnection {
 static int sendOnlyToSpecifiedTransport(void* _self, const uint8_t* data, size_t octetCount)
 {
     ReplyOnlyToConnection* self = (ReplyOnlyToConnection*) _self;
+    CLOG_EXECUTE(char temp[256]);
+    CLOG_VERBOSE("send_to_transport %zu:\n%s", octetCount, hexifyFormat(temp, 256, data, octetCount))
 
     return self->multiTransport.sendTo(self->multiTransport.self, self->connectionIndex, data, octetCount);
 }

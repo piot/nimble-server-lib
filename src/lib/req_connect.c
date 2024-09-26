@@ -2,6 +2,7 @@
  *  Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/nimble-server-lib
  *  Licensed under the MIT License. See LICENSE in the project root for license information.
  *--------------------------------------------------------------------------------------------------------*/
+
 #include <clog/clog.h>
 #include <flood/in_stream.h>
 #include <flood/out_stream.h>
@@ -17,7 +18,7 @@
 // TODO: Also check the time since the connection was last requested
 
 static NimbleServerTransportConnection*
-findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionIndex, uint64_t connectionRequestNonce)
+findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionIndex, NimbleSerializeClientRequestId connectionRequestId)
 {
     for (size_t i = 0; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         NimbleServerTransportConnection* connection = &self->transportConnections[i];
@@ -25,7 +26,7 @@ findExistingConnectionRequest(NimbleServer* self, uint8_t transportConnectionInd
             continue;
         }
         if (connection->transportIndex == transportConnectionIndex &&
-            connection->connectedFromRequestNonce == connectionRequestNonce) {
+            connection->connectedFromConnectRequestId == connectionRequestId) {
             return connection;
         }
     }
@@ -48,7 +49,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
 
     // TODO: Also check the time since the connection was last requested
     NimbleServerTransportConnection* transportConnection = findExistingConnectionRequest(self, transportConnectionIndex,
-                                                                                         connectOptions.nonce);
+                                                                                         connectOptions.clientRequestId);
     if (!transportConnection) {
         CLOG_C_DEBUG(&self->log, "request for a new connection")
         if (nimbleServerCircularBufferIsEmpty(&self->freeTransportConnectionList)) {
@@ -65,7 +66,7 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
 
         transportConnection->isUsed = true;
         transportConnection->transportIndex = transportConnectionIndex;
-        transportConnection->connectedFromRequestNonce = connectOptions.nonce;
+        transportConnection->connectedFromConnectRequestId = connectOptions.clientRequestId;
         transportConnection->secret = secureRandomUInt64();
         transportConnection->useDebugStreams = connectOptions.useDebugStreams;
         transportConnection->phase = NbTransportConnectionPhaseConnected;
@@ -74,19 +75,14 @@ int nimbleServerReqConnect(NimbleServer* self, uint8_t transportConnectionIndex,
         transportConnectionInit(transportConnection, self->blobAllocator, self->setup.maxGameStateOctetCount,
                                 self->log);
 
-        connectionLayerIncomingInit(&transportConnection->incomingConnection, (uint32_t) transportConnection->secret);
-        connectionLayerOutgoingInit(&transportConnection->outgoingConnection, transportConnection->id,
-                                    (uint32_t) transportConnection->secret);
     } else {
-        CLOG_C_DEBUG(&self->log, "return existing connection with nonce %" PRIX64, connectOptions.nonce)
+        CLOG_C_DEBUG(&self->log, "return existing connection with client request id %02X", connectOptions.clientRequestId)
     }
 
     NimbleSerializeConnectResponse connectResponse;
     connectResponse.useDebugStreams = transportConnection->useDebugStreams;
     connectResponse.connectionId = transportConnection->id;
-    connectResponse.connectionIdSecret = transportConnection->secret;
-    connectResponse.responseToNonce = connectOptions.nonce;
-    connectResponse.connectionIdSecret = transportConnection->secret;
+    connectResponse.responseToRequestId = connectOptions.clientRequestId;
 
     return nimbleSerializeServerOutConnectResponse(outStream, &connectResponse, &self->log);
 }
