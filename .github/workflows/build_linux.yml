@@ -11,7 +11,7 @@ jobs:
       - name: Install LLVM and Clang 16
         uses: KyleMayes/install-llvm-action@v2
         with:
-          version: '19.1'
+          version: '18.1'
           env: true
 
       - name: Setup cmake
