@@ -16,10 +16,9 @@ struct FldInStream;
 
 int nimbleServerReqBlobStream(struct NimbleServerGame* game,
                                         struct NimbleServerTransportConnection* transportConnection,
-                                        struct FldInStream* inStream, struct DatagramTransportOut* transportOut,
-                                        uint16_t clientTime);
+                                        struct FldInStream* inStream, struct DatagramTransportOut* transportOut);
 
 int nimbleServerSendBlobStream(struct NimbleServerTransportConnection* transportConnection,
-                               struct DatagramTransportOut* transportOut, uint16_t clientTime);
+                               struct DatagramTransportOut* transportOut);
 
 #endif

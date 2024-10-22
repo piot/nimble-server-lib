@@ -17,7 +17,7 @@
 /// @param inStream stream to read the request from
 /// @return negative on error
 int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportConnection* transportConnection,
-                                     FldInStream* inStream, DatagramTransportOut* transportOut, uint16_t clientTime)
+                                     FldInStream* inStream, DatagramTransportOut* transportOut)
 {
     uint8_t downloadClientRequestId;
     fldInStreamReadUInt8(inStream, &downloadClientRequestId);
@@ -82,7 +82,7 @@ int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportCo
         FldOutStream outStream;
         fldOutStreamInit(&outStream, buf, sizeof(buf));
 
-        transportConnectionWriteHeader(transportConnection, &outStream, clientTime);
+        transportConnectionWriteHeader(transportConnection, &outStream);
 
         int err = nimbleSerializeServerOutGameStateResponse(
             &outStream, outGameState, transportConnection->blobStreamOutClientRequestId,
@@ -102,5 +102,5 @@ int nimbleServerReqDownloadGameState(NimbleServer* self, NimbleServerTransportCo
         transportOut->send(transportOut->self, outStream.octets, outStream.pos);
     }
 
-    return nimbleServerSendBlobStream(transportConnection, transportOut, clientTime);
+    return nimbleServerSendBlobStream(transportConnection, transportOut);
 }

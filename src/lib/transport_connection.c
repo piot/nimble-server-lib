@@ -46,12 +46,10 @@ void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self
 }
 
 
-int transportConnectionWriteHeader(NimbleServerTransportConnection* self, FldOutStream* outStream,
-                                     uint16_t clientTime)
+int transportConnectionWriteHeader(NimbleServerTransportConnection* self, FldOutStream* outStream)
 {
-    orderedDatagramOutLogicPrepare(&self->orderedDatagramOutLogic, outStream);
-    CLOG_C_VERBOSE(&self->log, "prepare transport connection header %02X, client time:%04X", self->id, clientTime)
-    return fldOutStreamWriteUInt16(outStream, clientTime);
+    CLOG_C_VERBOSE(&self->log, "prepare transport connection header %02X", self->id)
+    return orderedDatagramOutLogicPrepare(&self->orderedDatagramOutLogic, outStream);
 }
 
 void transportConnectionCommitHeader(NimbleServerTransportConnection* self)

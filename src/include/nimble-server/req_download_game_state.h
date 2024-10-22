@@ -16,7 +16,6 @@ struct FldInStream;
 struct DatagramTransportOut;
 
 int nimbleServerReqDownloadGameState(NimbleServer* self, struct NimbleServerTransportConnection* transportConnection,
-                                     struct FldInStream* inStream, struct DatagramTransportOut* transportOut,
-                                     uint16_t clientTime);
+                                     struct FldInStream* inStream, struct DatagramTransportOut* transportOut);
 
 #endif

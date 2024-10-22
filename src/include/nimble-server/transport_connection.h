@@ -62,7 +62,7 @@ void transportConnectionInit(NimbleServerTransportConnection* self, ImprintAlloc
                              size_t maxGameOctetSize, Clog log);
 void transportConnectionDisconnect(NimbleServerTransportConnection* self);
 void transportConnectionSetGameStateTickId(NimbleServerTransportConnection* self);
-int transportConnectionWriteHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream, uint16_t clientTime);
+int transportConnectionWriteHeader(NimbleServerTransportConnection* self, struct FldOutStream* outStream);
 void transportConnectionCommitHeader(NimbleServerTransportConnection* self);
 
 #endif

@@ -19,6 +19,7 @@
 #include <nimble-server/req_download_game_state.h>
 #include <nimble-server/req_download_game_state_ack.h>
 #include <nimble-server/req_join_game.h>
+#include <nimble-server/req_ping.h>
 #include <nimble-server/req_step.h>
 
 /// Clean up participant references
@@ -180,20 +181,15 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
         return NimbleServerErrSerialize;
     }
 
-    uint16_t clientTime;
-    fldInStreamReadUInt16(&inStream, &clientTime);
-
     while (inStream.pos != inStream.size) {
         uint8_t cmd;
         fldInStreamReadUInt8(&inStream, &cmd);
 
-        CLOG_C_VERBOSE(&self->log, "received cmd: %s (connection: %d, clientTime:%u)", nimbleSerializeCmdToString(cmd),
-                       transportIndex, clientTime)
+        CLOG_C_VERBOSE(&self->log, "received cmd: %s (connection: %d)", nimbleSerializeCmdToString(cmd), transportIndex)
 
         if (cmd == NimbleSerializeCmdClientOutBlobStream) {
             // Special case, blob streams can send multiple datagrams as reply
-            int err = nimbleServerReqBlobStream(&self->game, transportConnection, &inStream, response->transportOut,
-                                                clientTime);
+            int err = nimbleServerReqBlobStream(&self->game, transportConnection, &inStream, response->transportOut);
             if (err < 0) {
                 return err;
             }
@@ -205,7 +201,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
         fldOutStreamInit(&outStream, buf, sizeof(buf));
         outStream.writeDebugInfo = false; // transportConnection->useDebugStreams;
 
-        int err = transportConnectionWriteHeader(transportConnection, &outStream, clientTime);
+        int err = transportConnectionWriteHeader(transportConnection, &outStream);
         if (err < 0) {
             return err;
         }
@@ -215,7 +211,9 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
             case NimbleSerializeCmdConnectRequest:
                 result = nimbleServerReqConnect(self, transportIndex, &inStream, &outStream);
                 break;
-
+            case NimbleSerializeCmdPingRequest:
+                result = nimbleServerReqPing(&inStream, &outStream, &self->log);
+                break;
             case NimbleSerializeCmdGameStep:
                 result = nimbleServerReqGameStep(&self->game, transportConnection,
                                                  &self->authoritativeStepsPerSecondStat, &inStream, &outStream);
@@ -224,8 +222,7 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
                 result = nimbleServerReqGameJoin(self, transportConnection, &inStream, &outStream);
                 break;
             case NimbleSerializeCmdDownloadGameStateRequest:
-                result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, response->transportOut,
-                                                          clientTime);
+                result = nimbleServerReqDownloadGameState(self, transportConnection, &inStream, response->transportOut);
                 break;
             default:
                 CLOG_SOFT_ERROR("nimbleServerFeed: unknown command %02X", data[0])

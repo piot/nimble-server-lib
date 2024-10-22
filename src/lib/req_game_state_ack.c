@@ -24,7 +24,7 @@
 /// @return negative on error
 int nimbleServerReqBlobStream(NimbleServerGame* foundGame,
                                         NimbleServerTransportConnection* transportConnection, FldInStream* inStream,
-                                        DatagramTransportOut* transportOut, uint16_t clientTime)
+                                        DatagramTransportOut* transportOut)
 {
     (void) foundGame;
 
@@ -43,7 +43,7 @@ int nimbleServerReqBlobStream(NimbleServerGame* foundGame,
         return receiveResult;
     }
 
-    return nimbleServerSendBlobStream(transportConnection, transportOut, clientTime);
+    return nimbleServerSendBlobStream(transportConnection, transportOut);
 }
 
 /*
@@ -80,8 +80,7 @@ int sendAuthoritativeSteps() {
 }
 */
 
-int nimbleServerSendBlobStream(NimbleServerTransportConnection* transportConnection, DatagramTransportOut* transportOut,
-                               uint16_t clientTime)
+int nimbleServerSendBlobStream(NimbleServerTransportConnection* transportConnection, DatagramTransportOut* transportOut)
 {
     MonotonicTimeMs now = monotonicTimeMsNow();
     const BlobStreamOutEntry* entries[4];
@@ -98,7 +97,7 @@ int nimbleServerSendBlobStream(NimbleServerTransportConnection* transportConnect
         fldOutStreamInit(&stream, buf, DATAGRAM_TRANSPORT_MAX_SIZE);
         stream.writeDebugInfo = true; // transportConnection->useDebugStreams;
 
-        transportConnectionWriteHeader(transportConnection, &stream, clientTime);
+        transportConnectionWriteHeader(transportConnection, &stream);
 
         // Signals that it is a blob stream command that follows
         nimbleSerializeWriteCommand(&stream, NimbleSerializeCmdServerOutBlobStream, &transportConnection->log);

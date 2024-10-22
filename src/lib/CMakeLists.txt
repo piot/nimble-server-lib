@@ -18,6 +18,7 @@ add_library(nimble-server-lib STATIC
   req_game_join.c
   req_game_state.c
   req_game_state_ack.c
+        req_ping.c
   req_step.c
   send_authoritative_steps.c
   server.c
