@@ -237,25 +237,26 @@ int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* 
             // CLOG_C_NOTICE(&self->log, "accepting error %d", result)
             return result;
         }
+        if (cmd != NimbleSerializeCmdDownloadGameStateRequest) {
+            if (outStream.pos <= 4) {
+                CLOG_C_WARN(&self->log, "no reply to send")
+                return NimbleServerErrSerialize;
+            }
 
-        if (outStream.pos <= 4) {
-            CLOG_C_WARN(&self->log, "no reply to send")
-            return NimbleServerErrSerialize;
-        }
+            transportConnectionCommitHeader(transportConnection);
+            if (outStream.pos > datagramTransportMaxSize) {
+                CLOG_C_SOFT_ERROR(&self->log,
+                                  "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
+                                  outStream.pos, datagramTransportMaxSize)
+                return NimbleServerErrSerialize;
+            }
+            {
+                char temp[256];
+                CLOG_C_VERBOSE(&self->log, "server sends:\n%s", hexifyFormat(temp, 256, buf, outStream.pos))
+            }
 
-        transportConnectionCommitHeader(transportConnection);
-        if (outStream.pos > datagramTransportMaxSize) {
-            CLOG_C_SOFT_ERROR(&self->log,
-                              "trying to send datagram that has too many octets: %zu out of %zu. Discarding it",
-                              outStream.pos, datagramTransportMaxSize)
-            return NimbleServerErrSerialize;
+            response->transportOut->send(response->transportOut->self, buf, outStream.pos);
         }
-        {
-            char temp[256];
-            CLOG_C_VERBOSE(&self->log, "server sends:\n%s", hexifyFormat(temp, 256, buf, outStream.pos))
-        }
-
-        response->transportOut->send(response->transportOut->self, buf, outStream.pos);
     }
 
     return 0;
