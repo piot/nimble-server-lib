@@ -8,7 +8,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install LLVM and Clang 16
+      - name: Install LLVM and Clang 18
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: '18.1'
@@ -18,6 +18,9 @@ jobs:
         uses: jwlawson/actions-setup-cmake@v2
         with:
           cmake-version: '3.30.x'
+
+      - name: Setup Go dependencies
+        run: sudo apt install libtinfo5
 
       - name: Install Go
         uses: actions/setup-go@v5
