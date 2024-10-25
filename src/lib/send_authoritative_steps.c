@@ -16,14 +16,11 @@
 /// @param transportConnection transport connection that wants the steps
 /// @param foundGame the game to send steps from
 /// @param clientWaitingForStepId client is waiting for this StepId
-/// @param receiveMask receive status for steps that has been received prior to clientWaitingForStepId
 /// @return negative on error, otherwise number of ranges sent
 ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
-                                   NimbleServerGame* foundGame, StepId clientWaitingForStepId, uint64_t receiveMask)
+                                   NimbleServerGame* foundGame, StepId clientWaitingForStepId)
 {
-#define MAX_RANGES_COUNT (3)
-    const int maxStepsCount = 8;
-    NbsPendingRange ranges[MAX_RANGES_COUNT + 1];
+    NbsPendingRange ranges[1];
 
     StepId lastReceivedStepFromClient = 0;
     size_t bufferDelta = 0;
@@ -37,15 +34,7 @@ ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTranspor
                        clientWaitingForStepId, foundGame->authoritativeSteps.expectedReadId)
         rangeCount = 0;
     } else {
-        int pendingRangeCount = nbsPendingStepsRanges(clientWaitingForStepId,
-                                                      foundGame->authoritativeSteps.expectedWriteId, receiveMask,
-                                                      ranges, MAX_RANGES_COUNT, maxStepsCount);
-        if (pendingRangeCount < 0) {
-            CLOG_C_VERBOSE(&transportConnection->log, "ranges error")
-            return pendingRangeCount;
-        }
-
-        rangeCount = (size_t) pendingRangeCount;
+        rangeCount = (size_t) 0;
 
         if (foundGame->authoritativeSteps.expectedWriteId > clientWaitingForStepId) {
             // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,

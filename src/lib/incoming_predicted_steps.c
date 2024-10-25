@@ -17,11 +17,10 @@
 /// @param inStream stream to read steps from
 /// @param transportConnection stream comes from this transport connection
 /// @param[out] outClientWaitingForStepId transport connection is waiting for this StepID
-/// @param[out] outReceiveMask transport connection reported this receive mask
 /// @return negative on error
 int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* inStream,
                                     NimbleServerTransportConnection* transportConnection,
-                                    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask)
+                                    StepId* outClientWaitingForStepId)
 {
     NimbleServerLocalParty* party = transportConnection->assignedParty;
     if (party == 0) {
@@ -36,23 +35,23 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
     }
 
     StepId clientWaitingForStepId;
-    uint64_t receiveMask;
 
     (void) foundGame;
 
-    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId, &receiveMask);
+    int errorCode = nbsPendingStepsInSerializeHeader(inStream, &clientWaitingForStepId);
     if (errorCode < 0) {
         CLOG_C_SOFT_ERROR(&transportConnection->log, "client step: couldn't in-serialize pending steps")
         return errorCode;
     }
 
+
+
     *outClientWaitingForStepId = clientWaitingForStepId;
-    *outReceiveMask = receiveMask;
 
     CLOG_C_VERBOSE(
         &transportConnection->log,
-        "handleIncomingSteps: transport connection %d party: %hhu is awaiting step %08X receiveMask: %" PRIX64,
-        transportConnection->transportConnectionId, party->id, clientWaitingForStepId, receiveMask)
+        "handleIncomingSteps: transport connection %d party: %hhu is awaiting step %08X",
+        transportConnection->transportConnectionId, party->id, clientWaitingForStepId)
 
     int addedStepsCountOrError = nimbleServerLocalPartyDeserializePredictedSteps(party, inStream);
 

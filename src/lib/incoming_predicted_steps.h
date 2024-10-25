@@ -19,6 +19,6 @@ struct FldInStream;
 
 int nimbleServerHandleIncomingSteps(struct NimbleServerGame* foundGame, struct FldInStream* inStream,
                                     struct NimbleServerTransportConnection* transportConnection,
-                                    StepId* outClientWaitingForStepId, uint64_t* outReceiveMask);
+                                    StepId* outClientWaitingForStepId);
 
 #endif

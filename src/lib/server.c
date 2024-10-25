@@ -123,7 +123,7 @@ bool nimbleServerIsErrorExternal(int err)
 int nimbleServerFeed(NimbleServer* self, uint8_t transportIndex, const uint8_t* data, size_t len,
                      NimbleServerResponse* response)
 {
-#if CONFIGURATION_DEBUG
+#if CONFIGURATION_DEBUG || true
     {
         char temp[256];
         CLOG_C_VERBOSE(&self->log, "feed: octetCount: %zu\n%s", len, hexifyFormat(temp, 256, data, len))

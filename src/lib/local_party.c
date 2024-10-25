@@ -168,51 +168,63 @@ bool nimbleServerLocalPartyHasParticipantId(const NimbleServerLocalParty* self, 
 
 int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self, FldInStream* inStream)
 {
-    size_t stepsThatFollow;
-    StepId firstStepId;
+    uint32_t lowestCommonStepId;
+    fldInStreamReadUInt32(inStream, &lowestCommonStepId);
 
-    uint8_t participant_count;
+    uint8_t participantCount;
+    fldInStreamReadUInt8(inStream, &participantCount);
+    CLOG_C_VERBOSE(&self->log, "participant count %hhu", participantCount)
 
-    fldInStreamReadUInt8(inStream, &participant_count);
-    CLOG_C_VERBOSE(&self->log, "participant count %hhu", participant_count)
+    for (size_t participantIterator = 0; participantIterator < participantCount; ++participantIterator) {
+        uint8_t participantId;
 
-    for (size_t participant_iterator = 0; participant_iterator < participant_count; ++participant_iterator) {
-        uint8_t participant_index;
-
-        fldInStreamReadUInt8(inStream, &participant_index);
-        if (participant_index >= self->participantReferences.participantReferenceCount) {
-            CLOG_C_SOFT_ERROR(&self->log, "illegal participant index %hhu", participant_count)
+        fldInStreamReadUInt8(inStream, &participantId);
+        if (participantId >= self->participantReferences.participantReferenceCount) {
+            CLOG_C_SOFT_ERROR(&self->log, "illegal participant index %hhu", participantCount)
             return -4;
         }
-        NimbleServerParticipant* participant = self->participantReferences.participantReferences[participant_index];
 
-        int errorCode = nbsStepsInSerializeHeader(inStream, &firstStepId, &stepsThatFollow);
-        if (errorCode < 0) {
-            CLOG_C_SOFT_ERROR(&self->log, "client step: couldn't in-serialize steps")
-            return errorCode;
+        uint8_t deltaTicksFromCommonStepId;
+        fldInStreamReadUInt8(inStream, &deltaTicksFromCommonStepId);
+
+        uint32_t firstTickIdInArray = lowestCommonStepId + deltaTicksFromCommonStepId;
+
+        NimbleServerParticipant* participant = nimbleParticipantReferencesFind(&self->participantReferences,
+                                                                               participantId);
+        if (participant == 0) {
+            CLOG_C_SOFT_ERROR(&self->log, "tried to insert participant not in the party")
+            return -2;
         }
 
-        CLOG_EXECUTE(StepId lastStepId = (StepId) (firstStepId + stepsThatFollow - 1);)
+        uint8_t stepsThatFollow;
+        fldInStreamReadUInt8(inStream, &stepsThatFollow);
 
-        CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%zu)", firstStepId,
-                       lastStepId, stepsThatFollow)
+        CLOG_EXECUTE(StepId lastStepId = (StepId) (firstTickIdInArray + stepsThatFollow - 1);)
+
+        CLOG_C_VERBOSE(&self->log, "handleIncomingSteps: incoming step range %08X - %08X (count:%hhu)",
+                       firstTickIdInArray, lastStepId, stepsThatFollow)
 
         // Drop old predicted steps if needed.
-        size_t dropped = nbsStepsDropped(&participant->steps, firstStepId);
+        size_t dropped = nbsStepsDropped(&participant->steps, firstTickIdInArray);
         if (dropped > 0) {
             if (dropped > 60U) {
                 CLOG_C_WARN(&self->log, "client had a big gap in predicted steps %zu", dropped)
                 // return -3;
             }
             CLOG_C_WARN(&self->log, "client step: dropped %zu steps. expected %08X, but got range from %08X to %08X",
-                        dropped, participant->steps.expectedWriteId, firstStepId, lastStepId)
+                        dropped, participant->steps.expectedWriteId, firstTickIdInArray, lastStepId)
             // nimbleServerInsertForcedSteps(self, dropped);
         }
 
         size_t totalAddedStepsCount = 0;
+        size_t totalOldStepsCount = 0;
 
         for (size_t i = 0; i < stepsThatFollow; ++i) {
-            StepId stepId = firstStepId + (StepId) i;
+            StepId stepId = firstTickIdInArray + (StepId) i;
+
+            if (stepId < participant->steps.expectedWriteId) {
+                totalOldStepsCount++;
+            }
 
             int addedStepsCount = nimbleServerParticipantDeserializeSingleStep(participant, stepId, inStream);
             if (addedStepsCount < 0) {
@@ -224,6 +236,11 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         }
 
         if (totalAddedStepsCount == 0) {
+            if (totalOldStepsCount > 0) {
+                CLOG_C_NOTICE(&self->log, "only received %zu old predicted steps from %08X-%08X", totalOldStepsCount,
+                              firstTickIdInArray, firstTickIdInArray + stepsThatFollow - 1)
+            }
+
             if (self->warningAboutZeroAddedSteps++ % 4 == 0) {
                 // CLOG_C_DEBUG(
                 //   &self->log,
