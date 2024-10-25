@@ -9,7 +9,6 @@
 #include <nimble-server/local_party.h>
 #include <nimble-server/transport_connection.h>
 #include <nimble-steps-serialize/pending_out_serialize.h>
-#include <nimble-steps/pending_steps.h>
 
 /// Send authoritative steps to a transport connection using a client provided receiveMask.
 /// @param outStream stream to send step ranges to
@@ -20,77 +19,75 @@
 ssize_t nimbleServerSendStepRanges(FldOutStream* outStream, NimbleServerTransportConnection* transportConnection,
                                    NimbleServerGame* foundGame, StepId clientWaitingForStepId)
 {
-    NbsPendingRange ranges[1];
+    NbsPendingRange range;
 
-    StepId lastReceivedStepFromClient = 0;
-    size_t bufferDelta = 0;
-    int authoritativeBufferDelta = 0;
+    StepId startTickId = clientWaitingForStepId;
 
-    size_t rangeCount = 0;
-
-    if (clientWaitingForStepId < foundGame->authoritativeSteps.expectedReadId) {
-        CLOG_C_VERBOSE(&transportConnection->log,
-                       "client wants to get authoritative %08X, but we only can provide the earliest %08X",
-                       clientWaitingForStepId, foundGame->authoritativeSteps.expectedReadId)
-        rangeCount = 0;
-    } else {
-        rangeCount = (size_t) 0;
-
-        if (foundGame->authoritativeSteps.expectedWriteId > clientWaitingForStepId) {
-            // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,
-            //        foundGame->authoritativeSteps.expectedWriteId);
-
-            size_t availableCount = foundGame->authoritativeSteps.expectedWriteId - clientWaitingForStepId;
-            const size_t maxRedundancyStepCount = 20;
-            if (availableCount > maxRedundancyStepCount) {
-                availableCount = maxRedundancyStepCount;
-            }
-            ranges[rangeCount].startId = clientWaitingForStepId;
-            ranges[rangeCount].count = availableCount;
-
-            CLOG_C_VERBOSE(&transportConnection->log, "add continuation range %08X %zu", ranges[rangeCount].startId,
-                           ranges[rangeCount].count)
-            rangeCount++;
-        } else {
-            CLOG_C_VERBOSE(&transportConnection->log, "no need to force any range. we have %08X and client wants %08X",
-                           foundGame->authoritativeSteps.expectedWriteId - 1, clientWaitingForStepId)
-        }
-        /*
-            nbsPendingStepsRangesDebugOutput(ranges, "server serialize out initial", rangeCount,
-           transportConnection->log);
-        */
-
-        if (rangeCount == 0) {
-            transportConnection->noRangesToSendCounter++;
-            if (transportConnection->noRangesToSendCounter > 8) {
-                int noticeTime = transportConnection->noRangesToSendCounter % 20;
-                if (noticeTime == 0) {
-                    CLOG_C_NOTICE(&transportConnection->log, "no ranges to send for %d ticks, suspicious",
-                                  transportConnection->noRangesToSendCounter)
-                }
-            }
-        } else {
-            transportConnection->noRangesToSendCounter = 0;
-        }
-
-        NimbleServerLocalParty* party = transportConnection->assignedParty;
-        if (party != 0) {
-            lastReceivedStepFromClient = party->highestReceivedStepId;
-            bufferDelta = party->stepsInBufferCount;
-            authoritativeBufferDelta = (int) party->highestReceivedStepId -
-                                       (int) foundGame->authoritativeSteps.expectedWriteId;
-        }
+    if (startTickId >= foundGame->authoritativeSteps.expectedWriteId) {
+        startTickId = foundGame->authoritativeSteps.expectedWriteId - 1;
     }
 
-    int serializeErr = nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferDelta,
-                                                          (int8_t) authoritativeBufferDelta, &transportConnection->log);
+    if (startTickId < foundGame->authoritativeSteps.expectedReadId) {
+        CLOG_C_VERBOSE(&transportConnection->log,
+                       "client wants to get authoritative %08X, but we only can provide the earliest %08X", startTickId,
+                       foundGame->authoritativeSteps.expectedReadId)
+        startTickId = foundGame->authoritativeSteps.expectedReadId;
+    }
+
+    // CLOG_INFO("client waiting for %0lX, game authoritative stepId is at %0lX", clientWaitingForStepId,
+    //        foundGame->authoritativeSteps.expectedWriteId);
+
+    size_t authStepCountToSend = foundGame->authoritativeSteps.expectedWriteId - startTickId;
+    const size_t maxRedundancyStepCount = 20;
+    if (authStepCountToSend > maxRedundancyStepCount) {
+        authStepCountToSend = maxRedundancyStepCount;
+    }
+    range.startId = startTickId;
+    range.count = authStepCountToSend;
+
+    CLOG_C_VERBOSE(&transportConnection->log, "send auth range %08X-%08zX, %zu", range.startId,
+                   range.startId + authStepCountToSend - 1, range.count)
+
+    if (authStepCountToSend == 0) {
+        transportConnection->noRangesToSendCounter++;
+        if (transportConnection->noRangesToSendCounter > 8) {
+            int noticeTime = transportConnection->noRangesToSendCounter % 20;
+            if (noticeTime == 0) {
+                CLOG_C_NOTICE(&transportConnection->log, "no ranges to send for %d ticks, suspicious",
+                              transportConnection->noRangesToSendCounter)
+            }
+        }
+    } else {
+        transportConnection->noRangesToSendCounter = 0;
+    }
+
+    StepId lastReceivedStepFromClient = 0;
+    size_t bufferStepCount = 0;
+    int8_t authoritativeTickDelta = 0;
+
+    NimbleServerLocalParty* party = transportConnection->assignedParty;
+    if (party != 0) {
+        lastReceivedStepFromClient = party->highestReceivedStepId;
+        bufferStepCount = party->stepsInBufferCount;
+        int64_t tickDelta = (int64_t) party->highestReceivedStepId -
+                                   (int64_t) foundGame->authoritativeSteps.expectedWriteId;
+
+        if (tickDelta < -127) {
+            authoritativeTickDelta = -128;
+        } else if (tickDelta > 127) {
+            authoritativeTickDelta = 127;
+        } else {
+            authoritativeTickDelta = (int8_t) tickDelta;
+        }
+    }
+    CLOG_C_VERBOSE(&transportConnection->log, "send auth header tick_id:%08X tick-delta: %hhd, buffer-size:%zu",
+                   lastReceivedStepFromClient, authoritativeTickDelta, bufferStepCount)
+
+    int serializeErr = nimbleSerializeServerOutStepHeader(outStream, lastReceivedStepFromClient, bufferStepCount,
+                                                          authoritativeTickDelta, &transportConnection->log);
     if (serializeErr < 0) {
         return serializeErr;
     }
 
-#if defined CONFIGURATION_DEBUG
-    nbsPendingStepsRangesDebugOutput(ranges, "server serialize out", rangeCount, transportConnection->log);
-#endif
-
-    return nbsPendingStepsSerializeOutRanges(outStream, &foundGame->authoritativeSteps, ranges, rangeCount);
+    return nbsPendingStepsSerializeOutRanges(outStream, &foundGame->authoritativeSteps, &range, 1);
 }

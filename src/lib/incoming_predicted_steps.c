@@ -44,13 +44,11 @@ int nimbleServerHandleIncomingSteps(NimbleServerGame* foundGame, FldInStream* in
         return errorCode;
     }
 
-
-
     *outClientWaitingForStepId = clientWaitingForStepId;
 
     CLOG_C_VERBOSE(
         &transportConnection->log,
-        "handleIncomingSteps: transport connection %d party: %hhu is awaiting step %08X",
+        "handleIncomingSteps: transport connection %d party: %hhu first predicted StepID %08X",
         transportConnection->transportConnectionId, party->id, clientWaitingForStepId)
 
     int addedStepsCountOrError = nimbleServerLocalPartyDeserializePredictedSteps(party, inStream);

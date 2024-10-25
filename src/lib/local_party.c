@@ -171,6 +171,8 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
     uint32_t lowestCommonStepId;
     fldInStreamReadUInt32(inStream, &lowestCommonStepId);
 
+    CLOG_C_VERBOSE(&self->log, "lowest tickId: %08X", lowestCommonStepId)
+
     uint8_t participantCount;
     fldInStreamReadUInt8(inStream, &participantCount);
     CLOG_C_VERBOSE(&self->log, "participant count %hhu", participantCount)
@@ -188,6 +190,8 @@ int nimbleServerLocalPartyDeserializePredictedSteps(NimbleServerLocalParty* self
         fldInStreamReadUInt8(inStream, &deltaTicksFromCommonStepId);
 
         uint32_t firstTickIdInArray = lowestCommonStepId + deltaTicksFromCommonStepId;
+        CLOG_C_VERBOSE(&self->log, "first tickId in array: %08X (delta %hhu)", firstTickIdInArray,
+                       deltaTicksFromCommonStepId)
 
         NimbleServerParticipant* participant = nimbleParticipantReferencesFind(&self->participantReferences,
                                                                                participantId);
