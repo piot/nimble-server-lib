@@ -306,6 +306,8 @@ int nimbleServerInit(NimbleServer* self, NimbleServerSetup setup)
     self->transportConnections[0].transportConnectionId = (uint8_t) 0;
     self->transportConnections[0].isUsed = false;
 
+    self->lastAdvancedMonotonic = setup.now;
+
     nimbleServerCircularBufferInit(&self->freeTransportConnectionList);
     for (size_t i = 1; i < NIMBLE_NIMBLE_SERVER_MAX_TRANSPORT_CONNECTIONS; ++i) {
         self->transportConnections[i].assignedParty = 0;
